@@ -1,9 +1,9 @@
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { EmojiReactions } from "./EmojiReactions";
+import { PostComments } from "./PostComments";
 
 interface PostCardProps {
   post: {
@@ -16,7 +16,11 @@ interface PostCardProps {
       apellidos: string | null;
       avatar_url: string | null;
     } | null;
-    reacciones: { id: string }[];
+    reacciones: Array<{
+      id: string;
+      tipo_reaccion: string;
+      user_id: string;
+    }>;
     comentarios: { id: string }[];
     post_tags?: Array<{
       usuarios: {
@@ -25,18 +29,16 @@ interface PostCardProps {
       } | null;
     }>;
   };
-  onReaction: (postId: string) => void;
+  onRefresh: () => void;
   currentUserId?: string;
 }
 
-export const PostCard = ({ post, onReaction, currentUserId }: PostCardProps) => {
+export const PostCard = ({ post, onRefresh, currentUserId }: PostCardProps) => {
   const getInitials = (nombres: string | null, apellidos: string | null) => {
     const n = nombres?.charAt(0) || "";
     const a = apellidos?.charAt(0) || "";
     return (n + a).toUpperCase() || "??";
   };
-
-  const hasLiked = currentUserId && post.reacciones.some(() => true);
 
   return (
     <Card className="shadow-md border-border hover:shadow-lg transition-all">
@@ -94,40 +96,19 @@ export const PostCard = ({ post, onReaction, currentUserId }: PostCardProps) => 
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-3 border-t border-border">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`gap-2 ${
-                hasLiked 
-                  ? "text-red-500 hover:text-red-600" 
-                  : "text-muted-foreground hover:text-primary"
-              }`}
-              onClick={() => onReaction(post.id)}
-            >
-              <Heart className={`h-5 w-5 ${hasLiked ? "fill-current" : ""}`} />
-              <span className="font-medium">{post.reacciones?.length || 0}</span>
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-muted-foreground hover:text-primary"
-            >
-              <MessageCircle className="h-5 w-5" />
-              <span className="font-medium">{post.comentarios?.length || 0}</span>
-            </Button>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2 text-muted-foreground hover:text-primary"
-          >
-            <Share2 className="h-5 w-5" />
-            <span className="hidden sm:inline">Compartir</span>
-          </Button>
+        <div className="flex items-center gap-4 pt-3 border-t border-border">
+          <EmojiReactions
+            postId={post.id}
+            reactions={post.reacciones}
+            currentUserId={currentUserId}
+            onReactionUpdate={onRefresh}
+          />
+          
+          <PostComments
+            postId={post.id}
+            commentsCount={post.comentarios?.length || 0}
+            currentUserId={currentUserId}
+          />
         </div>
       </CardContent>
     </Card>

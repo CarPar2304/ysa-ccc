@@ -20,7 +20,11 @@ interface Post {
     apellidos: string | null;
     avatar_url: string | null;
   } | null;
-  reacciones: { id: string }[];
+  reacciones: Array<{
+    id: string;
+    tipo_reaccion: string;
+    user_id: string;
+  }>;
   comentarios: { id: string }[];
   post_tags?: Array<{
     usuarios: {
@@ -70,7 +74,7 @@ const Dashboard = () => {
         .select(`
           *,
           usuarios!posts_user_id_fkey (nombres, apellidos, avatar_url),
-          reacciones (id),
+          reacciones (id, tipo_reaccion, user_id),
           comentarios (id)
         `)
         .order("created_at", { ascending: false });
@@ -119,29 +123,6 @@ const Dashboard = () => {
   };
 
 
-  const handleReaction = async (postId: string) => {
-    if (!userId) return;
-
-    try {
-      const existingReaction = posts
-        .find((p) => p.id === postId)
-        ?.reacciones.find(() => true);
-
-      if (existingReaction) {
-        await supabase.from("reacciones").delete().eq("post_id", postId).eq("user_id", userId);
-      } else {
-        await supabase.from("reacciones").insert({
-          post_id: postId,
-          user_id: userId,
-          tipo_reaccion: "like",
-        });
-      }
-
-      fetchPosts();
-    } catch (error) {
-      console.error("Error handling reaction:", error);
-    }
-  };
 
   if (roleLoading || loading) {
     return (
@@ -178,7 +159,7 @@ const Dashboard = () => {
             <PostCard
               key={post.id}
               post={post}
-              onReaction={handleReaction}
+              onRefresh={fetchPosts}
               currentUserId={userId}
             />
           ))}
