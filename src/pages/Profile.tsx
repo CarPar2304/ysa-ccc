@@ -9,7 +9,7 @@ import { ProfileTeam } from "@/components/profile/ProfileTeam";
 import { ProfileProjections } from "@/components/profile/ProfileProjections";
 import { ProfileFinancing } from "@/components/profile/ProfileFinancing";
 import { ProfileEvaluation } from "@/components/profile/ProfileEvaluation";
-import { Lock, Upload, User as UserIcon } from "lucide-react";
+import { Lock, Upload, User as UserIcon, Briefcase, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -184,50 +184,53 @@ const Profile = () => {
           </div>
         </Card>
 
-        <Tabs defaultValue="basic" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
-            <TabsTrigger value="basic">Información Básica</TabsTrigger>
-            <TabsTrigger value="authorizations">Autorizaciones</TabsTrigger>
-            <TabsTrigger value="guardian">Acudiente</TabsTrigger>
-            <TabsTrigger value="entrepreneurship">Emprendimiento</TabsTrigger>
-            <TabsTrigger value="team">Equipo</TabsTrigger>
-            <TabsTrigger value="projections">Proyecciones</TabsTrigger>
-            <TabsTrigger value="financing">Financiamiento</TabsTrigger>
-            <TabsTrigger value="evaluation" className="relative">
+        <Tabs defaultValue="usuario" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="usuario" className="flex items-center gap-2">
+              <UserIcon className="h-4 w-4" />
+              Usuario
+            </TabsTrigger>
+            <TabsTrigger value="emprendimiento" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Emprendimiento
+            </TabsTrigger>
+            <TabsTrigger value="evaluacion" className="flex items-center gap-2">
+              <Award className="h-4 w-4" />
               Evaluación
               <Lock className="h-3 w-3 ml-1 text-muted-foreground" />
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="basic">
+          <TabsContent value="usuario" className="space-y-6">
             <ProfileBasicInfo readOnly />
-          </TabsContent>
-
-          <TabsContent value="authorizations">
             <ProfileAuthorizations readOnly />
-          </TabsContent>
-
-          <TabsContent value="guardian">
             <ProfileGuardian readOnly />
           </TabsContent>
 
-          <TabsContent value="entrepreneurship">
-            <ProfileEntrepreneurship readOnly />
+          <TabsContent value="emprendimiento">
+            <Tabs defaultValue="info" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="info">Información</TabsTrigger>
+                <TabsTrigger value="financiamiento">Financiamiento</TabsTrigger>
+                <TabsTrigger value="proyecciones">Proyecciones</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="info" className="space-y-6">
+                <ProfileEntrepreneurship readOnly />
+                <ProfileTeam readOnly />
+              </TabsContent>
+
+              <TabsContent value="financiamiento">
+                <ProfileFinancing readOnly />
+              </TabsContent>
+
+              <TabsContent value="proyecciones">
+                <ProfileProjections readOnly />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="team">
-            <ProfileTeam readOnly />
-          </TabsContent>
-
-          <TabsContent value="projections">
-            <ProfileProjections readOnly />
-          </TabsContent>
-
-          <TabsContent value="financing">
-            <ProfileFinancing readOnly />
-          </TabsContent>
-
-          <TabsContent value="evaluation">
+          <TabsContent value="evaluacion">
             <ProfileEvaluation />
           </TabsContent>
         </Tabs>

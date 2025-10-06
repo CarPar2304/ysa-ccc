@@ -64,14 +64,18 @@ export const ProfileEvaluation = () => {
           <CardDescription>Tu diagnóstico personalizado</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert className="bg-muted border-border">
-            <Lock className="h-4 w-4" />
-            <AlertTitle>Próximamente</AlertTitle>
-            <AlertDescription>
-              Podrás conocer tu evaluación una vez que el equipo de YSA complete tu diagnóstico.
-              Te notificaremos cuando esté disponible.
-            </AlertDescription>
-          </Alert>
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            <div className="rounded-full bg-muted p-6">
+              <Lock className="h-16 w-16 text-muted-foreground" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-2xl font-bold text-foreground">Próximamente</h3>
+              <p className="text-muted-foreground max-w-md">
+                Podrás conocer tu evaluación una vez que el equipo de YSA complete tu diagnóstico.
+                Te notificaremos cuando esté disponible.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
