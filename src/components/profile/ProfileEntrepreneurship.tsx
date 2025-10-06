@@ -1,17 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Briefcase, FileText, TrendingUp, Target } from "lucide-react";
 
-export const ProfileEntrepreneurship = () => {
+interface ProfileEntrepreneurshipProps {
+  readOnly?: boolean;
+}
+
+export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneurshipProps) => {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
@@ -63,39 +61,6 @@ export const ProfileEntrepreneurship = () => {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const updateData: any = {
-        user_id: user.id,
-        ...formData,
-      };
-
-      const { error } = await supabase
-        .from("emprendimientos")
-        .upsert(updateData);
-
-      if (error) throw error;
-
-      toast({
-        title: "Éxito",
-        description: "Información del emprendimiento actualizada correctamente",
-      });
-    } catch (error) {
-      console.error("Error saving entrepreneurship:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo guardar la información",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -104,111 +69,48 @@ export const ProfileEntrepreneurship = () => {
     );
   }
 
+  const InfoItem = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
+    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
+      <Icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-base text-foreground break-words">{value || "No especificado"}</p>
+      </div>
+    </div>
+  );
+
   return (
-    <Card className="shadow-medium border-border">
-      <CardHeader>
-        <CardTitle>Información del Emprendimiento</CardTitle>
-        <CardDescription>Detalles sobre tu proyecto o startup</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="nombre-emprendimiento">Nombre del Emprendimiento</Label>
-          <Input 
-            id="nombre-emprendimiento" 
-            placeholder="Nombre de tu proyecto"
-            value={formData.nombre}
-            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-          />
-        </div>
+    <div className="grid gap-6">
+      <Card className="shadow-medium border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Briefcase className="h-5 w-5" />
+            Información del Emprendimiento
+          </CardTitle>
+          <CardDescription>Detalles sobre tu proyecto o startup</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <InfoItem icon={Briefcase} label="Nombre" value={formData.nombre} />
+          {formData.descripcion && (
+            <InfoItem icon={FileText} label="Descripción" value={formData.descripcion} />
+          )}
+        </CardContent>
+      </Card>
 
-        <div className="space-y-2">
-          <Label htmlFor="descripcion">Descripción</Label>
-          <Textarea 
-            id="descripcion" 
-            placeholder="Describe tu emprendimiento..."
-            className="min-h-[100px]"
-            value={formData.descripcion}
-            onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="industria">Industria o Vertical</Label>
-            <Input 
-              id="industria" 
-              placeholder="Ej: Tecnología, Salud"
-              value={formData.industria_vertical}
-              onChange={(e) => setFormData({ ...formData, industria_vertical: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="etapa">Etapa</Label>
-            <Select
-              value={formData.etapa}
-              onValueChange={(value) => setFormData({ ...formData, etapa: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona etapa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ideacion">Ideación</SelectItem>
-                <SelectItem value="validacion">Validación</SelectItem>
-                <SelectItem value="escalamiento_temprano">Escalamiento Temprano</SelectItem>
-                <SelectItem value="escalamiento">Escalamiento</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="categoria">Categoría</Label>
-            <Select
-              value={formData.categoria}
-              onValueChange={(value) => setFormData({ ...formData, categoria: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="producto">Producto</SelectItem>
-                <SelectItem value="servicio">Servicio</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="alcance">Alcance de Mercado</Label>
-            <Select
-              value={formData.alcance_mercado}
-              onValueChange={(value) => setFormData({ ...formData, alcance_mercado: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona alcance" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="local">Local</SelectItem>
-                <SelectItem value="regional">Regional</SelectItem>
-                <SelectItem value="nacional">Nacional</SelectItem>
-                <SelectItem value="internacional">Internacional</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button variant="outline" onClick={fetchEntrepreneurship}>
-            Cancelar
-          </Button>
-          <Button
-            className="bg-primary hover:bg-primary-hover text-primary-foreground"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar cambios"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      <Card className="shadow-medium border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            Clasificación
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <InfoItem icon={Target} label="Industria" value={formData.industria_vertical} />
+          <InfoItem icon={TrendingUp} label="Etapa" value={formData.etapa} />
+          <InfoItem icon={Briefcase} label="Categoría" value={formData.categoria} />
+          <InfoItem icon={Target} label="Alcance de Mercado" value={formData.alcance_mercado} />
+        </CardContent>
+      </Card>
+    </div>
   );
 };
