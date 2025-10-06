@@ -9,7 +9,8 @@ import { ProfileTeam } from "@/components/profile/ProfileTeam";
 import { ProfileProjections } from "@/components/profile/ProfileProjections";
 import { ProfileFinancing } from "@/components/profile/ProfileFinancing";
 import { ProfileEvaluation } from "@/components/profile/ProfileEvaluation";
-import { Lock, Upload, User as UserIcon, Briefcase, Award } from "lucide-react";
+import { ProfilePosts } from "@/components/profile/ProfilePosts";
+import { Lock, Upload, User as UserIcon, Briefcase, Award, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -187,7 +188,7 @@ const Profile = () => {
         </Card>
 
         <Tabs defaultValue="usuario" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="usuario" className="flex items-center gap-2">
               <UserIcon className="h-4 w-4" />
               Usuario
@@ -195,6 +196,10 @@ const Profile = () => {
             <TabsTrigger value="emprendimiento" className="flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
               Emprendimiento
+            </TabsTrigger>
+            <TabsTrigger value="publicaciones" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Publicaciones
             </TabsTrigger>
             <TabsTrigger value="evaluacion" className="flex items-center gap-2">
               <Award className="h-4 w-4" />
@@ -230,6 +235,10 @@ const Profile = () => {
                 <ProfileProjections readOnly />
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          <TabsContent value="publicaciones">
+            <ProfilePosts />
           </TabsContent>
 
           <TabsContent value="evaluacion">

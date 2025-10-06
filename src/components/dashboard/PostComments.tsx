@@ -9,10 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Comment {
   id: string;
@@ -112,8 +114,8 @@ export const PostComments = ({ postId, commentsCount, currentUserId }: PostComme
   };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
@@ -122,17 +124,21 @@ export const PostComments = ({ postId, commentsCount, currentUserId }: PostComme
           <MessageCircle className="h-5 w-5" />
           <span className="font-medium">{commentsCount}</span>
         </Button>
-      </CollapsibleTrigger>
+      </DialogTrigger>
 
-      <CollapsibleContent className="mt-4 space-y-4">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Comentarios ({commentsCount})</DialogTitle>
+        </DialogHeader>
+
         {/* Lista de comentarios */}
-        {loading ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Cargando comentarios...
-          </p>
-        ) : comments.length > 0 ? (
-          <div className="space-y-3 max-h-80 overflow-y-auto">
-            {comments.map((comment) => (
+        <div className="flex-1 overflow-y-auto space-y-3 py-4">
+          {loading ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Cargando comentarios...
+            </p>
+          ) : comments.length > 0 ? (
+            comments.map((comment) => (
               <Card key={comment.id} className="p-3 bg-muted/30">
                 <div className="flex gap-3">
                   <Avatar className="h-8 w-8">
@@ -159,17 +165,20 @@ export const PostComments = ({ postId, commentsCount, currentUserId }: PostComme
                   </div>
                 </div>
               </Card>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            No hay comentarios aún. ¡Sé el primero en comentar!
-          </p>
-        )}
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-2xl mb-2">👋</p>
+              <p className="text-sm text-muted-foreground">
+                No hay comentarios aún. ¡Sé el primero en comentar!
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Input para nuevo comentario */}
         {currentUserId && (
-          <div className="flex gap-2 pt-2 border-t border-border">
+          <div className="flex gap-2 pt-4 border-t border-border">
             <Input
               placeholder="Escribe un comentario..."
               value={newComment}
@@ -187,12 +196,13 @@ export const PostComments = ({ postId, commentsCount, currentUserId }: PostComme
               size="icon"
               onClick={handlePostComment}
               disabled={posting || !newComment.trim()}
+              className="shrink-0"
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
         )}
-      </CollapsibleContent>
-    </Collapsible>
+      </DialogContent>
+    </Dialog>
   );
 };
