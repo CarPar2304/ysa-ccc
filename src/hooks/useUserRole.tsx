@@ -26,7 +26,7 @@ export const useUserRole = () => {
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
         setRole(roles?.role as UserRole || null);
       } catch (error) {
