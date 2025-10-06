@@ -9,12 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface Comment {
   id: string;
@@ -43,7 +41,7 @@ export const PostComments = ({ postId, commentsCount, currentUserId }: PostComme
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && comments.length === 0) {
       fetchComments();
     }
   }, [isOpen]);
@@ -114,8 +112,8 @@ export const PostComments = ({ postId, commentsCount, currentUserId }: PostComme
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+      <CollapsibleTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
@@ -124,85 +122,83 @@ export const PostComments = ({ postId, commentsCount, currentUserId }: PostComme
           <MessageCircle className="h-5 w-5" />
           <span className="font-medium">{commentsCount}</span>
         </Button>
-      </DialogTrigger>
+      </CollapsibleTrigger>
 
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Comentarios ({commentsCount})</DialogTitle>
-        </DialogHeader>
-
-        {/* Lista de comentarios */}
-        <div className="flex-1 overflow-y-auto space-y-3 py-4">
-          {loading ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Cargando comentarios...
-            </p>
-          ) : comments.length > 0 ? (
-            comments.map((comment) => (
-              <Card key={comment.id} className="p-3 bg-muted/30">
-                <div className="flex gap-3">
-                  <Avatar className="h-8 w-8">
-                    {comment.usuarios?.avatar_url && (
-                      <AvatarImage src={comment.usuarios.avatar_url} />
-                    )}
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                      {getInitials(comment.usuarios?.nombres || null, comment.usuarios?.apellidos || null)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">
-                        {comment.usuarios?.nombres} {comment.usuarios?.apellidos}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(comment.created_at), {
-                          addSuffix: true,
-                          locale: es,
-                        })}
-                      </span>
-                    </div>
-                    <p className="text-sm mt-1">{comment.contenido}</p>
-                  </div>
-                </div>
-              </Card>
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-2xl mb-2">👋</p>
-              <p className="text-sm text-muted-foreground">
-                No hay comentarios aún. ¡Sé el primero en comentar!
+      <CollapsibleContent className="mt-4 space-y-4 animate-in slide-in-from-top-2">
+        <div className="pl-2 border-l-2 border-primary/20">
+          {/* Lista de comentarios */}
+          <div className="space-y-3">
+            {loading ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Cargando comentarios...
               </p>
+            ) : comments.length > 0 ? (
+              comments.map((comment) => (
+                <Card key={comment.id} className="p-3 bg-muted/30">
+                  <div className="flex gap-3">
+                    <Avatar className="h-8 w-8">
+                      {comment.usuarios?.avatar_url && (
+                        <AvatarImage src={comment.usuarios.avatar_url} />
+                      )}
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                        {getInitials(comment.usuarios?.nombres || null, comment.usuarios?.apellidos || null)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">
+                          {comment.usuarios?.nombres} {comment.usuarios?.apellidos}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(comment.created_at), {
+                            addSuffix: true,
+                            locale: es,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">{comment.contenido}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-2xl mb-2">👋</p>
+                <p className="text-sm text-muted-foreground">
+                  No hay comentarios aún. ¡Sé el primero en comentar!
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Input para nuevo comentario */}
+          {currentUserId && (
+            <div className="flex gap-2 mt-4 pt-4 border-t border-border">
+              <Input
+                placeholder="Escribe un comentario..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handlePostComment();
+                  }
+                }}
+                disabled={posting}
+                className="flex-1"
+              />
+              <Button
+                size="icon"
+                onClick={handlePostComment}
+                disabled={posting || !newComment.trim()}
+                className="shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
           )}
         </div>
-
-        {/* Input para nuevo comentario */}
-        {currentUserId && (
-          <div className="flex gap-2 pt-4 border-t border-border">
-            <Input
-              placeholder="Escribe un comentario..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handlePostComment();
-                }
-              }}
-              disabled={posting}
-              className="flex-1"
-            />
-            <Button
-              size="icon"
-              onClick={handlePostComment}
-              disabled={posting || !newComment.trim()}
-              className="shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+      </CollapsibleContent>
+    </Collapsible>
   );
 };
