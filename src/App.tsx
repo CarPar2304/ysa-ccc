@@ -8,6 +8,8 @@ import Login from "./pages/Login";
 import News from "./pages/News";
 import Lab from "./pages/Lab";
 import Profile from "./pages/Profile";
+import Admin from "./pages/Admin";
+import MentorPanel from "./pages/MentorPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/news" element={<News />} />
           <Route path="/lab" element={<Lab />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/mentor" element={<MentorPanel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

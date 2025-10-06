@@ -1,7 +1,8 @@
 import { NavLink } from "react-router-dom";
-import { Home, Newspaper, BookOpen, User, LogOut } from "lucide-react";
+import { Home, Newspaper, BookOpen, User, LogOut, Settings, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const navigation = [
   { name: "YSA Conecta", href: "/", icon: Home },
@@ -10,6 +11,8 @@ const navigation = [
 ];
 
 export const Sidebar = () => {
+  const { isAdmin, isMentor } = useUserRole();
+
   return (
     <div className="flex h-screen w-64 flex-col border-r border-border bg-card shadow-soft">
       <div className="flex h-16 items-center justify-center border-b border-border px-6">
@@ -36,6 +39,40 @@ export const Sidebar = () => {
             {item.name}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
+                isActive
+                  ? "bg-accent text-accent-foreground shadow-soft"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+              )
+            }
+          >
+            <Settings className="h-5 w-5" />
+            Admin Panel
+          </NavLink>
+        )}
+
+        {isMentor && (
+          <NavLink
+            to="/mentor"
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
+                isActive
+                  ? "bg-accent text-accent-foreground shadow-soft"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+              )
+            }
+          >
+            <Users className="h-5 w-5" />
+            Panel Mentor
+          </NavLink>
+        )}
       </nav>
 
       <div className="border-t border-border p-4 space-y-2">
