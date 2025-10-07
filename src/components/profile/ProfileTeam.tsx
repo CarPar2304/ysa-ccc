@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Users, UserCheck, Star, Code } from "lucide-react";
+import { Loader2, Users, UserCheck, Star, Code, GitBranch, Vote } from "lucide-react";
 
 interface ProfileTeamProps {
   readOnly?: boolean;
@@ -17,6 +17,8 @@ export const ProfileTeam = ({ readOnly = false }: ProfileTeamProps) => {
     colaboradoras: 0,
     colaboradores_jovenes: 0,
     equipo_tecnico: false,
+    tipo_decisiones: null as string | null,
+    organigrama: null as string | null,
   });
   const { toast } = useToast();
 
@@ -56,6 +58,8 @@ export const ProfileTeam = ({ readOnly = false }: ProfileTeamProps) => {
           colaboradoras: data.colaboradoras || 0,
           colaboradores_jovenes: data.colaboradores_jovenes || 0,
           equipo_tecnico: data.equipo_tecnico || false,
+          tipo_decisiones: data.tipo_decisiones,
+          organigrama: data.organigrama,
         });
       }
     } catch (error) {
@@ -115,6 +119,30 @@ export const ProfileTeam = ({ readOnly = false }: ProfileTeamProps) => {
             value={formData.equipo_tecnico ? "Sí" : "No"} 
           />
         </div>
+
+        {(formData.tipo_decisiones || formData.organigrama) && (
+          <div className="grid gap-4 md:grid-cols-2 mt-6 pt-6 border-t border-border">
+            {formData.tipo_decisiones && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Vote className="h-4 w-4 text-primary" />
+                  Tipo de Decisiones
+                </div>
+                <p className="text-sm text-muted-foreground pl-6">{formData.tipo_decisiones}</p>
+              </div>
+            )}
+            
+            {formData.organigrama && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <GitBranch className="h-4 w-4 text-primary" />
+                  Organigrama
+                </div>
+                <p className="text-sm text-muted-foreground pl-6">{formData.organigrama}</p>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
