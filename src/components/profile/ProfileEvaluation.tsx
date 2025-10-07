@@ -1,23 +1,27 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Lock, FileText } from "lucide-react";
+import { EvaluationsModal } from "./EvaluationsModal";
 
 export const ProfileEvaluation = () => {
   const [loading, setLoading] = useState(true);
-  const [evaluation, setEvaluation] = useState<any>(null);
+  const [evaluaciones, setEvaluaciones] = useState<any[]>([]);
+  const [promedioVisible, setPromedioVisible] = useState(false);
+  const [puntajePromedio, setPuntajePromedio] = useState(0);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    fetchEvaluation();
+    fetchEvaluations();
   }, []);
 
-  const fetchEvaluation = async () => {
+  const fetchEvaluations = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Obtener el emprendimiento del usuario
       const { data: emprendimiento } = await supabase
         .from("emprendimientos")
         .select("id")
@@ -29,17 +33,24 @@ export const ProfileEvaluation = () => {
         return;
       }
 
-      // Obtener la evaluación visible
-      const { data: evaluacion } = await supabase
+      const { data: evaluacionesData } = await supabase
         .from("evaluaciones")
         .select("*")
         .eq("emprendimiento_id", emprendimiento.id)
         .eq("visible_para_usuario", true)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
 
-      setEvaluation(evaluacion);
+      setEvaluaciones(evaluacionesData || []);
+
+      const evaluacionesEnviadas = (evaluacionesData || []).filter(e => e.estado === 'enviada');
+      if (evaluacionesEnviadas.length > 0) {
+        const totalPuntaje = evaluacionesEnviadas.reduce((sum, ev) => sum + (ev.puntaje || 0), 0);
+        const promedio = totalPuntaje / evaluacionesEnviadas.length;
+        setPuntajePromedio(promedio);
+        setPromedioVisible(true);
+      }
     } catch (error) {
-      console.error("Error fetching evaluation:", error);
+      console.error("Error fetching evaluations:", error);
     } finally {
       setLoading(false);
     }
@@ -53,7 +64,10 @@ export const ProfileEvaluation = () => {
     );
   }
 
-  if (!evaluation) {
+  const evaluacionesEnviadas = evaluaciones.filter(e => e.estado === 'enviada');
+  const completadas = evaluacionesEnviadas.length;
+
+  if (!promedioVisible || evaluaciones.length === 0) {
     return (
       <Card className="shadow-medium border-border">
         <CardHeader>
@@ -82,56 +96,59 @@ export const ProfileEvaluation = () => {
   }
 
   return (
-    <Card className="shadow-medium border-border">
-      <CardHeader>
-        <CardTitle>Evaluación y Diagnóstico</CardTitle>
-        <CardDescription>Resultados de tu evaluación</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {evaluation.puntaje && (
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">Puntaje General</h3>
-            <p className="text-2xl font-bold text-primary">{evaluation.puntaje}/100</p>
+    <>
+      <Card className="shadow-medium border-border">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle>Evaluación y Diagnóstico</CardTitle>
+              <CardDescription>Resultados de la evaluación de tu emprendimiento</CardDescription>
+            </div>
+            <Badge variant={completadas === 3 ? "default" : "secondary"}>
+              {completadas} / 3 Evaluaciones
+            </Badge>
           </div>
-        )}
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-center p-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border-2 border-primary/20">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Puntaje Promedio</p>
+            <p className="text-6xl font-bold text-primary mb-2">{puntajePromedio.toFixed(1)}</p>
+            <p className="text-sm text-muted-foreground">de 105 puntos posibles</p>
+            <div className="mt-4">
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-500"
+                  style={{ width: `${(puntajePromedio / 105) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
 
-        {evaluation.diagnostico_completo && (
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">Diagnóstico Completo</h3>
-            <p className="text-muted-foreground whitespace-pre-wrap">
-              {evaluation.diagnostico_completo}
-            </p>
-          </div>
-        )}
+          {completadas < 3 && (
+            <div className="bg-muted/50 p-4 rounded-lg text-center">
+              <p className="text-sm text-muted-foreground">
+                <strong>Nota:</strong> Este es un puntaje parcial basado en {completadas} evaluación{completadas > 1 ? 'es' : ''}.
+                El puntaje final se calculará cuando se completen las 3 evaluaciones.
+              </p>
+            </div>
+          )}
 
-        {evaluation.impacto_texto && (
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">Impacto</h3>
-            <p className="text-muted-foreground">{evaluation.impacto_texto}</p>
-          </div>
-        )}
+          <Button 
+            className="w-full" 
+            variant="outline"
+            onClick={() => setShowModal(true)}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Ver Evaluaciones Individuales ({completadas})
+          </Button>
+        </CardContent>
+      </Card>
 
-        {evaluation.equipo_texto && (
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">Equipo</h3>
-            <p className="text-muted-foreground">{evaluation.equipo_texto}</p>
-          </div>
-        )}
-
-        {evaluation.innovacion_tecnologia_texto && (
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">Innovación y Tecnología</h3>
-            <p className="text-muted-foreground">{evaluation.innovacion_tecnologia_texto}</p>
-          </div>
-        )}
-
-        {evaluation.ventas_texto && (
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">Ventas</h3>
-            <p className="text-muted-foreground">{evaluation.ventas_texto}</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      <EvaluationsModal 
+        open={showModal}
+        onOpenChange={setShowModal}
+        evaluaciones={evaluacionesEnviadas}
+      />
+    </>
   );
 };

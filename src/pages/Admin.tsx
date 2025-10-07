@@ -5,6 +5,8 @@ import { Navigate } from "react-router-dom";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminEvaluations } from "@/components/admin/AdminEvaluations";
 import { MentorAssignments } from "@/components/admin/MentorAssignments";
+import { Top100Rankings } from "@/components/admin/Top100Rankings";
+import { EvaluationProgress } from "@/components/admin/EvaluationProgress";
 
 const Admin = () => {
   const { isAdmin, loading } = useUserRole();
@@ -43,7 +45,25 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="evaluations" className="space-y-4">
-            <AdminEvaluations />
+            <Tabs defaultValue="gestion" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="gestion">Gestión</TabsTrigger>
+                <TabsTrigger value="progreso">Progreso</TabsTrigger>
+                <TabsTrigger value="rankings">Top 100</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="gestion">
+                <AdminEvaluations />
+              </TabsContent>
+
+              <TabsContent value="progreso">
+                <EvaluationProgress />
+              </TabsContent>
+
+              <TabsContent value="rankings">
+                <Top100Rankings />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="mentors" className="space-y-4">

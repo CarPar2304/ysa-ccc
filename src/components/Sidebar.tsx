@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Newspaper, BookOpen, User, LogOut, Settings, Users } from "lucide-react";
+import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -40,7 +40,7 @@ export const Sidebar = () => {
             <SidebarMenu>
               {navigation.map((item) => (
                 <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild tooltip={item.name}>
+                  <SidebarMenuButton asChild>
                     <NavLink
                       to={item.href}
                       className={({ isActive }) =>
@@ -61,7 +61,7 @@ export const Sidebar = () => {
 
               {isAdmin && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Admin Panel">
+                  <SidebarMenuButton asChild>
                     <NavLink
                       to="/admin"
                       className={({ isActive }) =>
@@ -82,7 +82,7 @@ export const Sidebar = () => {
 
               {isMentor && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Panel Mentor">
+                  <SidebarMenuButton asChild>
                     <NavLink
                       to="/mentor"
                       className={({ isActive }) =>
@@ -94,7 +94,7 @@ export const Sidebar = () => {
                         )
                       }
                     >
-                      <Users className="h-5 w-5" />
+                      <FileCheck className="h-5 w-5" />
                       <span>Panel Mentor</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -109,7 +109,7 @@ export const Sidebar = () => {
         <div className="flex items-center gap-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Perfil">
+              <SidebarMenuButton asChild>
                 <NavLink
                   to="/profile"
                   className={({ isActive }) =>
@@ -132,7 +132,7 @@ export const Sidebar = () => {
         
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Cerrar sesión">
+            <SidebarMenuButton asChild>
               <button
                 onClick={() => {
                   window.location.href = "/login";
