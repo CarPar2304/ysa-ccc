@@ -1142,6 +1142,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      mentor_has_emprendimiento: {
+        Args: { _emprendimiento_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       alcance_mercado: "Local" | "Regional" | "Nacional" | "Internacional"
