@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Navigate } from "react-router-dom";
+import { RoleRedirect } from "@/components/RoleRedirect";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminEvaluations } from "@/components/admin/AdminEvaluations";
 import { MentorAssignments } from "@/components/admin/MentorAssignments";
@@ -22,7 +22,7 @@ const Admin = () => {
   }
 
   if (!isAdmin) {
-    return <Navigate to="/" replace />;
+    return <RoleRedirect />;
   }
 
   return (

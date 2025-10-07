@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Loader2 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Navigate } from "react-router-dom";
+import { RoleRedirect } from "@/components/RoleRedirect";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -135,7 +135,7 @@ const Dashboard = () => {
   }
 
   if (!isBeneficiario) {
-    return <Navigate to="/login" replace />;
+    return <RoleRedirect />;
   }
 
   return (

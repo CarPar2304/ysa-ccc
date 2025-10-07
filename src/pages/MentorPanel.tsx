@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Navigate } from "react-router-dom";
+import { RoleRedirect } from "@/components/RoleRedirect";
 import { AssignedEntrepreneurships } from "@/components/mentor/AssignedEntrepreneurships";
 
 const MentorPanel = () => {
@@ -17,7 +17,7 @@ const MentorPanel = () => {
   }
 
   if (!isMentor) {
-    return <Navigate to="/" replace />;
+    return <RoleRedirect />;
   }
 
   return (
