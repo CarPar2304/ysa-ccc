@@ -32,24 +32,7 @@ export const AdminEvaluations = () => {
       // Fetch evaluations
       const { data: evals, error: evalsError } = await supabase
         .from("evaluaciones")
-        .select(`
-          *,
-          emprendimientos:emprendimiento_id (
-            id,
-            nombre,
-            user_id,
-            usuarios:user_id (
-              nombres,
-              apellidos,
-              email
-            )
-          ),
-          usuarios:mentor_id (
-            nombres,
-            apellidos,
-            email
-          )
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (evalsError) throw evalsError;
@@ -144,11 +127,12 @@ export const AdminEvaluations = () => {
 
   // Filter evaluations
   const filteredEvaluations = evaluations.filter(evaluation => {
-    const matchesSearch = 
-      evaluation.emprendimientos?.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evaluation.emprendimientos?.usuarios?.nombres?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evaluation.emprendimientos?.usuarios?.apellidos?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      evaluation.emprendimientos?.usuarios?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    const emp = emprendimientos.find((e: any) => e.id === evaluation.emprendimiento_id);
+    const mentorInfo = mentores.find((m: any) => m.user_id === evaluation.mentor_id);
+    const matchesSearch =
+      (emp?.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (mentorInfo?.usuarios?.nombres?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (mentorInfo?.usuarios?.apellidos?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
 
     const matchesEmprendimiento = 
       filterEmprendimiento === "all" || 
@@ -170,7 +154,7 @@ export const AdminEvaluations = () => {
     const empId = evaluation.emprendimiento_id;
     if (!acc[empId]) {
       acc[empId] = {
-        emprendimiento: evaluation.emprendimientos,
+        emprendimiento: emprendimientos.find((e: any) => e.id === empId),
         evaluaciones: [],
       };
     }
@@ -259,16 +243,14 @@ export const AdminEvaluations = () => {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-lg">{data.emprendimiento?.nombre}</CardTitle>
-                      <CardDescription>
-                        {data.emprendimiento?.usuarios?.nombres} {data.emprendimiento?.usuarios?.apellidos}
-                        {" • "}
-                        {data.emprendimiento?.usuarios?.email}
-                      </CardDescription>
+                      <CardTitle className="text-lg">{data.emprendimiento?.nombre || "Emprendimiento"}</CardTitle>
+                      {data.emprendimiento?.id && (
+                        <CardDescription>ID: {data.emprendimiento.id}</CardDescription>
+                      )}
                     </div>
-                    <Badge>
-                      {data.evaluaciones.filter((e: any) => e.estado === 'enviada').length} / 3 Evaluaciones
-                    </Badge>
+                      <Badge>
+                        {data.evaluaciones.filter((e: any) => e.estado === 'enviada').length} / 3 Evaluaciones
+                      </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -287,7 +269,12 @@ export const AdminEvaluations = () => {
                       {data.evaluaciones.map((evaluation: any) => (
                         <TableRow key={evaluation.id}>
                           <TableCell>
-                            {evaluation.usuarios?.nombres} {evaluation.usuarios?.apellidos}
+                            {(() => {
+                              const m = mentores.find((mn: any) => mn.user_id === evaluation.mentor_id);
+                              const first = m?.usuarios?.nombres ?? "";
+                              const last = m?.usuarios?.apellidos ?? "";
+                              return (first || last) ? `${first} ${last}`.trim() : "—";
+                            })()}
                           </TableCell>
                           <TableCell>
                             <span className="font-semibold text-primary">
