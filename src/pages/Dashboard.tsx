@@ -89,22 +89,18 @@ const Dashboard = () => {
             .select("user_id")
             .eq("post_id", post.id);
 
-          // Get user info for each tagged user
-          const taggedUsersData = await Promise.all(
-            (tags || []).map(async (tag) => {
-              const { data: userData } = await supabase
-                .from("usuarios")
-                .select("nombres, apellidos")
-                .eq("id", tag.user_id)
-                .single();
-              
-              return { usuarios: userData };
-            })
-          );
+          // Get user info for each tagged user using secure function
+          const taggedUserIds = (tags || []).map(tag => tag.user_id);
+          const { data: taggedUsersData } = await supabase
+            .rpc("get_public_user_profiles", { user_ids: taggedUserIds });
+          
+          const taggedUsersDataMapped = taggedUsersData?.map((userData: any) => ({
+            usuarios: { nombres: userData.nombres, apellidos: userData.apellidos }
+          })) || [];
 
           return {
             ...post,
-            post_tags: taggedUsersData,
+            post_tags: taggedUsersDataMapped,
           };
         })
       );

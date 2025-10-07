@@ -1123,6 +1123,16 @@ export type Database = {
         Args: { _modulo_id: string; _user_id: string }
         Returns: boolean
       }
+      get_public_user_profiles: {
+        Args: { user_ids?: string[] }
+        Returns: {
+          apellidos: string
+          avatar_url: string
+          biografia: string
+          id: string
+          nombres: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1145,6 +1155,15 @@ export type Database = {
       mentor_has_emprendimiento: {
         Args: { _emprendimiento_id: string; _user_id: string }
         Returns: boolean
+      }
+      search_users: {
+        Args: { search_term: string }
+        Returns: {
+          apellidos: string
+          avatar_url: string
+          id: string
+          nombres: string
+        }[]
       }
     }
     Enums: {

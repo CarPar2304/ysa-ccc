@@ -30,11 +30,9 @@ export const UserMentionInput = ({ onSelectUser }: UserMentionInputProps) => {
 
       setLoading(true);
       try {
+        // Use secure function that only exposes public user info
         const { data, error } = await supabase
-          .from("usuarios")
-          .select("id, nombres, apellidos, avatar_url")
-          .or(`nombres.ilike.%${search}%,apellidos.ilike.%${search}%`)
-          .limit(5);
+          .rpc("search_users", { search_term: search });
 
         if (error) throw error;
         setUsers(data || []);
