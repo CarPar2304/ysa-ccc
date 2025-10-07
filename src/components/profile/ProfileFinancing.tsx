@@ -13,7 +13,7 @@ export const ProfileFinancing = ({ readOnly = false }: ProfileFinancingProps) =>
   const [formData, setFormData] = useState({
     financiamiento_previo: false,
     tipo_actor: "",
-    monto_recibido: "",
+    monto_recibido: 0,
     tipo_inversion: "",
     busca_financiamiento: "",
     monto_buscado: "",
@@ -53,7 +53,7 @@ export const ProfileFinancing = ({ readOnly = false }: ProfileFinancingProps) =>
         setFormData({
           financiamiento_previo: data.financiamiento_previo || false,
           tipo_actor: data.tipo_actor || "",
-          monto_recibido: data.monto_recibido || "",
+          monto_recibido: data.monto_recibido || 0,
           tipo_inversion: data.tipo_inversion || "",
           busca_financiamiento: data.busca_financiamiento || "",
           monto_buscado: data.monto_buscado || "",
@@ -80,7 +80,7 @@ export const ProfileFinancing = ({ readOnly = false }: ProfileFinancingProps) =>
     );
   }
 
-  const InfoItem = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
+  const InfoItem = ({ icon: Icon, label, value }: { icon: any, label: string, value: string | number }) => (
     <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
       <Icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
       <div className="flex-1 min-w-0">

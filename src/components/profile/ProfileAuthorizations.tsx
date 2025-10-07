@@ -14,6 +14,7 @@ export const ProfileAuthorizations = ({ readOnly = false }: ProfileAuthorization
     tratamiento_datos: false,
     datos_sensibles: false,
     correo: false,
+    celular: false,
   });
   const { toast } = useToast();
 
@@ -39,6 +40,7 @@ export const ProfileAuthorizations = ({ readOnly = false }: ProfileAuthorization
           tratamiento_datos: data.tratamiento_datos,
           datos_sensibles: data.datos_sensibles,
           correo: data.correo,
+          celular: data.celular,
         });
       }
     } catch (error) {
@@ -98,6 +100,10 @@ export const ProfileAuthorizations = ({ readOnly = false }: ProfileAuthorization
         <AuthItem 
           label="Comunicaciones por correo" 
           value={formData.correo} 
+        />
+        <AuthItem 
+          label="Comunicaciones por celular" 
+          value={formData.celular} 
         />
       </CardContent>
     </Card>

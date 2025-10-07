@@ -114,30 +114,30 @@ export type Database = {
       }
       autorizaciones: {
         Row: {
+          celular: boolean
           correo: boolean
           created_at: string
           datos_sensibles: boolean
-          genero: string | null
           id: string
           tratamiento_datos: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
+          celular?: boolean
           correo?: boolean
           created_at?: string
           datos_sensibles?: boolean
-          genero?: string | null
           id?: string
           tratamiento_datos?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
+          celular?: boolean
           correo?: boolean
           created_at?: string
           datos_sensibles?: boolean
-          genero?: string | null
           id?: string
           tratamiento_datos?: boolean
           updated_at?: string
@@ -566,7 +566,7 @@ export type Database = {
           financiamiento_previo: boolean
           id: string
           monto_buscado: string | null
-          monto_recibido: string | null
+          monto_recibido: number | null
           tipo_actor: string | null
           tipo_inversion: string | null
         }
@@ -580,7 +580,7 @@ export type Database = {
           financiamiento_previo?: boolean
           id?: string
           monto_buscado?: string | null
-          monto_recibido?: string | null
+          monto_recibido?: number | null
           tipo_actor?: string | null
           tipo_inversion?: string | null
         }
@@ -594,7 +594,7 @@ export type Database = {
           financiamiento_previo?: boolean
           id?: string
           monto_buscado?: string | null
-          monto_recibido?: string | null
+          monto_recibido?: number | null
           tipo_actor?: string | null
           tipo_inversion?: string | null
         }
@@ -1070,8 +1070,8 @@ export type Database = {
         | "Mujeres"
         | "Colectivos LGTBI"
         | "Sostenibilidad"
-        | "Población victima del conflicto armado"
-        | "Ninguno"
+        | "Población víctima del conflicto armado"
+        | "Ninguno de los anteriores"
       impacto_proyeccion:
         | "Local"
         | "Regional"
@@ -1264,8 +1264,8 @@ export const Constants = {
         "Mujeres",
         "Colectivos LGTBI",
         "Sostenibilidad",
-        "Población victima del conflicto armado",
-        "Ninguno",
+        "Población víctima del conflicto armado",
+        "Ninguno de los anteriores",
       ],
       impacto_proyeccion: [
         "Local",
