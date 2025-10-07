@@ -35,7 +35,7 @@ interface Post {
 }
 
 const Dashboard = () => {
-  const { isBeneficiario, loading: roleLoading, userId } = useUserRole();
+  const { isBeneficiario, isAdmin, loading: roleLoading, userId } = useUserRole();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
@@ -43,14 +43,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!roleLoading) {
-      if (isBeneficiario) {
+      if (isBeneficiario || isAdmin) {
         fetchPosts();
         fetchUserAvatar();
       } else {
         setLoading(false);
       }
     }
-  }, [roleLoading, isBeneficiario]);
+  }, [roleLoading, isBeneficiario, isAdmin]);
 
   const fetchUserAvatar = async () => {
     if (!userId) return;
@@ -134,7 +134,7 @@ const Dashboard = () => {
     );
   }
 
-  if (!isBeneficiario) {
+  if (!isBeneficiario && !isAdmin) {
     return <RoleRedirect />;
   }
 
