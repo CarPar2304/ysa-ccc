@@ -65,9 +65,12 @@ export const AssignedEntrepreneurships = () => {
 
       if (error) throw error;
 
+      // Filtrar solo asignaciones con emprendimientos válidos
+      const validAssignments = (data || []).filter(assignment => assignment.emprendimientos !== null);
+
       // Obtener evaluaciones para cada emprendimiento
       const assignmentsWithEvals = await Promise.all(
-        (data || []).map(async (assignment) => {
+        validAssignments.map(async (assignment) => {
           const { data: evaluaciones } = await supabase
             .from("evaluaciones")
             .select("*")
