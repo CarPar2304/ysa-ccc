@@ -492,17 +492,30 @@ export type Database = {
       }
       evaluaciones: {
         Row: {
+          comentarios_adicionales: string | null
           created_at: string
+          cumple_dedicacion: boolean | null
+          cumple_equipo_minimo: boolean | null
+          cumple_interes: boolean | null
+          cumple_ubicacion: boolean | null
           dedicacion: Database["public"]["Enums"]["estado_evaluacion"] | null
           diagnostico_completo: string | null
           emprendimiento_id: string
           equipo: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto: string | null
+          estado: string | null
           id: string
           impacto_texto: string | null
           innovacion_tecnologia_texto: string | null
           interes: Database["public"]["Enums"]["estado_evaluacion"] | null
+          mentor_id: string | null
+          puede_editar: boolean | null
           puntaje: number | null
+          puntaje_equipo: number | null
+          puntaje_impacto: number | null
+          puntaje_innovacion_tecnologia: number | null
+          puntaje_referido_regional: number | null
+          puntaje_ventas: number | null
           referido_regional: string | null
           ubicacion: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at: string
@@ -510,17 +523,30 @@ export type Database = {
           visible_para_usuario: boolean
         }
         Insert: {
+          comentarios_adicionales?: string | null
           created_at?: string
+          cumple_dedicacion?: boolean | null
+          cumple_equipo_minimo?: boolean | null
+          cumple_interes?: boolean | null
+          cumple_ubicacion?: boolean | null
           dedicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           diagnostico_completo?: string | null
           emprendimiento_id: string
           equipo?: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto?: string | null
+          estado?: string | null
           id?: string
           impacto_texto?: string | null
           innovacion_tecnologia_texto?: string | null
           interes?: Database["public"]["Enums"]["estado_evaluacion"] | null
+          mentor_id?: string | null
+          puede_editar?: boolean | null
           puntaje?: number | null
+          puntaje_equipo?: number | null
+          puntaje_impacto?: number | null
+          puntaje_innovacion_tecnologia?: number | null
+          puntaje_referido_regional?: number | null
+          puntaje_ventas?: number | null
           referido_regional?: string | null
           ubicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at?: string
@@ -528,17 +554,30 @@ export type Database = {
           visible_para_usuario?: boolean
         }
         Update: {
+          comentarios_adicionales?: string | null
           created_at?: string
+          cumple_dedicacion?: boolean | null
+          cumple_equipo_minimo?: boolean | null
+          cumple_interes?: boolean | null
+          cumple_ubicacion?: boolean | null
           dedicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           diagnostico_completo?: string | null
           emprendimiento_id?: string
           equipo?: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto?: string | null
+          estado?: string | null
           id?: string
           impacto_texto?: string | null
           innovacion_tecnologia_texto?: string | null
           interes?: Database["public"]["Enums"]["estado_evaluacion"] | null
+          mentor_id?: string | null
+          puede_editar?: boolean | null
           puntaje?: number | null
+          puntaje_equipo?: number | null
+          puntaje_impacto?: number | null
+          puntaje_innovacion_tecnologia?: number | null
+          puntaje_referido_regional?: number | null
+          puntaje_ventas?: number | null
           referido_regional?: string | null
           ubicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at?: string
@@ -1061,7 +1100,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      evaluaciones_promedio: {
+        Row: {
+          emprendimiento_id: string | null
+          evaluaciones_completadas: number | null
+          puntaje_promedio: number | null
+          puntaje_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluaciones_emprendimiento_id_fkey"
+            columns: ["emprendimiento_id"]
+            isOneToOne: true
+            referencedRelation: "emprendimientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_edit_modulo: {
