@@ -44,7 +44,7 @@ export const AdminEvaluations = () => {
               email
             )
           ),
-          mentor:mentor_id (
+          usuarios:mentor_id (
             nombres,
             apellidos,
             email
@@ -287,7 +287,7 @@ export const AdminEvaluations = () => {
                       {data.evaluaciones.map((evaluation: any) => (
                         <TableRow key={evaluation.id}>
                           <TableCell>
-                            {evaluation.mentor?.nombres} {evaluation.mentor?.apellidos}
+                            {evaluation.usuarios?.nombres} {evaluation.usuarios?.apellidos}
                           </TableCell>
                           <TableCell>
                             <span className="font-semibold text-primary">
