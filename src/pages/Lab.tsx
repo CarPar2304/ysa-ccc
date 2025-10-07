@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Loader2, BookOpen } from "lucide-react";
+import { Clock, Loader2, BookOpen, Pencil, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ModuleEditor } from "@/components/lab/ModuleEditor";
+import { ClassEditor } from "@/components/lab/ClassEditor";
 
 interface Modulo {
   id: string;
@@ -34,6 +47,7 @@ interface Clase {
   video_url: string | null;
   duracion_minutos: number | null;
   orden: number | null;
+  recursos_url: string[] | null;
 }
 
 const Lab = () => {
@@ -43,7 +57,7 @@ const Lab = () => {
   const [clases, setClases] = useState<Clase[]>([]);
   const [loadingClases, setLoadingClases] = useState(false);
   const { toast } = useToast();
-  const { userId } = useUserRole();
+  const { userId, isAdmin } = useUserRole();
 
   useEffect(() => {
     fetchModulos();
@@ -51,11 +65,17 @@ const Lab = () => {
 
   const fetchModulos = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("modulos")
         .select("*")
-        .eq("activo", true)
         .order("orden", { ascending: true });
+
+      // Si no es admin, solo mostrar módulos activos
+      if (!isAdmin) {
+        query = query.eq("activo", true);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setModulos(data || []);
@@ -99,6 +119,57 @@ const Lab = () => {
     fetchClases(modulo.id);
   };
 
+  const handleDeleteModulo = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const { error } = await supabase
+        .from("modulos")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Módulo eliminado",
+        description: "El módulo se eliminó correctamente",
+      });
+
+      fetchModulos();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteClase = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("clases")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Clase eliminada",
+        description: "La clase se eliminó correctamente",
+      });
+
+      if (selectedModulo) {
+        fetchClases(selectedModulo.id);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getProgreso = async (moduloId: string) => {
     if (!userId) return 0;
 
@@ -140,9 +211,14 @@ const Lab = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-5xl p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">YSA Lab</h1>
-          <p className="text-muted-foreground">Accede a módulos y clases del programa de incubación</p>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-foreground mb-2">YSA Lab</h1>
+            <p className="text-muted-foreground">Accede a módulos y clases del programa de incubación</p>
+          </div>
+          {isAdmin && (
+            <ModuleEditor onSuccess={fetchModulos} />
+          )}
         </div>
 
         {modulos.length === 0 ? (
@@ -162,7 +238,9 @@ const Lab = () => {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2 flex-1">
-                      <Badge className="bg-primary text-primary-foreground">Disponible</Badge>
+                      <Badge className="bg-primary text-primary-foreground">
+                        {modulo.activo ? "Disponible" : "Inactivo"}
+                      </Badge>
                       <CardTitle className="text-xl text-foreground hover:text-primary transition-colors">
                         {modulo.titulo}
                       </CardTitle>
@@ -170,6 +248,40 @@ const Lab = () => {
                         {modulo.descripcion || "Sin descripción"}
                       </CardDescription>
                     </div>
+                    {isAdmin && (
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <ModuleEditor
+                          modulo={modulo}
+                          onSuccess={fetchModulos}
+                          trigger={
+                            <Button variant="ghost" size="sm">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar módulo?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. El módulo y todas sus clases serán eliminados.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={(e) => handleDeleteModulo(modulo.id, e)}>
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -194,8 +306,18 @@ const Lab = () => {
         <Dialog open={!!selectedModulo} onOpenChange={() => setSelectedModulo(null)}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-2xl">{selectedModulo?.titulo}</DialogTitle>
-              <DialogDescription>{selectedModulo?.descripcion}</DialogDescription>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <DialogTitle className="text-2xl">{selectedModulo?.titulo}</DialogTitle>
+                  <DialogDescription>{selectedModulo?.descripcion}</DialogDescription>
+                </div>
+                {isAdmin && selectedModulo && (
+                  <ClassEditor
+                    moduloId={selectedModulo.id}
+                    onSuccess={() => fetchClases(selectedModulo.id)}
+                  />
+                )}
+              </div>
             </DialogHeader>
 
             {loadingClases ? (
@@ -227,6 +349,41 @@ const Lab = () => {
                             </div>
                           )}
                         </div>
+                        {isAdmin && selectedModulo && (
+                          <div className="flex items-center gap-1">
+                            <ClassEditor
+                              clase={clase}
+                              moduloId={selectedModulo.id}
+                              onSuccess={() => fetchClases(selectedModulo.id)}
+                              trigger={
+                                <Button variant="ghost" size="sm">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Eliminar clase?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. La clase será eliminada permanentemente.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteClase(clase.id)}>
+                                    Eliminar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                       </div>
                     </CardHeader>
                     {clase.contenido && (

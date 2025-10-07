@@ -650,6 +650,48 @@ export type Database = {
           },
         ]
       }
+      mentor_emprendimiento_assignments: {
+        Row: {
+          activo: boolean
+          created_at: string
+          emprendimiento_id: string
+          fecha_asignacion: string
+          id: string
+          mentor_id: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          emprendimiento_id: string
+          fecha_asignacion?: string
+          id?: string
+          mentor_id: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          emprendimiento_id?: string
+          fecha_asignacion?: string
+          id?: string
+          mentor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_emprendimiento_assignments_emprendimiento_id_fkey"
+            columns: ["emprendimiento_id"]
+            isOneToOne: false
+            referencedRelation: "emprendimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentor_emprendimiento_assignments_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modulos: {
         Row: {
           activo: boolean

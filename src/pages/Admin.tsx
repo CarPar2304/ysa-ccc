@@ -1,12 +1,10 @@
 import { Layout } from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
-import { AdminNewsManager } from "@/components/admin/AdminNewsManager";
-import { AdminModulesManager } from "@/components/admin/AdminModulesManager";
-import { AdminMentorAssignments } from "@/components/admin/AdminMentorAssignments";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminEvaluations } from "@/components/admin/AdminEvaluations";
+import { MentorAssignments } from "@/components/admin/MentorAssignments";
 
 const Admin = () => {
   const { isAdmin, loading } = useUserRole();
@@ -33,28 +31,23 @@ const Admin = () => {
           <p className="text-muted-foreground">Gestiona contenido, usuarios y evaluaciones</p>
         </div>
 
-        <Tabs defaultValue="news" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="news">Noticias</TabsTrigger>
-            <TabsTrigger value="modules">Módulos y Clases</TabsTrigger>
-            <TabsTrigger value="mentors">Asignaciones Mentor</TabsTrigger>
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="evaluations">Evaluaciones</TabsTrigger>
+            <TabsTrigger value="mentors">Gestión de Mentores</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="news" className="space-y-4">
-            <AdminNewsManager />
-          </TabsContent>
-
-          <TabsContent value="modules" className="space-y-4">
-            <AdminModulesManager />
-          </TabsContent>
-
-          <TabsContent value="mentors" className="space-y-4">
-            <AdminMentorAssignments />
+          <TabsContent value="dashboard" className="space-y-4">
+            <AdminDashboard />
           </TabsContent>
 
           <TabsContent value="evaluations" className="space-y-4">
             <AdminEvaluations />
+          </TabsContent>
+
+          <TabsContent value="mentors" className="space-y-4">
+            <MentorAssignments />
           </TabsContent>
         </Tabs>
       </div>

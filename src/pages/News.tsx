@@ -1,12 +1,26 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useUserRole } from "@/hooks/useUserRole";
+import { NewsEditor } from "@/components/news/NewsEditor";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Noticia {
   id: string;
@@ -16,24 +30,56 @@ interface Noticia {
   categoria: string | null;
   created_at: string;
   imagen_url: string | null;
+  publicado: boolean;
 }
 
 const News = () => {
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     fetchNoticias();
-  }, []);
+  }, [isAdmin]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("noticias")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Noticia eliminada",
+        description: "La noticia se eliminó correctamente",
+      });
+
+      fetchNoticias();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchNoticias = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("noticias")
         .select("*")
-        .eq("publicado", true)
         .order("created_at", { ascending: false });
+
+      // Si no es admin, solo mostrar publicadas
+      if (!isAdmin) {
+        query = query.eq("publicado", true);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setNoticias(data || []);
@@ -62,9 +108,14 @@ const News = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-4xl p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">YSA Now</h1>
-          <p className="text-muted-foreground">Mantente al día con las últimas noticias del programa</p>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-foreground mb-2">YSA Now</h1>
+            <p className="text-muted-foreground">Mantente al día con las últimas noticias del programa</p>
+          </div>
+          {isAdmin && (
+            <NewsEditor onSuccess={fetchNoticias} />
+          )}
         </div>
 
         {noticias.length === 0 ? (
@@ -78,7 +129,7 @@ const News = () => {
             {noticias.map((noticia) => (
               <Card
                 key={noticia.id}
-                className="shadow-medium border-border hover:shadow-strong transition-all cursor-pointer"
+                className="shadow-medium border-border hover:shadow-strong transition-all"
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
@@ -90,7 +141,7 @@ const News = () => {
                           </Badge>
                         </div>
                       )}
-                      <CardTitle className="text-2xl text-foreground hover:text-primary transition-colors">
+                      <CardTitle className="text-2xl text-foreground">
                         {noticia.titulo}
                       </CardTitle>
                       <CardDescription className="flex items-center gap-2 text-muted-foreground">
@@ -98,6 +149,43 @@ const News = () => {
                         {format(new Date(noticia.created_at), "d 'de' MMMM, yyyy", { locale: es })}
                       </CardDescription>
                     </div>
+                    {isAdmin && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant={noticia.publicado ? "default" : "secondary"}>
+                          {noticia.publicado ? "Publicado" : "Borrador"}
+                        </Badge>
+                        <NewsEditor
+                          noticia={noticia}
+                          onSuccess={fetchNoticias}
+                          trigger={
+                            <Button variant="ghost" size="sm">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar noticia?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción no se puede deshacer. La noticia será eliminada permanentemente.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(noticia.id)}>
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
