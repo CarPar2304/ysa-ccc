@@ -10,7 +10,7 @@ import { ProfileProjections } from "@/components/profile/ProfileProjections";
 import { ProfileFinancing } from "@/components/profile/ProfileFinancing";
 import { ProfileEvaluation } from "@/components/profile/ProfileEvaluation";
 import { ProfilePosts } from "@/components/profile/ProfilePosts";
-import { Lock, Upload, User as UserIcon, Briefcase, Award, MessageSquare } from "lucide-react";
+import { Lock, Upload, User as UserIcon, Briefcase, Award, MessageSquare, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -216,14 +216,18 @@ const Profile = () => {
 
           <TabsContent value="emprendimiento">
             <Tabs defaultValue="info" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="info">Información</TabsTrigger>
+                <TabsTrigger value="equipo">Equipo</TabsTrigger>
                 <TabsTrigger value="financiamiento">Financiamiento</TabsTrigger>
                 <TabsTrigger value="proyecciones">Proyecciones</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="info" className="space-y-6">
+              <TabsContent value="info">
                 <ProfileEntrepreneurship readOnly />
+              </TabsContent>
+
+              <TabsContent value="equipo">
                 <ProfileTeam readOnly />
               </TabsContent>
 
