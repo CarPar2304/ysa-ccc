@@ -1,8 +1,9 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar as SidebarPrimitive,
   SidebarContent,
@@ -23,6 +24,12 @@ const navigation = [
 export const Sidebar = () => {
   const { isAdmin, isMentor } = useUserRole();
   const { open } = useSidebar();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
   return (
     <SidebarPrimitive collapsible="icon">
@@ -134,9 +141,7 @@ export const Sidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <button
-                onClick={() => {
-                  window.location.href = "/login";
-                }}
+                onClick={handleLogout}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
               >
                 <LogOut className="h-5 w-5" />
