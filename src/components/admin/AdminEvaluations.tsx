@@ -291,7 +291,7 @@ export const AdminEvaluations = () => {
                           </TableCell>
                           <TableCell>
                             <span className="font-semibold text-primary">
-                              {evaluation.puntaje || 0} / 105
+                              {evaluation.puntaje || 0} / 100
                             </span>
                           </TableCell>
                           <TableCell>

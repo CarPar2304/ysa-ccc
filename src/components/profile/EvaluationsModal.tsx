@@ -75,7 +75,7 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span>Puntaje Total</span>
-                      <span className="text-3xl text-primary">{evaluacion.puntaje} / 105</span>
+                      <span className="text-3xl text-primary">{evaluacion.puntaje} / 100</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -98,7 +98,7 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
                       <div className="text-center p-3 border rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">Ventas</p>
                         <p className="text-xl font-bold">{evaluacion.puntaje_ventas}</p>
-                        <p className="text-xs text-muted-foreground">/25</p>
+                        <p className="text-xs text-muted-foreground">/15</p>
                       </div>
                       <div className="text-center p-3 border rounded-lg">
                         <p className="text-xs text-muted-foreground mb-1">Referido</p>
@@ -142,7 +142,7 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
                       <InfoSection 
                         title="Ventas"
                         score={evaluacion.puntaje_ventas}
-                        maxScore={25}
+                        maxScore={15}
                         text={evaluacion.ventas_texto}
                       />
 

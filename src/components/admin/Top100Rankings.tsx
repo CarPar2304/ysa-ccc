@@ -221,7 +221,7 @@ export const Top100Rankings = () => {
                         <span className="text-2xl font-bold text-primary">
                           {item.puntaje_promedio.toFixed(1)}
                         </span>
-                        <span className="text-xs text-muted-foreground">/ 105</span>
+                        <span className="text-xs text-muted-foreground">/ 100</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">

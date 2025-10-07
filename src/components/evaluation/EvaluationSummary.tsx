@@ -18,14 +18,14 @@ export const EvaluationSummary = ({
   puntajeReferido,
 }: EvaluationSummaryProps) => {
   const puntajeTotal = puntajeImpacto + puntajeEquipo + puntajeInnovacion + puntajeVentas + puntajeReferido;
-  const maxTotal = 105;
+  const maxTotal = 100;
   const porcentaje = (puntajeTotal / maxTotal) * 100;
 
   const data = [
     { name: "Impacto", puntaje: puntajeImpacto, max: 30 },
     { name: "Equipo", puntaje: puntajeEquipo, max: 25 },
     { name: "Innovación", puntaje: puntajeInnovacion, max: 25 },
-    { name: "Ventas", puntaje: puntajeVentas, max: 25 },
+    { name: "Ventas", puntaje: puntajeVentas, max: 15 },
     { name: "Referido", puntaje: puntajeReferido, max: 5 },
   ];
 

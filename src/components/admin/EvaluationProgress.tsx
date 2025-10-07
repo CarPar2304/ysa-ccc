@@ -234,7 +234,7 @@ export const EvaluationProgress = () => {
                     <p className="text-muted-foreground">Puntaje Promedio</p>
                     <p className="font-semibold text-primary">
                       {item.puntaje_promedio !== null
-                        ? `${item.puntaje_promedio.toFixed(1)} / 105`
+                        ? `${item.puntaje_promedio.toFixed(1)} / 100`
                         : 'N/A'}
                     </p>
                   </div>

@@ -113,12 +113,12 @@ export const ProfileEvaluation = () => {
           <div className="text-center p-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg border-2 border-primary/20">
             <p className="text-sm font-medium text-muted-foreground mb-2">Puntaje Promedio</p>
             <p className="text-6xl font-bold text-primary mb-2">{puntajePromedio.toFixed(1)}</p>
-            <p className="text-sm text-muted-foreground">de 105 puntos posibles</p>
+            <p className="text-sm text-muted-foreground">de 100 puntos posibles</p>
             <div className="mt-4">
               <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${(puntajePromedio / 105) * 100}%` }}
+                  style={{ width: `${(puntajePromedio / 100) * 100}%` }}
                 />
               </div>
             </div>

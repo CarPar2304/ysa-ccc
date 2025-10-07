@@ -21,7 +21,7 @@ const evaluationSchema = z.object({
   equipo_texto: z.string().min(10, "Debes agregar comentarios sobre el equipo"),
   puntaje_innovacion_tecnologia: z.number().min(0).max(25),
   innovacion_tecnologia_texto: z.string().min(10, "Debes agregar comentarios sobre innovación"),
-  puntaje_ventas: z.number().min(0).max(25),
+  puntaje_ventas: z.number().min(0).max(15),
   ventas_texto: z.string().min(10, "Debes agregar comentarios sobre ventas"),
   comentarios_adicionales: z.string().optional(),
 });
@@ -411,7 +411,7 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
                     <ScoreInput
                       label="Ventas"
                       description="Evalúa la viabilidad del modelo de negocio y su aceptación en el mercado para una demanda sostenida."
-                      maxScore={25}
+                      maxScore={15}
                       value={field.value}
                       onChange={field.onChange}
                       disabled={isReadOnly}
@@ -530,7 +530,7 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
               <AlertDialogDescription>
                 Una vez enviada, la evaluación no podrá ser editada sin autorización del administrador.
                 <br /><br />
-                <strong>Puntaje Total: {currentTotal} / 105 puntos</strong>
+                <strong>Puntaje Total: {currentTotal} / 100 puntos</strong>
                 <br /><br />
                 ¿Estás seguro de que deseas enviar esta evaluación?
               </AlertDialogDescription>
