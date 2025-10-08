@@ -290,7 +290,8 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
                     prose-ul:my-4 prose-ul:space-y-2
                     prose-ol:my-4 prose-ol:space-y-2
                     prose-table:my-6 
-                    prose-hr:my-10 prose-hr:border-border 
+                    prose-hr:my-12 prose-hr:border-t-2 prose-hr:border-border
+                    [&_br]:block [&_br]:my-2
                     [&_table]:border-collapse [&_table]:border [&_table]:border-border 
                     [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-4 [&_th]:py-2 
                     [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2">
