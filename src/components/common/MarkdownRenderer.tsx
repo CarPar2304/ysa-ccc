@@ -12,7 +12,7 @@ interface MarkdownRendererProps {
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className }) => {
   const components: Components = {
     h2({ node, ...props }) {
-      return <h2 className="text-5xl font-bold mt-20 mb-10 leading-tight text-foreground" {...props} />;
+      return <h2 className="text-4xl font-bold mt-20 mb-10 leading-tight text-foreground" {...props} />;
     },
     h3({ node, ...props }) {
       return <h3 className="text-xl font-semibold mt-10 mb-4 text-foreground" {...props} />;
