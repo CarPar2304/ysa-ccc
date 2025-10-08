@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Trash2, Plus, Link as LinkIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -30,6 +32,7 @@ interface Assignment {
   emprendimiento_id: string;
   fecha_asignacion: string;
   activo: boolean;
+  es_jurado: boolean;
   mentor: {
     nombres: string;
     apellidos: string;
@@ -44,7 +47,8 @@ export const MentorAssignments = () => {
   const [emprendimientos, setEmprendimientos] = useState<Emprendimiento[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedMentor, setSelectedMentor] = useState<string>("");
-  const [selectedEmprendimiento, setSelectedEmprendimiento] = useState<string>("");
+  const [selectedEmprendimientos, setSelectedEmprendimientos] = useState<string[]>([]);
+  const [esJurado, setEsJurado] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -99,6 +103,7 @@ export const MentorAssignments = () => {
         emprendimiento_id,
         fecha_asignacion,
         activo,
+        es_jurado,
         mentor:usuarios!mentor_emprendimiento_assignments_mentor_id_fkey(nombres, apellidos),
         emprendimiento:emprendimientos(nombre)
       `)
@@ -113,10 +118,10 @@ export const MentorAssignments = () => {
   };
 
   const handleAssign = async () => {
-    if (!selectedMentor || !selectedEmprendimiento) {
+    if (!selectedMentor || selectedEmprendimientos.length === 0) {
       toast({
         title: "Error",
-        description: "Selecciona un mentor y un emprendimiento",
+        description: "Selecciona un mentor y al menos un emprendimiento",
         variant: "destructive",
       });
       return;
@@ -125,23 +130,27 @@ export const MentorAssignments = () => {
     setLoading(true);
 
     try {
+      const assignments = selectedEmprendimientos.map((empId) => ({
+        mentor_id: selectedMentor,
+        emprendimiento_id: empId,
+        activo: true,
+        es_jurado: esJurado,
+      }));
+
       const { error } = await supabase
         .from("mentor_emprendimiento_assignments")
-        .insert({
-          mentor_id: selectedMentor,
-          emprendimiento_id: selectedEmprendimiento,
-          activo: true,
-        });
+        .insert(assignments);
 
       if (error) throw error;
 
       toast({
-        title: "Asignación creada",
-        description: "El mentor fue asignado correctamente",
+        title: "Asignaciones creadas",
+        description: `El mentor fue asignado a ${selectedEmprendimientos.length} emprendimiento(s) como ${esJurado ? 'jurado' : 'mentor'}`,
       });
 
       setSelectedMentor("");
-      setSelectedEmprendimiento("");
+      setSelectedEmprendimientos([]);
+      setEsJurado(false);
       fetchAssignments();
     } catch (error: any) {
       toast({
@@ -152,6 +161,14 @@ export const MentorAssignments = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleEmprendimiento = (empId: string) => {
+    setSelectedEmprendimientos((prev) =>
+      prev.includes(empId)
+        ? prev.filter((id) => id !== empId)
+        : [...prev, empId]
+    );
   };
 
   const handleRemoveAssignment = async (id: string) => {
@@ -182,42 +199,61 @@ export const MentorAssignments = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Asignar Mentor a Emprendimiento</CardTitle>
-          <CardDescription>Selecciona un mentor y un emprendimiento para crear la asignación</CardDescription>
+          <CardTitle>Asignar Mentor a Emprendimientos</CardTitle>
+          <CardDescription>Selecciona un mentor y uno o varios emprendimientos para crear las asignaciones</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Select value={selectedMentor} onValueChange={setSelectedMentor}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar mentor" />
-              </SelectTrigger>
-              <SelectContent>
-                {mentores.map((mentor) => (
-                  <SelectItem key={mentor.id} value={mentor.id}>
-                    {mentor.nombres} {mentor.apellidos}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Mentor</Label>
+              <Select value={selectedMentor} onValueChange={setSelectedMentor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar mentor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mentores.map((mentor) => (
+                    <SelectItem key={mentor.id} value={mentor.id}>
+                      {mentor.nombres} {mentor.apellidos}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={selectedEmprendimiento} onValueChange={setSelectedEmprendimiento}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar emprendimiento" />
-              </SelectTrigger>
-              <SelectContent>
-                {emprendimientos.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.nombre} ({emp.usuarios.nombres} {emp.usuarios.apellidos})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button onClick={handleAssign} disabled={loading}>
-              <Plus className="h-4 w-4 mr-2" />
-              Asignar
-            </Button>
+            <div className="flex items-center space-x-2 self-end pb-2">
+              <Checkbox
+                id="es-jurado"
+                checked={esJurado}
+                onCheckedChange={(checked) => setEsJurado(checked as boolean)}
+              />
+              <Label htmlFor="es-jurado" className="cursor-pointer">
+                Es Jurado (puede evaluar)
+              </Label>
+            </div>
           </div>
+
+          <div className="space-y-2">
+            <Label>Emprendimientos ({selectedEmprendimientos.length} seleccionados)</Label>
+            <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
+              {emprendimientos.map((emp) => (
+                <div key={emp.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={emp.id}
+                    checked={selectedEmprendimientos.includes(emp.id)}
+                    onCheckedChange={() => toggleEmprendimiento(emp.id)}
+                  />
+                  <Label htmlFor={emp.id} className="cursor-pointer flex-1 text-sm">
+                    {emp.nombre} ({emp.usuarios.nombres} {emp.usuarios.apellidos})
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button onClick={handleAssign} disabled={loading} className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Asignar Mentor a {selectedEmprendimientos.length || 0} Emprendimiento(s)
+          </Button>
         </CardContent>
       </Card>
 
@@ -243,6 +279,7 @@ export const MentorAssignments = () => {
                 <TableRow>
                   <TableHead>Mentor</TableHead>
                   <TableHead>Emprendimiento</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Fecha de Asignación</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -254,6 +291,11 @@ export const MentorAssignments = () => {
                       {assignment.mentor.nombres} {assignment.mentor.apellidos}
                     </TableCell>
                     <TableCell>{assignment.emprendimiento.nombre}</TableCell>
+                    <TableCell>
+                      <span className={assignment.es_jurado ? "text-primary font-medium" : "text-muted-foreground"}>
+                        {assignment.es_jurado ? "Jurado" : "Mentor"}
+                      </span>
+                    </TableCell>
                     <TableCell>{new Date(assignment.fecha_asignacion).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <Button

@@ -12,6 +12,7 @@ import { EvaluationForm } from "./EvaluationForm";
 interface Assignment {
   id: string;
   emprendimiento_id: string;
+  es_jurado: boolean;
   emprendimientos: {
     id: string;
     nombre: string;
@@ -48,6 +49,7 @@ export const AssignedEntrepreneurships = () => {
         .select(`
           id,
           emprendimiento_id,
+          es_jurado,
           emprendimientos:emprendimiento_id (
             id,
             nombre,
@@ -173,14 +175,16 @@ export const AssignedEntrepreneurships = () => {
                 >
                   Ver Detalles
                 </Button>
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleEvaluate(assignment.emprendimiento_id)}
-                >
-                  <FileCheck className="h-4 w-4 mr-2" />
-                  {assignment.my_evaluation ? 'Ver Evaluación' : 'Evaluar'}
-                </Button>
+                {assignment.es_jurado && (
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleEvaluate(assignment.emprendimiento_id)}
+                  >
+                    <FileCheck className="h-4 w-4 mr-2" />
+                    {assignment.my_evaluation ? 'Ver Evaluación' : 'Evaluar'}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

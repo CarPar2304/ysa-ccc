@@ -694,6 +694,7 @@ export type Database = {
           activo: boolean
           created_at: string
           emprendimiento_id: string
+          es_jurado: boolean
           fecha_asignacion: string
           id: string
           mentor_id: string
@@ -702,6 +703,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           emprendimiento_id: string
+          es_jurado?: boolean
           fecha_asignacion?: string
           id?: string
           mentor_id: string
@@ -710,6 +712,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           emprendimiento_id?: string
+          es_jurado?: boolean
           fecha_asignacion?: string
           id?: string
           mentor_id?: string
