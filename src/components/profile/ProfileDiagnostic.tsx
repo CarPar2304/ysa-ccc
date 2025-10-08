@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Lock, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Diagnostico {
   id: string;
@@ -95,9 +96,9 @@ export function ProfileDiagnostic() {
           })}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <ReactMarkdown>{diagnostico.contenido}</ReactMarkdown>
+      <CardContent className="pt-6">
+        <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:mt-6 prose-headings:mb-3 prose-p:my-3 prose-li:my-1 prose-table:my-4">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{diagnostico.contenido}</ReactMarkdown>
         </div>
       </CardContent>
     </Card>

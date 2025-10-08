@@ -16,6 +16,7 @@ import { RequirementBadge } from "../evaluation/RequirementBadge";
 import { EvaluationSummary } from "../evaluation/EvaluationSummary";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const evaluationSchema = z.object({
   puntaje_impacto: z.number().min(0).max(30),
@@ -279,11 +280,11 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
                 </CardHeader>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <CardContent>
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown>{diagnostico.contenido}</ReactMarkdown>
+                <CardContent className="pt-6">
+                  <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:mt-6 prose-headings:mb-3 prose-p:my-3 prose-li:my-1 prose-table:my-4">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{diagnostico.contenido}</ReactMarkdown>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-4">
+                  <p className="text-xs text-muted-foreground mt-6 pt-4 border-t">
                     Última actualización: {new Date(diagnostico.updated_at).toLocaleDateString()}
                   </p>
                 </CardContent>
