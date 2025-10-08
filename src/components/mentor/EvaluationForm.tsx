@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import { normalizeMarkdown } from "@/lib/utils";
 
 const evaluationSchema = z.object({
   puntaje_impacto: z.number().min(0).max(30),
@@ -283,16 +284,15 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
               <CollapsibleContent>
                 <CardContent className="pt-6">
                 <div className="prose prose-sm max-w-none dark:prose-invert 
-                    prose-h2:text-4xl prose-h2:font-bold prose-h2:mt-16 prose-h2:mb-8 prose-h2:text-foreground
-                    prose-h3:text-lg prose-h3:font-semibold prose-h3:mt-8 prose-h3:mb-3 prose-h3:text-foreground
-                    prose-p:my-5 prose-p:leading-7 prose-p:text-foreground/90
+                    prose-h2:text-5xl prose-h2:font-bold prose-h2:mt-20 prose-h2:mb-10 prose-h2:text-foreground prose-h2:leading-tight
+                    prose-h3:text-xl prose-h3:font-semibold prose-h3:mt-10 prose-h3:mb-4 prose-h3:text-foreground
+                    prose-p:my-6 prose-p:leading-relaxed prose-p:text-foreground/90
                     prose-strong:font-bold prose-strong:text-foreground
-                    prose-li:my-1.5 prose-li:leading-7 prose-li:text-foreground/90
-                    prose-ul:my-6 prose-ul:list-disc prose-ul:pl-6
-                    prose-ol:my-6 prose-ol:list-decimal prose-ol:pl-6
-                    prose-table:my-8 
-                    prose-hr:my-8 prose-hr:border-t-2 prose-hr:border-border
-                    [&_br]:block [&_br]:my-4
+                    prose-li:my-2 prose-li:leading-relaxed prose-li:text-foreground/90
+                    prose-ul:my-8 prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-2
+                    prose-ol:my-8 prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-2
+                    prose-table:my-10 
+                    prose-hr:my-12 prose-hr:border-t-2 prose-hr:border-border
                     [&_table]:border-collapse [&_table]:border [&_table]:border-border [&_table]:w-full
                     [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold
                     [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-3 [&_td]:text-foreground/90">
@@ -300,7 +300,7 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
                       remarkPlugins={[remarkGfm]} 
                       rehypePlugins={[rehypeRaw]}
                     >
-                      {diagnostico.contenido}
+                      {normalizeMarkdown(diagnostico.contenido)}
                     </ReactMarkdown>
                   </div>
                   <p className="text-xs text-muted-foreground mt-6 pt-4 border-t">
