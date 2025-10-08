@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, Lock, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 interface Diagnostico {
   id: string;
@@ -98,7 +99,8 @@ export function ProfileDiagnostic() {
       </CardHeader>
       <CardContent className="pt-6">
         <div className="prose prose-sm max-w-none dark:prose-invert 
-          prose-headings:mt-8 prose-headings:mb-4 
+          prose-h2:text-2xl prose-h2:font-bold prose-h2:mt-10 prose-h2:mb-4
+          prose-h3:text-xl prose-h3:font-semibold prose-h3:mt-8 prose-h3:mb-3
           prose-p:my-4 prose-p:leading-7
           prose-li:my-2 prose-li:leading-7
           prose-ul:my-4 prose-ul:space-y-2
@@ -108,7 +110,12 @@ export function ProfileDiagnostic() {
           [&_table]:border-collapse [&_table]:border [&_table]:border-border 
           [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-4 [&_th]:py-2 
           [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{diagnostico.contenido}</ReactMarkdown>
+          <ReactMarkdown 
+            remarkPlugins={[remarkGfm]} 
+            rehypePlugins={[rehypeRaw]}
+          >
+            {diagnostico.contenido}
+          </ReactMarkdown>
         </div>
       </CardContent>
     </Card>
