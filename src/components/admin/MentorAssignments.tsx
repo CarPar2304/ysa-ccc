@@ -139,7 +139,10 @@ export const MentorAssignments = () => {
 
       const { error } = await supabase
         .from("mentor_emprendimiento_assignments")
-        .insert(assignments);
+        .upsert(assignments, {
+          onConflict: "mentor_id,emprendimiento_id",
+          ignoreDuplicates: false,
+        });
 
       if (error) throw error;
 
@@ -175,7 +178,7 @@ export const MentorAssignments = () => {
     try {
       const { error } = await supabase
         .from("mentor_emprendimiento_assignments")
-        .update({ activo: false })
+        .delete()
         .eq("id", id);
 
       if (error) throw error;
