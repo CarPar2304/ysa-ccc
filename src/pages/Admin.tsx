@@ -7,6 +7,7 @@ import { AdminEvaluations } from "@/components/admin/AdminEvaluations";
 import { MentorAssignments } from "@/components/admin/MentorAssignments";
 import { Top100Rankings } from "@/components/admin/Top100Rankings";
 import { EvaluationProgress } from "@/components/admin/EvaluationProgress";
+import { DiagnosticEditor } from "@/components/admin/DiagnosticEditor";
 
 const Admin = () => {
   const { isAdmin, loading } = useUserRole();
@@ -34,9 +35,10 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="evaluations">Evaluaciones</TabsTrigger>
+            <TabsTrigger value="diagnostics">Diagnósticos</TabsTrigger>
             <TabsTrigger value="mentors">Gestión de Mentores</TabsTrigger>
           </TabsList>
 
@@ -64,6 +66,10 @@ const Admin = () => {
                 <Top100Rankings />
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          <TabsContent value="diagnostics" className="space-y-4">
+            <DiagnosticEditor />
           </TabsContent>
 
           <TabsContent value="mentors" className="space-y-4">

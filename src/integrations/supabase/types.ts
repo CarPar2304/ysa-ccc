@@ -242,6 +242,41 @@ export type Database = {
           },
         ]
       }
+      diagnosticos: {
+        Row: {
+          contenido: string | null
+          created_at: string
+          emprendimiento_id: string
+          id: string
+          updated_at: string
+          visible_para_usuario: boolean
+        }
+        Insert: {
+          contenido?: string | null
+          created_at?: string
+          emprendimiento_id: string
+          id?: string
+          updated_at?: string
+          visible_para_usuario?: boolean
+        }
+        Update: {
+          contenido?: string | null
+          created_at?: string
+          emprendimiento_id?: string
+          id?: string
+          updated_at?: string
+          visible_para_usuario?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnosticos_emprendimiento_id_fkey"
+            columns: ["emprendimiento_id"]
+            isOneToOne: false
+            referencedRelation: "emprendimientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emprendimientos: {
         Row: {
           actividades_id: boolean | null
@@ -499,7 +534,7 @@ export type Database = {
           cumple_interes: boolean | null
           cumple_ubicacion: boolean | null
           dedicacion: Database["public"]["Enums"]["estado_evaluacion"] | null
-          diagnostico_completo: string | null
+          diagnostico_id: string | null
           emprendimiento_id: string
           equipo: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto: string | null
@@ -530,7 +565,7 @@ export type Database = {
           cumple_interes?: boolean | null
           cumple_ubicacion?: boolean | null
           dedicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
-          diagnostico_completo?: string | null
+          diagnostico_id?: string | null
           emprendimiento_id: string
           equipo?: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto?: string | null
@@ -561,7 +596,7 @@ export type Database = {
           cumple_interes?: boolean | null
           cumple_ubicacion?: boolean | null
           dedicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
-          diagnostico_completo?: string | null
+          diagnostico_id?: string | null
           emprendimiento_id?: string
           equipo?: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto?: string | null
@@ -585,6 +620,13 @@ export type Database = {
           visible_para_usuario?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "evaluaciones_diagnostico_id_fkey"
+            columns: ["diagnostico_id"]
+            isOneToOne: false
+            referencedRelation: "diagnosticos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "evaluaciones_emprendimiento_id_fkey"
             columns: ["emprendimiento_id"]
