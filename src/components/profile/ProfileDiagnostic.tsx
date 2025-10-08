@@ -97,7 +97,17 @@ export function ProfileDiagnostic() {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:mt-6 prose-headings:mb-3 prose-p:my-3 prose-li:my-1 prose-table:my-6 prose-hr:my-8 prose-hr:border-border [&_table]:border-collapse [&_table]:border [&_table]:border-border [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-4 [&_th]:py-2 [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2">
+        <div className="prose prose-sm max-w-none dark:prose-invert 
+          prose-headings:mt-8 prose-headings:mb-4 
+          prose-p:my-4 prose-p:leading-7
+          prose-li:my-2 prose-li:leading-7
+          prose-ul:my-4 prose-ul:space-y-2
+          prose-ol:my-4 prose-ol:space-y-2
+          prose-table:my-6 
+          prose-hr:my-10 prose-hr:border-border 
+          [&_table]:border-collapse [&_table]:border [&_table]:border-border 
+          [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-4 [&_th]:py-2 
+          [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{diagnostico.contenido}</ReactMarkdown>
         </div>
       </CardContent>
