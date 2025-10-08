@@ -15,10 +15,7 @@ import { ScoreInput } from "../evaluation/ScoreInput";
 import { RequirementBadge } from "../evaluation/RequirementBadge";
 import { EvaluationSummary } from "../evaluation/EvaluationSummary";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import { normalizeMarkdown } from "@/lib/utils";
+import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 
 const evaluationSchema = z.object({
   puntaje_impacto: z.number().min(0).max(30),
@@ -283,26 +280,7 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent className="pt-6">
-                <div className="prose prose-sm max-w-none dark:prose-invert 
-                    prose-h2:text-5xl prose-h2:font-bold prose-h2:mt-20 prose-h2:mb-10 prose-h2:text-foreground prose-h2:leading-tight
-                    prose-h3:text-xl prose-h3:font-semibold prose-h3:mt-10 prose-h3:mb-4 prose-h3:text-foreground
-                    prose-p:my-6 prose-p:leading-relaxed prose-p:text-foreground/90
-                    prose-strong:font-bold prose-strong:text-foreground
-                    prose-li:my-2 prose-li:leading-relaxed prose-li:text-foreground/90
-                    prose-ul:my-8 prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-2
-                    prose-ol:my-8 prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-2
-                    prose-table:my-10 
-                    prose-hr:my-12 prose-hr:border-t-2 prose-hr:border-border
-                    [&_table]:border-collapse [&_table]:border [&_table]:border-border [&_table]:w-full
-                    [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold
-                    [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-3 [&_td]:text-foreground/90">
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]} 
-                      rehypePlugins={[rehypeRaw]}
-                    >
-                      {normalizeMarkdown(diagnostico.contenido)}
-                    </ReactMarkdown>
-                  </div>
+                  <MarkdownRenderer content={diagnostico.contenido} />
                   <p className="text-xs text-muted-foreground mt-6 pt-4 border-t">
                     Última actualización: {new Date(diagnostico.updated_at).toLocaleDateString()}
                   </p>
