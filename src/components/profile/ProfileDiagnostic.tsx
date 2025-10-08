@@ -95,7 +95,7 @@ export function ProfileDiagnostic() {
           })}
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
+      <CardContent className="pt-2">
         <MarkdownRenderer content={diagnostico.contenido} />
       </CardContent>
     </Card>
