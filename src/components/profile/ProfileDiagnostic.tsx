@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Lock, FileText } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface Diagnostico {
   id: string;
@@ -95,8 +96,8 @@ export function ProfileDiagnostic() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="prose prose-sm max-w-none">
-          <p className="whitespace-pre-wrap">{diagnostico.contenido}</p>
+        <div className="prose prose-sm max-w-none dark:prose-invert">
+          <ReactMarkdown>{diagnostico.contenido}</ReactMarkdown>
         </div>
       </CardContent>
     </Card>

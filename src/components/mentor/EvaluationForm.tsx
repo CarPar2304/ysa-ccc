@@ -15,6 +15,7 @@ import { ScoreInput } from "../evaluation/ScoreInput";
 import { RequirementBadge } from "../evaluation/RequirementBadge";
 import { EvaluationSummary } from "../evaluation/EvaluationSummary";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import ReactMarkdown from "react-markdown";
 
 const evaluationSchema = z.object({
   puntaje_impacto: z.number().min(0).max(30),
@@ -279,8 +280,8 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent>
-                  <div className="prose prose-sm max-w-none">
-                    <p className="whitespace-pre-wrap text-sm">{diagnostico.contenido}</p>
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown>{diagnostico.contenido}</ReactMarkdown>
                   </div>
                   <p className="text-xs text-muted-foreground mt-4">
                     Última actualización: {new Date(diagnostico.updated_at).toLocaleDateString()}
