@@ -221,7 +221,10 @@ export const AssignedEntrepreneurships = () => {
                 }}
               />
             ) : (
-              <EntrepreneurshipCRM emprendimientoId={selectedEmprendimiento} />
+              <EntrepreneurshipCRM 
+                emprendimientoId={selectedEmprendimiento}
+                isJurado={assignments.find(a => a.emprendimiento_id === selectedEmprendimiento)?.es_jurado || false}
+              />
             )
           )}
         </DialogContent>

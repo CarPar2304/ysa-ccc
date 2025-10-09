@@ -7,15 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Send, FileText } from "lucide-react";
+import { Loader2, Save, Send } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { ScoreInput } from "../evaluation/ScoreInput";
 import { RequirementBadge } from "../evaluation/RequirementBadge";
 import { EvaluationSummary } from "../evaluation/EvaluationSummary";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 
 const evaluationSchema = z.object({
   puntaje_impacto: z.number().min(0).max(30),
@@ -40,8 +38,6 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [existingEvaluation, setExistingEvaluation] = useState<any>(null);
-  const [diagnostico, setDiagnostico] = useState<any>(null);
-  const [isJurado, setIsJurado] = useState(false);
   const [requirements, setRequirements] = useState({
     cumple_ubicacion: true,
     cumple_equipo_minimo: false,
@@ -75,28 +71,6 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      // Verificar si es jurado para este emprendimiento
-      const { data: assignment } = await supabase
-        .from("mentor_emprendimiento_assignments")
-        .select("es_jurado")
-        .eq("mentor_id", user.id)
-        .eq("emprendimiento_id", emprendimientoId)
-        .eq("activo", true)
-        .maybeSingle();
-
-      setIsJurado(assignment?.es_jurado || false);
-
-      // Si es jurado, obtener diagnóstico
-      if (assignment?.es_jurado) {
-        const { data: diagData } = await supabase
-          .from("diagnosticos")
-          .select("*")
-          .eq("emprendimiento_id", emprendimientoId)
-          .maybeSingle();
-
-        setDiagnostico(diagData);
-      }
 
       // Obtener datos del emprendimiento
       const { data: emprendimiento } = await supabase
@@ -260,36 +234,6 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* Diagnóstico (solo para jurados) */}
-        {isJurado && diagnostico && (
-          <Collapsible defaultOpen>
-            <Card>
-              <CollapsibleTrigger className="w-full">
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      <CardTitle>Diagnóstico del Emprendimiento</CardTitle>
-                    </div>
-                    <span className="text-xs text-muted-foreground">Click para expandir/contraer</span>
-                  </div>
-                  <CardDescription>
-                    Información de contexto para la evaluación
-                  </CardDescription>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-6">
-                  <MarkdownRenderer content={diagnostico.contenido} />
-                  <p className="text-xs text-muted-foreground mt-6 pt-4 border-t">
-                    Última actualización: {new Date(diagnostico.updated_at).toLocaleDateString()}
-                  </p>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-        )}
-
         {isReadOnly && (
           <div className="bg-muted p-4 rounded-lg">
             <p className="text-sm font-medium text-muted-foreground">

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DiagnosticView } from "./DiagnosticView";
 
 interface EntrepreneurshipData {
   emprendimiento: any;
@@ -12,7 +13,12 @@ interface EntrepreneurshipData {
   proyecciones: any;
 }
 
-export const EntrepreneurshipCRM = ({ emprendimientoId }: { emprendimientoId: string }) => {
+interface EntrepreneurshipCRMProps {
+  emprendimientoId: string;
+  isJurado?: boolean;
+}
+
+export const EntrepreneurshipCRM = ({ emprendimientoId, isJurado = false }: EntrepreneurshipCRMProps) => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<EntrepreneurshipData | null>(null);
 
@@ -85,14 +91,21 @@ export const EntrepreneurshipCRM = ({ emprendimientoId }: { emprendimientoId: st
   );
 
   return (
-    <Tabs defaultValue="general" className="w-full">
-      <TabsList className="grid w-full grid-cols-5">
+    <Tabs defaultValue={isJurado ? "diagnostico" : "general"} className="w-full">
+      <TabsList className={`grid w-full ${isJurado ? 'grid-cols-6' : 'grid-cols-5'}`}>
+        {isJurado && <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>}
         <TabsTrigger value="general">General</TabsTrigger>
         <TabsTrigger value="beneficiario">Beneficiario</TabsTrigger>
         <TabsTrigger value="equipo">Equipo</TabsTrigger>
         <TabsTrigger value="financiamiento">Financiamiento</TabsTrigger>
         <TabsTrigger value="proyecciones">Proyecciones</TabsTrigger>
       </TabsList>
+
+      {isJurado && (
+        <TabsContent value="diagnostico" className="space-y-4 mt-4">
+          <DiagnosticView emprendimientoId={emprendimientoId} />
+        </TabsContent>
+      )}
 
       <TabsContent value="general" className="space-y-4 mt-4">
         <Card>
