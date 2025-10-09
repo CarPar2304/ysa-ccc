@@ -1145,23 +1145,7 @@ export type Database = {
       }
     }
     Views: {
-      evaluaciones_promedio: {
-        Row: {
-          emprendimiento_id: string | null
-          evaluaciones_completadas: number | null
-          puntaje_promedio: number | null
-          puntaje_total: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "evaluaciones_emprendimiento_id_fkey"
-            columns: ["emprendimiento_id"]
-            isOneToOne: true
-            referencedRelation: "emprendimientos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       can_edit_modulo: {
