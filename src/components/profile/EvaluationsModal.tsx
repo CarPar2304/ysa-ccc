@@ -31,8 +31,11 @@ interface EvaluationsModalProps {
 }
 
 export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: EvaluationsModalProps) => {
-  const evaluacionesEnviadas = evaluaciones.filter(e => e.estado === 'enviada');
-  const completadas = evaluacionesEnviadas.length;
+  // Mostrar evaluaciones enviadas O evaluaciones CCC (que pueden estar en borrador)
+  const evaluacionesVisibles = evaluaciones.filter(e => 
+    e.estado === 'enviada' || (e as any).tipo_evaluacion === 'ccc'
+  );
+  const completadas = evaluacionesVisibles.length;
 
   const InfoSection = ({ title, score, maxScore, text }: { title: string; score: number; maxScore: number; text: string }) => (
     <div className="space-y-2">
@@ -56,7 +59,7 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
           </DialogTitle>
         </DialogHeader>
 
-        {evaluacionesEnviadas.length === 0 ? (
+        {evaluacionesVisibles.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
               Aún no tienes evaluaciones disponibles.
@@ -64,15 +67,15 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
           </div>
         ) : (
           <Tabs defaultValue="0" className="w-full">
-            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${evaluacionesEnviadas.length}, 1fr)` }}>
-              {evaluacionesEnviadas.map((_, index) => (
+            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${evaluacionesVisibles.length}, 1fr)` }}>
+              {evaluacionesVisibles.map((_, index) => (
                 <TabsTrigger key={index} value={index.toString()}>
                   Evaluación {index + 1}
                 </TabsTrigger>
               ))}
             </TabsList>
 
-            {evaluacionesEnviadas.map((evaluacion, index) => (
+            {evaluacionesVisibles.map((evaluacion, index) => (
               <TabsContent key={evaluacion.id} value={index.toString()} className="space-y-4 mt-4">
                 <EvaluationSummary
                   puntajeImpacto={evaluacion.puntaje_impacto || 0}
