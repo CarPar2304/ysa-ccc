@@ -100,45 +100,6 @@ export type Database = {
         }
         Relationships: []
       }
-      asignaciones_mentor: {
-        Row: {
-          created_at: string
-          id: string
-          mentor_id: string
-          modulo_id: string
-          puede_editar: boolean
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          mentor_id: string
-          modulo_id: string
-          puede_editar?: boolean
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          mentor_id?: string
-          modulo_id?: string
-          puede_editar?: boolean
-        }
-        Relationships: [
-          {
-            foreignKeyName: "asignaciones_mentor_mentor_id_fkey"
-            columns: ["mentor_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "asignaciones_mentor_modulo_id_fkey"
-            columns: ["modulo_id"]
-            isOneToOne: false
-            referencedRelation: "modulos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       autorizaciones: {
         Row: {
           celular: boolean

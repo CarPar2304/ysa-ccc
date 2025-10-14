@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Save, Send } from "lucide-react";
@@ -14,8 +15,16 @@ import { ScoreInput } from "../evaluation/ScoreInput";
 import { RequirementBadge } from "../evaluation/RequirementBadge";
 import { EvaluationSummary } from "../evaluation/EvaluationSummary";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const evaluationSchema = z.object({
+  // Criterios habilitantes - ahora manuales
+  cumple_ubicacion: z.boolean(),
+  cumple_equipo_minimo: z.boolean(),
+  cumple_dedicacion: z.boolean(),
+  cumple_interes: z.boolean(),
+  
+  // Criterios calificables
   puntaje_impacto: z.number().min(0).max(30),
   impacto_texto: z.string().min(10, "Debes agregar comentarios sobre el impacto"),
   puntaje_equipo: z.number().min(0).max(25),
@@ -24,6 +33,11 @@ const evaluationSchema = z.object({
   innovacion_tecnologia_texto: z.string().min(10, "Debes agregar comentarios sobre innovación"),
   puntaje_ventas: z.number().min(0).max(15),
   ventas_texto: z.string().min(10, "Debes agregar comentarios sobre ventas"),
+  
+  // Referido regional - ahora manual
+  puntaje_referido_regional: z.number().min(0).max(5),
+  referido_regional: z.string().optional(),
+  
   comentarios_adicionales: z.string().optional(),
 });
 
@@ -38,19 +52,16 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [existingEvaluation, setExistingEvaluation] = useState<any>(null);
-  const [requirements, setRequirements] = useState({
-    cumple_ubicacion: true,
-    cumple_equipo_minimo: false,
-    cumple_dedicacion: false,
-    cumple_interes: false,
-  });
-  const [puntajeReferido, setPuntajeReferido] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<EvaluationFormData>({
     resolver: zodResolver(evaluationSchema),
     defaultValues: {
+      cumple_ubicacion: true,
+      cumple_equipo_minimo: false,
+      cumple_dedicacion: false,
+      cumple_interes: false,
       puntaje_impacto: 0,
       impacto_texto: "",
       puntaje_equipo: 0,
@@ -59,6 +70,8 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
       innovacion_tecnologia_texto: "",
       puntaje_ventas: 0,
       ventas_texto: "",
+      puntaje_referido_regional: 0,
+      referido_regional: "",
       comentarios_adicionales: "",
     },
   });
@@ -72,38 +85,6 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Obtener datos del emprendimiento
-      const { data: emprendimiento } = await supabase
-        .from("emprendimientos")
-        .select(`
-          *,
-          usuarios:user_id (municipio)
-        `)
-        .eq("id", emprendimientoId)
-        .single();
-
-      // Obtener datos del equipo
-      const { data: equipo } = await supabase
-        .from("equipos")
-        .select("*")
-        .eq("emprendimiento_id", emprendimientoId)
-        .maybeSingle();
-
-      // Calcular requisitos habilitantes
-      const cumple_equipo_minimo = (equipo?.equipo_total || 0) >= 2;
-      const cumple_dedicacion = (equipo?.personas_full_time || 0) >= 1;
-      const cumple_interes = !!emprendimiento?.descripcion;
-      const municipio = emprendimiento?.usuarios?.municipio?.toUpperCase();
-      const puntaje_referido = municipio && municipio !== "CALI" ? 5 : 0;
-
-      setRequirements({
-        cumple_ubicacion: true,
-        cumple_equipo_minimo,
-        cumple_dedicacion,
-        cumple_interes,
-      });
-      setPuntajeReferido(puntaje_referido);
-
       // Buscar evaluación existente
       const { data: evaluation } = await supabase
         .from("evaluaciones")
@@ -115,6 +96,10 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
       if (evaluation) {
         setExistingEvaluation(evaluation);
         form.reset({
+          cumple_ubicacion: evaluation.cumple_ubicacion ?? true,
+          cumple_equipo_minimo: evaluation.cumple_equipo_minimo ?? false,
+          cumple_dedicacion: evaluation.cumple_dedicacion ?? false,
+          cumple_interes: evaluation.cumple_interes ?? false,
           puntaje_impacto: evaluation.puntaje_impacto || 0,
           impacto_texto: evaluation.impacto_texto || "",
           puntaje_equipo: evaluation.puntaje_equipo || 0,
@@ -123,6 +108,8 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
           innovacion_tecnologia_texto: evaluation.innovacion_tecnologia_texto || "",
           puntaje_ventas: evaluation.puntaje_ventas || 0,
           ventas_texto: evaluation.ventas_texto || "",
+          puntaje_referido_regional: evaluation.puntaje_referido_regional || 0,
+          referido_regional: evaluation.referido_regional || "",
           comentarios_adicionales: evaluation.comentarios_adicionales || "",
         });
       }
@@ -150,7 +137,7 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
         formData.puntaje_equipo + 
         formData.puntaje_innovacion_tecnologia + 
         formData.puntaje_ventas + 
-        puntajeReferido;
+        formData.puntaje_referido_regional;
 
       const evaluationData = {
         emprendimiento_id: emprendimientoId,
@@ -163,13 +150,14 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
         innovacion_tecnologia_texto: formData.innovacion_tecnologia_texto,
         puntaje_ventas: formData.puntaje_ventas,
         ventas_texto: formData.ventas_texto,
-        puntaje_referido_regional: puntajeReferido,
+        puntaje_referido_regional: formData.puntaje_referido_regional,
+        referido_regional: formData.referido_regional,
         puntaje: puntajeTotal,
         comentarios_adicionales: formData.comentarios_adicionales,
-        cumple_ubicacion: requirements.cumple_ubicacion,
-        cumple_equipo_minimo: requirements.cumple_equipo_minimo,
-        cumple_dedicacion: requirements.cumple_dedicacion,
-        cumple_interes: requirements.cumple_interes,
+        cumple_ubicacion: formData.cumple_ubicacion,
+        cumple_equipo_minimo: formData.cumple_equipo_minimo,
+        cumple_dedicacion: formData.cumple_dedicacion,
+        cumple_interes: formData.cumple_interes,
         estado,
         puede_editar: estado === 'borrador',
       };
@@ -229,7 +217,7 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
     watchedValues.puntaje_equipo + 
     watchedValues.puntaje_innovacion_tecnologia + 
     watchedValues.puntaje_ventas + 
-    puntajeReferido;
+    watchedValues.puntaje_referido_regional;
 
   return (
     <Form {...form}>
@@ -242,28 +230,126 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
           </div>
         )}
 
-        {/* Requisitos Habilitantes */}
+        {/* Requisitos Habilitantes - Ahora Editables */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">1. Requisitos Habilitantes</h3>
-          <div className="space-y-3">
-            <RequirementBadge 
-              label="Emprendedor ubicado en jurisdicción de Cámara de Comercio de Cali o suroccidente colombiano"
-              cumple={requirements.cumple_ubicacion}
+          <p className="text-sm text-muted-foreground">Evalúa manualmente cada criterio habilitante</p>
+          
+          <div className="space-y-4">
+            {/* Ubicación */}
+            <FormField
+              control={form.control}
+              name="cumple_ubicacion"
+              render={({ field }) => (
+                <FormItem className="p-4 border rounded-lg space-y-3">
+                  <FormLabel>Emprendedor ubicado en jurisdicción de Cámara de Comercio de Cali o suroccidente colombiano</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      disabled={isReadOnly}
+                      value={field.value ? "true" : "false"}
+                      onValueChange={(value) => field.onChange(value === "true")}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="true" id="ubicacion-cumple" />
+                        <Label htmlFor="ubicacion-cumple" className="cursor-pointer">Cumple</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="false" id="ubicacion-no-cumple" />
+                        <Label htmlFor="ubicacion-no-cumple" className="cursor-pointer">No Cumple</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                </FormItem>
+              )}
             />
-            <RequirementBadge 
-              label="Equipo de trabajo de al menos 2 personas"
-              cumple={requirements.cumple_equipo_minimo}
+
+            {/* Equipo Mínimo */}
+            <FormField
+              control={form.control}
+              name="cumple_equipo_minimo"
+              render={({ field }) => (
+                <FormItem className="p-4 border rounded-lg space-y-3">
+                  <FormLabel>Equipo de trabajo de al menos 2 personas</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      disabled={isReadOnly}
+                      value={field.value ? "true" : "false"}
+                      onValueChange={(value) => field.onChange(value === "true")}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="true" id="equipo-cumple" />
+                        <Label htmlFor="equipo-cumple" className="cursor-pointer">Cumple</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="false" id="equipo-no-cumple" />
+                        <Label htmlFor="equipo-no-cumple" className="cursor-pointer">No Cumple</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                </FormItem>
+              )}
             />
-            <RequirementBadge 
-              label="Al menos 1 persona dedicada al 100%"
-              cumple={requirements.cumple_dedicacion}
+
+            {/* Dedicación */}
+            <FormField
+              control={form.control}
+              name="cumple_dedicacion"
+              render={({ field }) => (
+                <FormItem className="p-4 border rounded-lg space-y-3">
+                  <FormLabel>Al menos 1 persona dedicada al 100%</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      disabled={isReadOnly}
+                      value={field.value ? "true" : "false"}
+                      onValueChange={(value) => field.onChange(value === "true")}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="true" id="dedicacion-cumple" />
+                        <Label htmlFor="dedicacion-cumple" className="cursor-pointer">Cumple</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="false" id="dedicacion-no-cumple" />
+                        <Label htmlFor="dedicacion-no-cumple" className="cursor-pointer">No Cumple</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                </FormItem>
+              )}
             />
-            <RequirementBadge 
-              label="Interés en crear negocio innovador de base tecnológica/científica"
-              cumple={requirements.cumple_interes}
+
+            {/* Interés */}
+            <FormField
+              control={form.control}
+              name="cumple_interes"
+              render={({ field }) => (
+                <FormItem className="p-4 border rounded-lg space-y-3">
+                  <FormLabel>Interés en crear negocio innovador de base tecnológica/científica</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      disabled={isReadOnly}
+                      value={field.value ? "true" : "false"}
+                      onValueChange={(value) => field.onChange(value === "true")}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="true" id="interes-cumple" />
+                        <Label htmlFor="interes-cumple" className="cursor-pointer">Cumple</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="false" id="interes-no-cumple" />
+                        <Label htmlFor="interes-no-cumple" className="cursor-pointer">No Cumple</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                </FormItem>
+              )}
             />
           </div>
-          {(!requirements.cumple_equipo_minimo || !requirements.cumple_dedicacion || !requirements.cumple_interes) && (
+
+          {(!watchedValues.cumple_equipo_minimo || !watchedValues.cumple_dedicacion || !watchedValues.cumple_interes || !watchedValues.cumple_ubicacion) && (
             <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                 ⚠️ Algunos requisitos habilitantes no se cumplen. Esto puede afectar la elegibilidad del emprendimiento.
@@ -442,19 +528,45 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
             />
           </div>
 
-          {/* Referido Regional - Automático */}
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-semibold">Referido Regional</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Puntaje automático para emprendimientos fuera de Cali
-                </p>
-              </div>
-              <div className="text-2xl font-bold text-primary">
-                {puntajeReferido} / 5
-              </div>
-            </div>
+          {/* Referido Regional - Ahora Manual */}
+          <div className="space-y-4 p-4 border rounded-lg">
+            <FormField
+              control={form.control}
+              name="puntaje_referido_regional"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ScoreInput
+                      label="Referido Regional"
+                      description="Puntaje para emprendimientos ubicados fuera de Cali (máximo 5 puntos)"
+                      maxScore={5}
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isReadOnly}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="referido_regional"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Comentarios sobre Referido Regional</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      placeholder="Agrega observaciones sobre la ubicación del emprendimiento..."
+                      className="min-h-[80px]"
+                      disabled={isReadOnly}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
@@ -491,7 +603,7 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
           puntajeEquipo={watchedValues.puntaje_equipo}
           puntajeInnovacion={watchedValues.puntaje_innovacion_tecnologia}
           puntajeVentas={watchedValues.puntaje_ventas}
-          puntajeReferido={puntajeReferido}
+          puntajeReferido={watchedValues.puntaje_referido_regional}
         />
 
         {/* Botones de Acción */}

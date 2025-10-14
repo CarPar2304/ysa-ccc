@@ -7,8 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus, Link as LinkIcon } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Trash2, Plus } from "lucide-react";
 
 interface Mentor {
   id: string;
@@ -51,7 +50,6 @@ export const MentorAssignments = () => {
   const [esJurado, setEsJurado] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchMentores();
@@ -262,16 +260,10 @@ export const MentorAssignments = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Asignaciones Activas</CardTitle>
-              <CardDescription>Mentores asignados a emprendimientos</CardDescription>
-            </div>
-            <Button variant="outline" onClick={() => navigate("/register-mentor")}>
-              <LinkIcon className="h-4 w-4 mr-2" />
-              Registrar Nuevo Mentor
-            </Button>
-          </div>
+          <CardTitle>Asignaciones Activas</CardTitle>
+          <CardDescription>
+            Mentores asignados a emprendimientos. Para registrar un nuevo mentor, accede a /register-mentor con el código de acceso.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {assignments.length === 0 ? (
