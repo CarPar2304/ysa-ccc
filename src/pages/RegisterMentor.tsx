@@ -9,8 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 
-const ACCESS_CODE = "YSA-MENTOR-ACCESS";
-
 const mentorSchema = z.object({
   accessCode: z.string().min(1, "El código de acceso es requerido"),
   nombres: z.string().trim().min(2, "Los nombres deben tener al menos 2 caracteres").max(100, "Los nombres no pueden exceder 100 caracteres"),

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,17 @@ const corsHeaders = {
 };
 
 const ACCESS_CODE = "YSA-MENTOR-ACCESS";
+
+// Server-side validation schema (mirrors client-side for security)
+const mentorSchema = z.object({
+  accessCode: z.string().min(1).max(50),
+  nombres: z.string().trim().min(2).max(100),
+  apellidos: z.string().trim().min(2).max(100),
+  genero: z.enum(['Masculino', 'Femenino', 'No binario', 'Prefiero no decir']),
+  email: z.string().email().max(255),
+  celular: z.string().regex(/^3\d{9}$/),
+  password: z.string().min(8).max(72), // bcrypt limit
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -17,8 +29,26 @@ serve(async (req) => {
   console.log('[register-mentor] Incoming request');
 
   try {
-    const { accessCode, nombres, apellidos, genero, email, celular, password } = await req.json();
-    console.log('[register-mentor] Payload received for:', email);
+    // Check content length to prevent oversized requests
+    const contentLength = req.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 10000) { // 10KB limit
+      console.warn('[register-mentor] Request too large');
+      return new Response(
+        JSON.stringify({ error: "Solicitud demasiado grande" }),
+        { 
+          status: 413, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const body = await req.json();
+    
+    // Validate input with Zod schema (SERVER-SIDE VALIDATION)
+    const validatedData = mentorSchema.parse(body);
+    const { accessCode, nombres, apellidos, genero, email, celular, password } = validatedData;
+    
+    console.log('[register-mentor] Payload validated for:', email);
 
     // Validate access code
     if (accessCode !== ACCESS_CODE) {
@@ -123,7 +153,22 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Error general:", error);
+    // Handle validation errors from Zod
+    if (error instanceof z.ZodError) {
+      console.error('[register-mentor] Validation error:', error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: "Datos de entrada inválidos", 
+          details: error.errors 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.error("[register-mentor] Error general:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
     return new Response(
       JSON.stringify({ error: errorMessage }),
