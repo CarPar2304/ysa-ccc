@@ -41,10 +41,26 @@ export const UsuariosStats = () => {
         .eq("role", "beneficiario");
       setTotalBeneficiarios(totalBenef || 0);
 
-      // Distribución por nivel (de evaluaciones)
+      // Distribución por nivel (de evaluaciones de beneficiarios solamente)
+      const { data: beneficiariosIds } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "beneficiario");
+
+      const beneficiariosSet = new Set(beneficiariosIds?.map(b => b.user_id) || []);
+
+      const { data: emprendimientosBenef } = await supabase
+        .from("emprendimientos")
+        .select("id, user_id");
+
+      const emprendimientosBenefIds = emprendimientosBenef
+        ?.filter(e => beneficiariosSet.has(e.user_id))
+        .map(e => e.id) || [];
+
       const { data: evaluaciones } = await supabase
         .from("evaluaciones")
-        .select("nivel, emprendimiento_id");
+        .select("nivel, emprendimiento_id")
+        .in("emprendimiento_id", emprendimientosBenefIds.length > 0 ? emprendimientosBenefIds : ["none"]);
 
       const nivelCounts = evaluaciones?.reduce((acc: any, ev) => {
         const nivel = ev.nivel || "Sin nivel";
@@ -59,11 +75,13 @@ export const UsuariosStats = () => {
         }))
       );
 
-      // Distribución de género
-      const { data: usuarios } = await supabase
+      // Distribución de género (solo beneficiarios)
+      const { data: usuariosBenef } = await supabase
         .from("usuarios")
-        .select("genero, ano_nacimiento, departamento, municipio, identificacion_etnica");
+        .select("genero, ano_nacimiento, departamento, municipio, identificacion_etnica, id")
+        .in("id", Array.from(beneficiariosSet));
 
+      const usuarios = usuariosBenef || [];
       const total = usuarios?.length || 1;
 
       const generoCounts = usuarios?.reduce((acc: any, user) => {

@@ -24,8 +24,29 @@ export const ProyeccionesStats = () => {
 
   const fetchProyeccionesStats = async () => {
     try {
-      const { data: proyecciones } = await supabase.from("proyecciones").select("*");
-      if (!proyecciones) return;
+      // Solo proyecciones de beneficiarios
+      const { data: beneficiariosIds } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "beneficiario");
+
+      const beneficiariosSet = new Set(beneficiariosIds?.map(b => b.user_id) || []);
+
+      const { data: emprendimientos } = await supabase
+        .from("emprendimientos")
+        .select("id, user_id");
+
+      const emprendimientosBenefIds = emprendimientos
+        ?.filter(e => beneficiariosSet.has(e.user_id))
+        .map(e => e.id) || [];
+
+      const { data: allProyecciones } = await supabase
+        .from("proyecciones")
+        .select("*")
+        .in("emprendimiento_id", emprendimientosBenefIds.length > 0 ? emprendimientosBenefIds : ["none"]);
+
+      const proyecciones = allProyecciones || [];
+      if (!proyecciones || proyecciones.length === 0) return;
       const total = proyecciones.length || 1;
 
       const internCounts = proyecciones.reduce((acc: any, p) => {

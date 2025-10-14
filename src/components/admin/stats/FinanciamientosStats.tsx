@@ -25,11 +25,29 @@ export const FinanciamientosStats = () => {
 
   const fetchFinanciamientosStats = async () => {
     try {
-      const { data: financiamientos } = await supabase
-        .from("financiamientos")
-        .select("*");
+      // Solo financiamientos de beneficiarios
+      const { data: beneficiariosIds } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "beneficiario");
 
-      if (!financiamientos) {
+      const beneficiariosSet = new Set(beneficiariosIds?.map(b => b.user_id) || []);
+
+      const { data: emprendimientos } = await supabase
+        .from("emprendimientos")
+        .select("id, user_id");
+
+      const emprendimientosBenefIds = emprendimientos
+        ?.filter(e => beneficiariosSet.has(e.user_id))
+        .map(e => e.id) || [];
+
+      const { data: allFinanciamientos } = await supabase
+        .from("financiamientos")
+        .select("*")
+        .in("emprendimiento_id", emprendimientosBenefIds.length > 0 ? emprendimientosBenefIds : ["none"]);
+
+      const financiamientos = allFinanciamientos || [];
+      if (!financiamientos || financiamientos.length === 0) {
         setLoading(false);
         return;
       }

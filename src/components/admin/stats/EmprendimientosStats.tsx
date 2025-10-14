@@ -52,11 +52,20 @@ export const EmprendimientosStats = () => {
 
   const fetchEmprendimientosStats = async () => {
     try {
-      const { data: emprendimientos } = await supabase
+      // Solo emprendimientos de beneficiarios
+      const { data: beneficiariosIds } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "beneficiario");
+
+      const beneficiariosSet = new Set(beneficiariosIds?.map(b => b.user_id) || []);
+
+      const { data: allEmprendimientos } = await supabase
         .from("emprendimientos")
         .select("*");
 
-      if (!emprendimientos) return;
+      const emprendimientos = allEmprendimientos?.filter(e => beneficiariosSet.has(e.user_id)) || [];
+      if (!emprendimientos || emprendimientos.length === 0) return;
 
       const total = emprendimientos.length || 1;
 
@@ -161,7 +170,7 @@ export const EmprendimientosStats = () => {
       const practicasTipo = tipos.map(tipo => {
         const campo = `practicas_${tipo}` as keyof typeof emprendimientos[0];
         const counts = emprendimientos.reduce((acc: any, e) => {
-          const val = e[campo] || "No especificado";
+          const val = String(e[campo] || "No especificado");
           acc[val] = (acc[val] || 0) + 1;
           return acc;
         }, {});
