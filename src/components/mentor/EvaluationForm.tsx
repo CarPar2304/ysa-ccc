@@ -10,12 +10,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Save, Send } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ScoreInput } from "../evaluation/ScoreInput";
 import { RequirementBadge } from "../evaluation/RequirementBadge";
 import { EvaluationSummary } from "../evaluation/EvaluationSummary";
+import { NivelSelector } from "../evaluation/NivelSelector";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, Info } from "lucide-react";
 
 const evaluationSchema = z.object({
   // Criterios habilitantes - ahora manuales
@@ -23,6 +27,11 @@ const evaluationSchema = z.object({
   cumple_equipo_minimo: z.boolean(),
   cumple_dedicacion: z.boolean(),
   cumple_interes: z.boolean(),
+  
+  // Nivel de evaluación
+  nivel: z.enum(["alto", "medio", "bajo"], {
+    required_error: "Debes seleccionar un nivel de evaluación"
+  }),
   
   // Criterios calificables
   puntaje_impacto: z.number().min(0).max(30),
@@ -45,14 +54,16 @@ type EvaluationFormData = z.infer<typeof evaluationSchema>;
 
 interface EvaluationFormProps {
   emprendimientoId: string;
+  cccEvaluation?: any;
   onSuccess?: () => void;
 }
 
-export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormProps) => {
+export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: EvaluationFormProps) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [existingEvaluation, setExistingEvaluation] = useState<any>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showCccReference, setShowCccReference] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<EvaluationFormData>({
@@ -62,15 +73,16 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
       cumple_equipo_minimo: false,
       cumple_dedicacion: false,
       cumple_interes: false,
-      puntaje_impacto: 0,
+      nivel: cccEvaluation?.nivel || "medio",
+      puntaje_impacto: cccEvaluation?.puntaje_impacto || 0,
       impacto_texto: "",
-      puntaje_equipo: 0,
+      puntaje_equipo: cccEvaluation?.puntaje_equipo || 0,
       equipo_texto: "",
-      puntaje_innovacion_tecnologia: 0,
+      puntaje_innovacion_tecnologia: cccEvaluation?.puntaje_innovacion_tecnologia || 0,
       innovacion_tecnologia_texto: "",
-      puntaje_ventas: 0,
+      puntaje_ventas: cccEvaluation?.puntaje_ventas || 0,
       ventas_texto: "",
-      puntaje_referido_regional: 0,
+      puntaje_referido_regional: cccEvaluation?.puntaje_referido_regional || 0,
       referido_regional: "",
       comentarios_adicionales: "",
     },
@@ -100,6 +112,7 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
           cumple_equipo_minimo: evaluation.cumple_equipo_minimo ?? false,
           cumple_dedicacion: evaluation.cumple_dedicacion ?? false,
           cumple_interes: evaluation.cumple_interes ?? false,
+          nivel: evaluation.nivel || cccEvaluation?.nivel || "medio",
           puntaje_impacto: evaluation.puntaje_impacto || 0,
           impacto_texto: evaluation.impacto_texto || "",
           puntaje_equipo: evaluation.puntaje_equipo || 0,
@@ -142,6 +155,9 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
       const evaluationData = {
         emprendimiento_id: emprendimientoId,
         mentor_id: user.id,
+        tipo_evaluacion: 'jurado',
+        nivel: formData.nivel,
+        evaluacion_base_id: cccEvaluation?.id || null,
         puntaje_impacto: formData.puntaje_impacto,
         impacto_texto: formData.impacto_texto,
         puntaje_equipo: formData.puntaje_equipo,
@@ -166,12 +182,12 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
       if (existingEvaluation) {
         ({ error } = await supabase
           .from("evaluaciones")
-          .update(evaluationData)
+          .update(evaluationData as any)
           .eq("id", existingEvaluation.id));
       } else {
         ({ error } = await supabase
           .from("evaluaciones")
-          .insert(evaluationData));
+          .insert(evaluationData as any));
       }
 
       if (error) throw error;
@@ -229,6 +245,84 @@ export const EvaluationForm = ({ emprendimientoId, onSuccess }: EvaluationFormPr
             </p>
           </div>
         )}
+
+        {/* Referencia a evaluación CCC */}
+        {cccEvaluation && !isReadOnly && (
+          <Collapsible open={showCccReference} onOpenChange={setShowCccReference}>
+            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Info className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-lg">Evaluación CCC de Referencia</CardTitle>
+                  </div>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${showCccReference ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
+                <CardDescription>
+                  Esta es la evaluación preliminar automática. Puedes usarla como referencia y modificar los puntajes si lo consideras necesario.
+                </CardDescription>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Puntaje Total</p>
+                      <p className="text-2xl font-bold text-primary">{cccEvaluation.puntaje || 0}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Impacto</p>
+                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_impacto || 0} / 30</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Equipo</p>
+                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_equipo || 0} / 25</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Innovación</p>
+                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_innovacion_tecnologia || 0} / 25</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Ventas</p>
+                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_ventas || 0} / 15</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Referido</p>
+                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_referido_regional || 0} / 5</p>
+                    </div>
+                  </div>
+                  {cccEvaluation.nivel && (
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-muted-foreground">Nivel asignado:</p>
+                      <Badge variant="outline" className="capitalize mt-1">{cccEvaluation.nivel}</Badge>
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
+
+        {/* Nivel de Evaluación */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Nivel de Evaluación</h3>
+          <FormField
+            control={form.control}
+            name="nivel"
+            render={({ field }) => (
+              <NivelSelector 
+                value={field.value} 
+                onChange={field.onChange}
+                disabled={isReadOnly}
+              />
+            )}
+          />
+        </div>
+
+        <Separator />
 
         {/* Requisitos Habilitantes - Ahora Editables */}
         <div className="space-y-4">

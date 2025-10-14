@@ -21,6 +21,7 @@ export const AdminEvaluations = () => {
   const [filterEmprendimiento, setFilterEmprendimiento] = useState<string>("all");
   const [filterMentor, setFilterMentor] = useState<string>("all");
   const [filterEstado, setFilterEstado] = useState<string>("all");
+  const [filterTipo, setFilterTipo] = useState<string>("all");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -146,7 +147,11 @@ export const AdminEvaluations = () => {
       filterEstado === "all" || 
       evaluation.estado === filterEstado;
 
-    return matchesSearch && matchesEmprendimiento && matchesMentor && matchesEstado;
+    const matchesTipo =
+      filterTipo === "all" ||
+      evaluation.tipo_evaluacion === filterTipo;
+
+    return matchesSearch && matchesEmprendimiento && matchesMentor && matchesEstado && matchesTipo;
   });
 
   // Group evaluations by emprendimiento
@@ -184,7 +189,7 @@ export const AdminEvaluations = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Filtros y búsqueda */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -229,6 +234,16 @@ export const AdminEvaluations = () => {
               <SelectItem value="borrador">Borradores</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterTipo} onValueChange={setFilterTipo}>
+            <SelectTrigger>
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los tipos</SelectItem>
+              <SelectItem value="ccc">CCC (Preliminar)</SelectItem>
+              <SelectItem value="jurado">Jurado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Tabla de evaluaciones agrupadas */}
@@ -257,9 +272,12 @@ export const AdminEvaluations = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Tipo</TableHead>
                         <TableHead>Mentor</TableHead>
+                        <TableHead>Nivel</TableHead>
                         <TableHead>Puntaje</TableHead>
                         <TableHead>Estado</TableHead>
+                        <TableHead>Aprobación</TableHead>
                         <TableHead>Visible</TableHead>
                         <TableHead>Editable</TableHead>
                         <TableHead>Acciones</TableHead>
@@ -269,12 +287,30 @@ export const AdminEvaluations = () => {
                       {data.evaluaciones.map((evaluation: any) => (
                         <TableRow key={evaluation.id}>
                           <TableCell>
-                            {(() => {
-                              const m = mentores.find((mn: any) => mn.user_id === evaluation.mentor_id);
-                              const first = m?.usuarios?.nombres ?? "";
-                              const last = m?.usuarios?.apellidos ?? "";
-                              return (first || last) ? `${first} ${last}`.trim() : "—";
-                            })()}
+                            <Badge variant={evaluation.tipo_evaluacion === 'ccc' ? 'default' : 'secondary'}>
+                              {evaluation.tipo_evaluacion === 'ccc' ? 'CCC' : 'Jurado'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {evaluation.tipo_evaluacion === 'ccc' ? (
+                              <span className="text-muted-foreground">Sistema</span>
+                            ) : (
+                              (() => {
+                                const m = mentores.find((mn: any) => mn.user_id === evaluation.mentor_id);
+                                const first = m?.usuarios?.nombres ?? "";
+                                const last = m?.usuarios?.apellidos ?? "";
+                                return (first || last) ? `${first} ${last}`.trim() : "—";
+                              })()
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {evaluation.nivel ? (
+                              <Badge variant="outline" className="capitalize">
+                                {evaluation.nivel}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <span className="font-semibold text-primary">
@@ -285,6 +321,19 @@ export const AdminEvaluations = () => {
                             <Badge variant={evaluation.estado === 'enviada' ? 'default' : 'outline'}>
                               {evaluation.estado === 'enviada' ? 'Enviada' : 'Borrador'}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {evaluation.tipo_evaluacion === 'jurado' ? (
+                              <Badge variant={
+                                evaluation.aprobada_por_admin === null ? 'outline' :
+                                evaluation.aprobada_por_admin ? 'default' : 'destructive'
+                              }>
+                                {evaluation.aprobada_por_admin === null ? 'Pendiente' :
+                                 evaluation.aprobada_por_admin ? 'Aprobada' : 'Rechazada'}
+                              </Badge>
+                            ) : (
+                              <Badge>Auto-aprobada</Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">

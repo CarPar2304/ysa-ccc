@@ -9,6 +9,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { EntrepreneurshipCRM } from "./EntrepreneurshipCRM";
 import { EvaluationForm } from "./EvaluationForm";
 
+// Wrapper para cargar evaluación CCC
+const EvaluationFormWithCCC = ({ emprendimientoId, onSuccess }: { emprendimientoId: string, onSuccess: () => void }) => {
+  const [cccEvaluation, setCccEvaluation] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchCCC = async () => {
+      const { data } = await supabase
+        .from("evaluaciones")
+        .select("*")
+        .eq("emprendimiento_id", emprendimientoId)
+        .maybeSingle();
+      
+      if (data && (data as any).tipo_evaluacion === 'ccc') {
+        setCccEvaluation(data);
+      }
+    };
+    fetchCCC();
+  }, [emprendimientoId]);
+
+  return <EvaluationForm emprendimientoId={emprendimientoId} cccEvaluation={cccEvaluation} onSuccess={onSuccess} />;
+};
+
 interface Assignment {
   id: string;
   emprendimiento_id: string;
@@ -213,7 +235,7 @@ export const AssignedEntrepreneurships = () => {
           </DialogHeader>
           {selectedEmprendimiento && (
             showEvaluation ? (
-              <EvaluationForm 
+              <EvaluationFormWithCCC 
                 emprendimientoId={selectedEmprendimiento} 
                 onSuccess={() => {
                   setSelectedEmprendimiento(null);

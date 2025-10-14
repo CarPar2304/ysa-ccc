@@ -35,19 +35,21 @@ export const ProfileEvaluation = () => {
         return;
       }
 
+      // Obtener solo evaluaciones aprobadas y visibles
       const { data: evaluacionesData } = await supabase
         .from("evaluaciones")
         .select("*")
         .eq("emprendimiento_id", emprendimiento.id)
         .eq("visible_para_usuario", true)
+        .or(`tipo_evaluacion.eq.ccc,and(tipo_evaluacion.eq.jurado,aprobada_por_admin.eq.true)` as any)
         .order("created_at", { ascending: false });
 
       setEvaluaciones(evaluacionesData || []);
 
-      const evaluacionesEnviadas = (evaluacionesData || []).filter(e => e.estado === 'enviada');
-      if (evaluacionesEnviadas.length > 0) {
-        const totalPuntaje = evaluacionesEnviadas.reduce((sum, ev) => sum + (ev.puntaje || 0), 0);
-        const promedio = totalPuntaje / evaluacionesEnviadas.length;
+      // Calcular promedio basado en todas las evaluaciones aprobadas (CCC + jurados)
+      if (evaluacionesData && evaluacionesData.length > 0) {
+        const totalPuntaje = evaluacionesData.reduce((sum: number, ev: any) => sum + (ev.puntaje || 0), 0);
+        const promedio = totalPuntaje / evaluacionesData.length;
         setPuntajePromedio(promedio);
         setPromedioVisible(true);
       }
@@ -66,9 +68,10 @@ export const ProfileEvaluation = () => {
     );
   }
 
-  const evaluacionesEnviadas = evaluaciones.filter(e => e.estado === 'enviada');
-  const completadas = evaluacionesEnviadas.length;
+  const completadas = evaluaciones.length;
   const hasEvaluaciones = promedioVisible && evaluaciones.length > 0;
+  const cccCount = evaluaciones.filter((e: any) => e.tipo_evaluacion === 'ccc').length;
+  const juradosCount = evaluaciones.filter((e: any) => e.tipo_evaluacion === 'jurado').length;
 
   return (
     <Tabs defaultValue="diagnostico" className="w-full">
@@ -113,10 +116,13 @@ export const ProfileEvaluation = () => {
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle>Evaluación y Diagnóstico</CardTitle>
-                    <CardDescription>Resultados de la evaluación de tu emprendimiento</CardDescription>
+                    <CardDescription>
+                      Basado en {completadas} evaluación{completadas !== 1 ? 'es' : ''} 
+                      {cccCount > 0 && ` (CCC${juradosCount > 0 ? ` + ${juradosCount} jurado${juradosCount !== 1 ? 's' : ''}` : ''})`}
+                    </CardDescription>
                   </div>
-                  <Badge variant={completadas === 3 ? "default" : "secondary"}>
-                    {completadas} / 3 Evaluaciones
+                  <Badge variant="default">
+                    {completadas} Evaluación{completadas !== 1 ? 'es' : ''}
                   </Badge>
                 </div>
               </CardHeader>
@@ -135,14 +141,14 @@ export const ProfileEvaluation = () => {
                   </div>
                 </div>
 
-                {completadas < 3 && (
-                  <div className="bg-muted/50 p-4 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">
-                      <strong>Nota:</strong> Este es un puntaje parcial basado en {completadas} evaluación{completadas > 1 ? 'es' : ''}.
-                      El puntaje final se calculará cuando se completen las 3 evaluaciones.
-                    </p>
-                  </div>
-                )}
+                <div className="bg-muted/50 p-4 rounded-lg text-center">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Composición del puntaje:</strong> {' '}
+                    {cccCount > 0 && `Evaluación preliminar CCC`}
+                    {cccCount > 0 && juradosCount > 0 && ` + `}
+                    {juradosCount > 0 && `${juradosCount} evaluación${juradosCount !== 1 ? 'es' : ''} de jurado${juradosCount !== 1 ? 's' : ''}`}
+                  </p>
+                </div>
 
                 <Button 
                   className="w-full" 
@@ -150,7 +156,7 @@ export const ProfileEvaluation = () => {
                   onClick={() => setShowModal(true)}
                 >
                   <FileText className="h-4 w-4 mr-2" />
-                  Ver Evaluaciones Individuales ({completadas})
+                  Ver Detalles de Evaluaciones ({completadas})
                 </Button>
               </CardContent>
             </Card>
@@ -158,7 +164,7 @@ export const ProfileEvaluation = () => {
             <EvaluationsModal 
               open={showModal}
               onOpenChange={setShowModal}
-              evaluaciones={evaluacionesEnviadas}
+              evaluaciones={evaluaciones}
             />
           </>
         )}
