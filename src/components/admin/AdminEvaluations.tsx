@@ -256,16 +256,11 @@ export const AdminEvaluations = () => {
             {Object.entries(evaluationsByEmprendimiento).map(([empId, data]: [string, any]) => (
               <Card key={empId}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{data.emprendimiento?.nombre || "Emprendimiento"}</CardTitle>
-                      {data.emprendimiento?.id && (
-                        <CardDescription>ID: {data.emprendimiento.id}</CardDescription>
-                      )}
-                    </div>
-                      <Badge>
-                        {data.evaluaciones.filter((e: any) => e.estado === 'enviada').length} / 3 Evaluaciones
-                      </Badge>
+                  <div>
+                    <CardTitle className="text-lg">{data.emprendimiento?.nombre || "Emprendimiento"}</CardTitle>
+                    {data.emprendimiento?.id && (
+                      <CardDescription>ID: {data.emprendimiento.id}</CardDescription>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>

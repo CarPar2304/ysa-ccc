@@ -74,7 +74,7 @@ export const EvaluationProgress = () => {
         const promedio = count > 0
           ? evals.reduce((sum, e) => sum + (e.puntaje || 0), 0) / count
           : null;
-        const progreso = mentores > 0 ? (count / 3) * 100 : 0;
+        const progreso = count > 0 ? Math.min((count / mentores) * 100, 100) : 0;
 
         return {
           emprendimiento_id: emp.id,
@@ -103,7 +103,7 @@ export const EvaluationProgress = () => {
 
   const filteredData = progressData.filter(item => {
     if (filter === 'pending') {
-      return item.evaluaciones_completadas < 3;
+      return item.evaluaciones_completadas === 0;
     }
     return true;
   });
@@ -132,8 +132,8 @@ export const EvaluationProgress = () => {
   }
 
   const totalEmprendimientos = progressData.length;
-  const pendientes = progressData.filter(p => p.evaluaciones_completadas < 3).length;
-  const completados = progressData.filter(p => p.evaluaciones_completadas === 3).length;
+  const sinEvaluar = progressData.filter(p => p.evaluaciones_completadas === 0).length;
+  const conEvaluaciones = progressData.filter(p => p.evaluaciones_completadas > 0).length;
 
   return (
     <Card>
@@ -180,14 +180,14 @@ export const EvaluationProgress = () => {
           </Card>
           <Card>
             <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold text-orange-500">{pendientes}</p>
-              <p className="text-sm text-muted-foreground">Pendientes</p>
+              <p className="text-3xl font-bold text-orange-500">{sinEvaluar}</p>
+              <p className="text-sm text-muted-foreground">Sin Evaluar</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold text-green-500">{completados}</p>
-              <p className="text-sm text-muted-foreground">Completados</p>
+              <p className="text-3xl font-bold text-green-500">{conEvaluaciones}</p>
+              <p className="text-sm text-muted-foreground">Con Evaluaciones</p>
             </CardContent>
           </Card>
         </div>
@@ -204,8 +204,8 @@ export const EvaluationProgress = () => {
                       {item.beneficiario} • {item.email}
                     </p>
                   </div>
-                  <Badge variant={item.evaluaciones_completadas === 3 ? "default" : "secondary"}>
-                    {item.evaluaciones_completadas} / 3
+                  <Badge variant={item.evaluaciones_completadas > 0 ? "default" : "secondary"}>
+                    {item.evaluaciones_completadas} {item.evaluaciones_completadas === 1 ? 'Evaluación' : 'Evaluaciones'}
                   </Badge>
                 </div>
 
@@ -228,7 +228,7 @@ export const EvaluationProgress = () => {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Evaluaciones</p>
-                    <p className="font-semibold">{item.evaluaciones_completadas} / 3</p>
+                    <p className="font-semibold">{item.evaluaciones_completadas}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Puntaje Promedio</p>

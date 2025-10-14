@@ -22,12 +22,11 @@ interface RankingItem {
 export const Top100Rankings = () => {
   const [loading, setLoading] = useState(true);
   const [rankings, setRankings] = useState<RankingItem[]>([]);
-  const [onlyComplete, setOnlyComplete] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchRankings();
-  }, [onlyComplete]);
+  }, []);
 
   const fetchRankings = async () => {
     try {
@@ -75,10 +74,8 @@ export const Top100Rankings = () => {
         };
       }) || [];
 
-      // Filtrar si solo queremos completos
-      const filtered = onlyComplete
-        ? promedios.filter(p => p.evaluaciones_completadas === 3)
-        : promedios.filter(p => p.evaluaciones_completadas > 0);
+      // Filtrar emprendimientos con al menos una evaluación
+      const filtered = promedios.filter(p => p.evaluaciones_completadas > 0);
 
       // Ordenar por puntaje promedio descendente
       const sorted = filtered.sort((a, b) => b.puntaje_promedio - a.puntaje_promedio);
@@ -163,16 +160,6 @@ export const Top100Rankings = () => {
             </CardDescription>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="only-complete"
-                checked={onlyComplete}
-                onCheckedChange={setOnlyComplete}
-              />
-              <Label htmlFor="only-complete" className="text-sm">
-                Solo con 3 evaluaciones
-              </Label>
-            </div>
             <Button onClick={exportToCSV} variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
               Exportar CSV
@@ -183,7 +170,7 @@ export const Top100Rankings = () => {
       <CardContent>
         {rankings.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
-            No hay emprendimientos con evaluaciones {onlyComplete && 'completas'}
+            No hay emprendimientos con evaluaciones
           </p>
         ) : (
           <div className="relative overflow-x-auto">
@@ -225,8 +212,8 @@ export const Top100Rankings = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={item.evaluaciones_completadas === 3 ? "default" : "secondary"}>
-                        {item.evaluaciones_completadas} / 3
+                      <Badge variant="default">
+                        {item.evaluaciones_completadas}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
