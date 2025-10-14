@@ -20,19 +20,19 @@ export const EvaluationSummary = ({
   puntajeReferido,
 }: EvaluationSummaryProps) => {
   const puntajeTotal = puntajeImpacto + puntajeEquipo + puntajeInnovacion + puntajeVentas + puntajeProyeccionFinanciacion + puntajeReferido;
-  const maxTotal = 105;
+  const maxTotal = 100;
   const porcentaje = (puntajeTotal / maxTotal) * 100;
 
   const data = [
     { name: "Impacto", puntaje: puntajeImpacto, max: 30 },
     { name: "Equipo", puntaje: puntajeEquipo, max: 25 },
     { name: "Innovación", puntaje: puntajeInnovacion, max: 25 },
-    { name: "Ventas", puntaje: puntajeVentas, max: 15 },
+    { name: "Ventas", puntaje: puntajeVentas, max: 10 },
     { name: "Proyección", puntaje: puntajeProyeccionFinanciacion, max: 5 },
     { name: "Referido", puntaje: puntajeReferido, max: 5 },
   ];
 
-  const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--primary))'];
+  const COLORS = ['hsl(var(--primary))', 'hsl(var(--primary))', 'hsl(var(--primary))', 'hsl(var(--primary))', 'hsl(var(--primary))', 'hsl(var(--primary))'];
 
   return (
     <Card>
