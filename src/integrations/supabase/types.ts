@@ -543,17 +543,14 @@ export type Database = {
           cumple_equipo_minimo: boolean | null
           cumple_interes: boolean | null
           cumple_ubicacion: boolean | null
-          dedicacion: Database["public"]["Enums"]["estado_evaluacion"] | null
           diagnostico_id: string | null
           emprendimiento_id: string
-          equipo: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto: string | null
           estado: string | null
           evaluacion_base_id: string | null
           id: string
           impacto_texto: string | null
           innovacion_tecnologia_texto: string | null
-          interes: Database["public"]["Enums"]["estado_evaluacion"] | null
           mentor_id: string | null
           nivel: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           puede_editar: boolean | null
@@ -565,7 +562,6 @@ export type Database = {
           puntaje_ventas: number | null
           referido_regional: string | null
           tipo_evaluacion: Database["public"]["Enums"]["tipo_evaluacion"]
-          ubicacion: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at: string
           ventas_texto: string | null
           visible_para_usuario: boolean
@@ -578,17 +574,14 @@ export type Database = {
           cumple_equipo_minimo?: boolean | null
           cumple_interes?: boolean | null
           cumple_ubicacion?: boolean | null
-          dedicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           diagnostico_id?: string | null
           emprendimiento_id: string
-          equipo?: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto?: string | null
           estado?: string | null
           evaluacion_base_id?: string | null
           id?: string
           impacto_texto?: string | null
           innovacion_tecnologia_texto?: string | null
-          interes?: Database["public"]["Enums"]["estado_evaluacion"] | null
           mentor_id?: string | null
           nivel?: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           puede_editar?: boolean | null
@@ -600,7 +593,6 @@ export type Database = {
           puntaje_ventas?: number | null
           referido_regional?: string | null
           tipo_evaluacion?: Database["public"]["Enums"]["tipo_evaluacion"]
-          ubicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at?: string
           ventas_texto?: string | null
           visible_para_usuario?: boolean
@@ -613,17 +605,14 @@ export type Database = {
           cumple_equipo_minimo?: boolean | null
           cumple_interes?: boolean | null
           cumple_ubicacion?: boolean | null
-          dedicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           diagnostico_id?: string | null
           emprendimiento_id?: string
-          equipo?: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto?: string | null
           estado?: string | null
           evaluacion_base_id?: string | null
           id?: string
           impacto_texto?: string | null
           innovacion_tecnologia_texto?: string | null
-          interes?: Database["public"]["Enums"]["estado_evaluacion"] | null
           mentor_id?: string | null
           nivel?: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           puede_editar?: boolean | null
@@ -635,7 +624,6 @@ export type Database = {
           puntaje_ventas?: number | null
           referido_regional?: string | null
           tipo_evaluacion?: Database["public"]["Enums"]["tipo_evaluacion"]
-          ubicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at?: string
           ventas_texto?: string | null
           visible_para_usuario?: boolean
