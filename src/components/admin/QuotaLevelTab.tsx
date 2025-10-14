@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -238,56 +239,50 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
     }
   };
 
-  const exportToCSV = (estado?: string) => {
+  const exportToExcel = (estado?: string) => {
     let dataToExport = emprendimientos;
     
     if (estado) {
       dataToExport = emprendimientos.filter(e => e.asignacion_estado === estado);
     }
 
-    const headers = tieneCohorts 
-      ? ["Emprendimiento", "Beneficiario", "Puntaje Promedio", "Evaluaciones", "Estado", "Cohorte"]
-      : ["Emprendimiento", "Beneficiario", "Puntaje Promedio", "Evaluaciones", "Estado"];
-    
-    const rows = dataToExport.map(emp => {
-      const baseRow = [
-        emp.nombre,
-        `${emp.beneficiario_nombre} ${emp.beneficiario_apellido}`,
-        emp.puntaje_promedio.toString(),
-        emp.total_evaluaciones.toString(),
-        emp.asignacion_estado || "Pendiente"
-      ];
+    const worksheetData = dataToExport.map(emp => {
+      const baseData = {
+        "Emprendimiento": emp.nombre,
+        "Beneficiario": `${emp.beneficiario_nombre} ${emp.beneficiario_apellido}`,
+        "Puntaje Promedio": emp.puntaje_promedio,
+        "Evaluaciones": emp.total_evaluaciones,
+        "Estado": emp.asignacion_estado || "Pendiente"
+      };
       
       if (tieneCohorts) {
-        baseRow.push(emp.asignacion_cohorte?.toString() || "-");
+        return {
+          ...baseData,
+          "Cohorte": emp.asignacion_cohorte || "-"
+        };
       }
       
-      return baseRow;
+      return baseData;
     });
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    
+    const sheetName = estado 
+      ? `${nivel} - ${estado.charAt(0).toUpperCase() + estado.slice(1)}`
+      : `${nivel} - Todos`;
+    
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
     
     const filename = estado 
-      ? `${nivel}_${estado}_${new Date().toISOString().split('T')[0]}.csv`
-      : `${nivel}_todos_${new Date().toISOString().split('T')[0]}.csv`;
+      ? `${nivel}_${estado}_${new Date().toISOString().split('T')[0]}.xlsx`
+      : `${nivel}_todos_${new Date().toISOString().split('T')[0]}.xlsx`;
     
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    XLSX.writeFile(workbook, filename);
 
     toast({
       title: "Exportado exitosamente",
-      description: `Se han exportado ${dataToExport.length} registros`
+      description: `Se han exportado ${dataToExport.length} registros a Excel`
     });
   };
 
@@ -369,7 +364,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => exportToCSV()}
+                onClick={() => exportToExcel()}
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
@@ -378,7 +373,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => exportToCSV("aprobado")}
+                onClick={() => exportToExcel("aprobado")}
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
@@ -387,7 +382,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => exportToCSV("rechazado")}
+                onClick={() => exportToExcel("rechazado")}
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
