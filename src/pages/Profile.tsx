@@ -24,6 +24,8 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
+  const [asignacion, setAsignacion] = useState<any>(null);
+
   useEffect(() => {
     const fetchUsuario = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -34,6 +36,24 @@ const Profile = () => {
           .eq('id', user.id)
           .single();
         setUsuario(data);
+
+        // Obtener asignación de cupo si es beneficiario
+        const { data: empData } = await supabase
+          .from('emprendimientos')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (empData) {
+          const { data: asignacionData } = await supabase
+            .from('asignacion_cupos')
+            .select('*')
+            .eq('emprendimiento_id', empData.id)
+            .eq('estado', 'aprobado')
+            .single();
+          
+          setAsignacion(asignacionData);
+        }
       }
     };
     fetchUsuario();
@@ -179,10 +199,24 @@ const Profile = () => {
                 />
               </label>
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold text-foreground">{nombreCompleto}</h1>
               <p className="text-muted-foreground">{usuario.email}</p>
               <p className="text-sm text-muted-foreground mt-1">Beneficiario</p>
+              {asignacion && (
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="inline-flex items-center gap-2 rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
+                    <Award className="h-4 w-4" />
+                    Nivel: {asignacion.nivel}
+                  </div>
+                  {asignacion.cohorte && (
+                    <div className="inline-flex items-center gap-2 rounded-md bg-secondary/50 px-3 py-1.5 text-sm font-medium text-secondary-foreground">
+                      <Users className="h-4 w-4" />
+                      Cohorte: {asignacion.cohorte}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </Card>

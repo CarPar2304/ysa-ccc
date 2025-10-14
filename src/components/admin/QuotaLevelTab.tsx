@@ -185,9 +185,17 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         if (error) throw error;
       }
 
+      // Activar visualización de evaluaciones al aprobar
+      const { error: evalError } = await supabase
+        .from("evaluaciones")
+        .update({ visible_para_usuario: true })
+        .eq("emprendimiento_id", emprendimiento.id);
+
+      if (evalError) throw evalError;
+
       toast({
         title: "Cupo aprobado",
-        description: `${emprendimiento.nombre} ha sido aprobado para ${nivel} - Cohorte ${cohorte}`
+        description: `${emprendimiento.nombre} ha sido aprobado para ${nivel} - Cohorte ${cohorte}. Las evaluaciones ahora son visibles para el usuario.`
       });
 
       fetchData();
