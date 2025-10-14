@@ -37,6 +37,7 @@ interface Modulo {
   orden: number | null;
   activo: boolean;
   imagen_url: string | null;
+  nivel: string | null;
 }
 
 interface Clase {
@@ -56,12 +57,47 @@ const Lab = () => {
   const [selectedModulo, setSelectedModulo] = useState<Modulo | null>(null);
   const [clases, setClases] = useState<Clase[]>([]);
   const [loadingClases, setLoadingClases] = useState(false);
+  const [userNivel, setUserNivel] = useState<string | null>(null);
   const { toast } = useToast();
-  const { userId, isAdmin } = useUserRole();
+  const { userId, isAdmin, isBeneficiario } = useUserRole();
 
   useEffect(() => {
     fetchModulos();
-  }, []);
+    if (isBeneficiario && userId) {
+      fetchUserNivel();
+    }
+  }, [userId, isBeneficiario]);
+
+  const fetchUserNivel = async () => {
+    if (!userId) return;
+    
+    try {
+      // Obtener el emprendimiento del usuario
+      const { data: emprendimiento } = await supabase
+        .from("emprendimientos")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!emprendimiento) return;
+
+      // Obtener la evaluación más reciente con nivel
+      const { data: evaluacion } = await supabase
+        .from("evaluaciones")
+        .select("nivel")
+        .eq("emprendimiento_id", emprendimiento.id)
+        .not("nivel", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (evaluacion?.nivel) {
+        setUserNivel(evaluacion.nivel);
+      }
+    } catch (error) {
+      console.error("Error fetching user nivel:", error);
+    }
+  };
 
   const fetchModulos = async () => {
     try {
@@ -213,7 +249,14 @@ const Lab = () => {
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-foreground mb-2">YSA Lab</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground mb-2">YSA Lab</h1>
+              {userNivel && (
+                <Badge variant="outline" className="mb-2">
+                  Nivel: {userNivel}
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground">Accede a módulos y clases del programa de incubación</p>
           </div>
           {isAdmin && (

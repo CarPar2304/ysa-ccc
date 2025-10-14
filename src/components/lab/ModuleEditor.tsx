@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus } from "lucide-react";
@@ -18,6 +19,7 @@ interface ModuleEditorProps {
     orden: number;
     activo: boolean;
     imagen_url: string;
+    nivel: string | null;
   };
   onSuccess: () => void;
   trigger?: React.ReactNode;
@@ -28,13 +30,22 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    titulo: string;
+    descripcion: string;
+    duracion: string;
+    orden: number;
+    activo: boolean;
+    imagen_url: string;
+    nivel: "Starter" | "Growth" | "Scale";
+  }>({
     titulo: "",
     descripcion: "",
     duracion: "",
     orden: 0,
     activo: true,
     imagen_url: "",
+    nivel: "Starter",
   });
 
   useEffect(() => {
@@ -46,6 +57,7 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
         orden: modulo.orden || 0,
         activo: modulo.activo,
         imagen_url: modulo.imagen_url || "",
+        nivel: (modulo.nivel as "Starter" | "Growth" | "Scale") || "Starter",
       });
     }
   }, [modulo]);
@@ -96,6 +108,7 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
           orden: 0,
           activo: true,
           imagen_url: "",
+          nivel: "Starter",
         });
       }
     } catch (error: any) {
@@ -178,6 +191,20 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
               onChange={(e) => setFormData({ ...formData, imagen_url: e.target.value })}
               placeholder="https://ejemplo.com/imagen.jpg"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="nivel">Nivel del Módulo *</Label>
+            <Select value={formData.nivel} onValueChange={(value) => setFormData({ ...formData, nivel: value as "Starter" | "Growth" | "Scale" })}>
+              <SelectTrigger id="nivel">
+                <SelectValue placeholder="Selecciona un nivel" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Starter">Starter</SelectItem>
+                <SelectItem value="Growth">Growth</SelectItem>
+                <SelectItem value="Scale">Scale</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center space-x-2">

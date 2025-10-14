@@ -532,6 +532,7 @@ export type Database = {
           innovacion_tecnologia_texto: string | null
           interes: Database["public"]["Enums"]["estado_evaluacion"] | null
           mentor_id: string | null
+          nivel: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           puede_editar: boolean | null
           puntaje: number | null
           puntaje_equipo: number | null
@@ -563,6 +564,7 @@ export type Database = {
           innovacion_tecnologia_texto?: string | null
           interes?: Database["public"]["Enums"]["estado_evaluacion"] | null
           mentor_id?: string | null
+          nivel?: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           puede_editar?: boolean | null
           puntaje?: number | null
           puntaje_equipo?: number | null
@@ -594,6 +596,7 @@ export type Database = {
           innovacion_tecnologia_texto?: string | null
           interes?: Database["public"]["Enums"]["estado_evaluacion"] | null
           mentor_id?: string | null
+          nivel?: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           puede_editar?: boolean | null
           puntaje?: number | null
           puntaje_equipo?: number | null
@@ -772,6 +775,7 @@ export type Database = {
           duracion: string | null
           id: string
           imagen_url: string | null
+          nivel: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           orden: number | null
           titulo: string
           updated_at: string
@@ -783,6 +787,7 @@ export type Database = {
           duracion?: string | null
           id?: string
           imagen_url?: string | null
+          nivel?: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           orden?: number | null
           titulo: string
           updated_at?: string
@@ -794,6 +799,7 @@ export type Database = {
           duracion?: string | null
           id?: string
           imagen_url?: string | null
+          nivel?: Database["public"]["Enums"]["nivel_emprendimiento"] | null
           orden?: number | null
           titulo?: string
           updated_at?: string
@@ -1084,6 +1090,7 @@ export type Database = {
           nivel_conocimiento: string | null
           nombres: string | null
           numero_identificacion: string | null
+          referido: string | null
           tipo_documento: Database["public"]["Enums"]["tipo_documento"] | null
           updated_at: string
         }
@@ -1105,6 +1112,7 @@ export type Database = {
           nivel_conocimiento?: string | null
           nombres?: string | null
           numero_identificacion?: string | null
+          referido?: string | null
           tipo_documento?: Database["public"]["Enums"]["tipo_documento"] | null
           updated_at?: string
         }
@@ -1126,6 +1134,7 @@ export type Database = {
           nivel_conocimiento?: string | null
           nombres?: string | null
           numero_identificacion?: string | null
+          referido?: string | null
           tipo_documento?: Database["public"]["Enums"]["tipo_documento"] | null
           updated_at?: string
         }
@@ -1219,6 +1228,7 @@ export type Database = {
         | "Hace uso en su oferta"
         | "Solución tecnológica"
         | "Tecnología 4ta Generación"
+      nivel_emprendimiento: "Starter" | "Growth" | "Scale"
       nivel_innovacion:
         | "Tradicional"
         | "Mejoras incrementales"
@@ -1416,6 +1426,7 @@ export const Constants = {
         "Solución tecnológica",
         "Tecnología 4ta Generación",
       ],
+      nivel_emprendimiento: ["Starter", "Growth", "Scale"],
       nivel_innovacion: [
         "Tradicional",
         "Mejoras incrementales",
