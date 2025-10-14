@@ -35,7 +35,6 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
   const evaluacionesVisibles = evaluaciones.filter(e => 
     e.estado === 'enviada' || (e as any).tipo_evaluacion === 'ccc'
   );
-  const completadas = evaluacionesVisibles.length;
 
   const InfoSection = ({ title, score, maxScore, text }: { title: string; score: number; maxScore: number; text: string }) => (
     <div className="space-y-2">
@@ -51,12 +50,7 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            Mis Evaluaciones
-            <Badge variant={completadas === 3 ? "default" : "secondary"}>
-              {completadas} / 3 Completadas
-            </Badge>
-          </DialogTitle>
+          <DialogTitle>Mis Evaluaciones</DialogTitle>
         </DialogHeader>
 
         {evaluacionesVisibles.length === 0 ? (
