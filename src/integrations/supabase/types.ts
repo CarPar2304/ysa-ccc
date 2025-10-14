@@ -553,11 +553,13 @@ export type Database = {
           innovacion_tecnologia_texto: string | null
           mentor_id: string | null
           nivel: Database["public"]["Enums"]["nivel_emprendimiento"] | null
+          proyeccion_financiacion_texto: string | null
           puede_editar: boolean | null
           puntaje: number | null
           puntaje_equipo: number | null
           puntaje_impacto: number | null
           puntaje_innovacion_tecnologia: number | null
+          puntaje_proyeccion_financiacion: number | null
           puntaje_referido_regional: number | null
           puntaje_ventas: number | null
           referido_regional: string | null
@@ -584,11 +586,13 @@ export type Database = {
           innovacion_tecnologia_texto?: string | null
           mentor_id?: string | null
           nivel?: Database["public"]["Enums"]["nivel_emprendimiento"] | null
+          proyeccion_financiacion_texto?: string | null
           puede_editar?: boolean | null
           puntaje?: number | null
           puntaje_equipo?: number | null
           puntaje_impacto?: number | null
           puntaje_innovacion_tecnologia?: number | null
+          puntaje_proyeccion_financiacion?: number | null
           puntaje_referido_regional?: number | null
           puntaje_ventas?: number | null
           referido_regional?: string | null
@@ -615,11 +619,13 @@ export type Database = {
           innovacion_tecnologia_texto?: string | null
           mentor_id?: string | null
           nivel?: Database["public"]["Enums"]["nivel_emprendimiento"] | null
+          proyeccion_financiacion_texto?: string | null
           puede_editar?: boolean | null
           puntaje?: number | null
           puntaje_equipo?: number | null
           puntaje_impacto?: number | null
           puntaje_innovacion_tecnologia?: number | null
+          puntaje_proyeccion_financiacion?: number | null
           puntaje_referido_regional?: number | null
           puntaje_ventas?: number | null
           referido_regional?: string | null

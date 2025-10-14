@@ -7,6 +7,7 @@ interface EvaluationSummaryProps {
   puntajeEquipo: number;
   puntajeInnovacion: number;
   puntajeVentas: number;
+  puntajeProyeccionFinanciacion: number;
   puntajeReferido: number;
 }
 
@@ -15,10 +16,11 @@ export const EvaluationSummary = ({
   puntajeEquipo,
   puntajeInnovacion,
   puntajeVentas,
+  puntajeProyeccionFinanciacion,
   puntajeReferido,
 }: EvaluationSummaryProps) => {
-  const puntajeTotal = puntajeImpacto + puntajeEquipo + puntajeInnovacion + puntajeVentas + puntajeReferido;
-  const maxTotal = 100;
+  const puntajeTotal = puntajeImpacto + puntajeEquipo + puntajeInnovacion + puntajeVentas + puntajeProyeccionFinanciacion + puntajeReferido;
+  const maxTotal = 105;
   const porcentaje = (puntajeTotal / maxTotal) * 100;
 
   const data = [
@@ -26,10 +28,11 @@ export const EvaluationSummary = ({
     { name: "Equipo", puntaje: puntajeEquipo, max: 25 },
     { name: "Innovación", puntaje: puntajeInnovacion, max: 25 },
     { name: "Ventas", puntaje: puntajeVentas, max: 15 },
+    { name: "Proyección", puntaje: puntajeProyeccionFinanciacion, max: 5 },
     { name: "Referido", puntaje: puntajeReferido, max: 5 },
   ];
 
-  const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+  const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--primary))'];
 
   return (
     <Card>

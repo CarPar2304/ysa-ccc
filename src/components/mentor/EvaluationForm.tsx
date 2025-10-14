@@ -42,6 +42,8 @@ const evaluationSchema = z.object({
   innovacion_tecnologia_texto: z.string().min(10, "Debes agregar comentarios sobre innovación"),
   puntaje_ventas: z.number().min(0).max(15),
   ventas_texto: z.string().min(10, "Debes agregar comentarios sobre ventas"),
+  puntaje_proyeccion_financiacion: z.number().min(0).max(5),
+  proyeccion_financiacion_texto: z.string().min(10, "Debes agregar comentarios sobre proyección y financiación"),
   
   // Referido regional - ahora manual
   puntaje_referido_regional: z.number().min(0).max(5),
@@ -82,6 +84,8 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
       innovacion_tecnologia_texto: "",
       puntaje_ventas: cccEvaluation?.puntaje_ventas || 0,
       ventas_texto: "",
+      puntaje_proyeccion_financiacion: cccEvaluation?.puntaje_proyeccion_financiacion || 0,
+      proyeccion_financiacion_texto: "",
       puntaje_referido_regional: cccEvaluation?.puntaje_referido_regional || 0,
       referido_regional: "",
       comentarios_adicionales: "",
@@ -121,6 +125,8 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
           innovacion_tecnologia_texto: evaluation.innovacion_tecnologia_texto || "",
           puntaje_ventas: evaluation.puntaje_ventas || 0,
           ventas_texto: evaluation.ventas_texto || "",
+          puntaje_proyeccion_financiacion: evaluation.puntaje_proyeccion_financiacion || 0,
+          proyeccion_financiacion_texto: evaluation.proyeccion_financiacion_texto || "",
           puntaje_referido_regional: evaluation.puntaje_referido_regional || 0,
           referido_regional: evaluation.referido_regional || "",
           comentarios_adicionales: evaluation.comentarios_adicionales || "",
@@ -150,6 +156,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
         formData.puntaje_equipo + 
         formData.puntaje_innovacion_tecnologia + 
         formData.puntaje_ventas + 
+        formData.puntaje_proyeccion_financiacion +
         formData.puntaje_referido_regional;
 
       const evaluationData = {
@@ -166,6 +173,8 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
         innovacion_tecnologia_texto: formData.innovacion_tecnologia_texto,
         puntaje_ventas: formData.puntaje_ventas,
         ventas_texto: formData.ventas_texto,
+        puntaje_proyeccion_financiacion: formData.puntaje_proyeccion_financiacion,
+        proyeccion_financiacion_texto: formData.proyeccion_financiacion_texto,
         puntaje_referido_regional: formData.puntaje_referido_regional,
         referido_regional: formData.referido_regional,
         puntaje: puntajeTotal,
@@ -233,6 +242,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
     watchedValues.puntaje_equipo + 
     watchedValues.puntaje_innovacion_tecnologia + 
     watchedValues.puntaje_ventas + 
+    watchedValues.puntaje_proyeccion_financiacion +
     watchedValues.puntaje_referido_regional;
 
   return (
@@ -288,6 +298,10 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Ventas</p>
                       <p className="text-lg font-semibold">{cccEvaluation.puntaje_ventas || 0} / 15</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Proyección</p>
+                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_proyeccion_financiacion || 0} / 5</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">Referido</p>
@@ -622,6 +636,47 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
             />
           </div>
 
+          {/* Proyección y Financiación */}
+          <div className="space-y-4 p-4 border rounded-lg">
+            <FormField
+              control={form.control}
+              name="puntaje_proyeccion_financiacion"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ScoreInput
+                      label="Proyección y Financiación"
+                      description="Evalúa las proyecciones de crecimiento, planes de financiamiento y sostenibilidad financiera del emprendimiento."
+                      maxScore={5}
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isReadOnly}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="proyeccion_financiacion_texto"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Comentarios sobre Proyección y Financiación *</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      placeholder="Describe tu evaluación de las proyecciones y financiación..."
+                      className="min-h-[100px]"
+                      disabled={isReadOnly}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           {/* Referido Regional - Ahora Manual */}
           <div className="space-y-4 p-4 border rounded-lg">
             <FormField
@@ -697,6 +752,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
           puntajeEquipo={watchedValues.puntaje_equipo}
           puntajeInnovacion={watchedValues.puntaje_innovacion_tecnologia}
           puntajeVentas={watchedValues.puntaje_ventas}
+          puntajeProyeccionFinanciacion={watchedValues.puntaje_proyeccion_financiacion}
           puntajeReferido={watchedValues.puntaje_referido_regional}
         />
 
