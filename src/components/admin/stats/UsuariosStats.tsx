@@ -113,10 +113,10 @@ export const UsuariosStats = () => {
         }))
       );
 
-      // Edad promedio
-      const currentYear = new Date().getFullYear();
+      // Edad promedio (año actual 2025)
+      const currentYear = 2025;
       const edades = usuarios
-        ?.filter(u => u.ano_nacimiento)
+        ?.filter(u => u.ano_nacimiento && !isNaN(parseInt(u.ano_nacimiento)))
         .map(u => currentYear - parseInt(u.ano_nacimiento || "0"));
 
       const promedioEdad = edades?.length
