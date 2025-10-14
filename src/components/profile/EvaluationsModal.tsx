@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { EvaluationSummary } from "@/components/evaluation/EvaluationSummary";
 
 interface Evaluation {
   id: string;
@@ -12,10 +13,12 @@ interface Evaluation {
   puntaje_innovacion_tecnologia: number;
   puntaje_ventas: number;
   puntaje_referido_regional: number;
+  puntaje_proyeccion_financiacion: number;
   impacto_texto: string;
   equipo_texto: string;
   innovacion_tecnologia_texto: string;
   ventas_texto: string;
+  proyeccion_financiacion_texto: string;
   comentarios_adicionales: string;
   estado: string;
   created_at: string;
@@ -71,93 +74,75 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
 
             {evaluacionesEnviadas.map((evaluacion, index) => (
               <TabsContent key={evaluacion.id} value={index.toString()} className="space-y-4 mt-4">
+                <EvaluationSummary
+                  puntajeImpacto={evaluacion.puntaje_impacto || 0}
+                  puntajeEquipo={evaluacion.puntaje_equipo || 0}
+                  puntajeInnovacion={evaluacion.puntaje_innovacion_tecnologia || 0}
+                  puntajeVentas={evaluacion.puntaje_ventas || 0}
+                  puntajeProyeccionFinanciacion={evaluacion.puntaje_proyeccion_financiacion || 0}
+                  puntajeReferido={evaluacion.puntaje_referido_regional || 0}
+                />
+
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Puntaje Total</span>
-                      <span className="text-3xl text-primary">{evaluacion.puntaje} / 100</span>
-                    </CardTitle>
+                    <CardTitle>Evaluación Detallada</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <div className="grid grid-cols-5 gap-4">
-                      <div className="text-center p-3 border rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-1">Impacto</p>
-                        <p className="text-xl font-bold">{evaluacion.puntaje_impacto}</p>
-                        <p className="text-xs text-muted-foreground">/30</p>
-                      </div>
-                      <div className="text-center p-3 border rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-1">Equipo</p>
-                        <p className="text-xl font-bold">{evaluacion.puntaje_equipo}</p>
-                        <p className="text-xs text-muted-foreground">/25</p>
-                      </div>
-                      <div className="text-center p-3 border rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-1">Innovación</p>
-                        <p className="text-xl font-bold">{evaluacion.puntaje_innovacion_tecnologia}</p>
-                        <p className="text-xs text-muted-foreground">/25</p>
-                      </div>
-                      <div className="text-center p-3 border rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-1">Ventas</p>
-                        <p className="text-xl font-bold">{evaluacion.puntaje_ventas}</p>
-                        <p className="text-xs text-muted-foreground">/15</p>
-                      </div>
-                      <div className="text-center p-3 border rounded-lg">
-                        <p className="text-xs text-muted-foreground mb-1">Referido</p>
-                        <p className="text-xl font-bold">{evaluacion.puntaje_referido_regional}</p>
-                        <p className="text-xs text-muted-foreground">/5</p>
-                      </div>
-                    </div>
+
+                    <InfoSection 
+                      title="Impacto"
+                      score={evaluacion.puntaje_impacto}
+                      maxScore={30}
+                      text={evaluacion.impacto_texto}
+                    />
+                    
+                    <Separator />
+                    
+                    <InfoSection 
+                      title="Equipo"
+                      score={evaluacion.puntaje_equipo}
+                      maxScore={25}
+                      text={evaluacion.equipo_texto}
+                    />
+                    
+                    <Separator />
+                    
+                    <InfoSection 
+                      title="Innovación y Tecnología"
+                      score={evaluacion.puntaje_innovacion_tecnologia}
+                      maxScore={25}
+                      text={evaluacion.innovacion_tecnologia_texto}
+                    />
+                    
+                    <Separator />
+                    
+                    <InfoSection 
+                      title="Ventas"
+                      score={evaluacion.puntaje_ventas}
+                      maxScore={15}
+                      text={evaluacion.ventas_texto}
+                    />
 
                     <Separator />
+                    
+                    <InfoSection 
+                      title="Proyección y Financiación"
+                      score={evaluacion.puntaje_proyeccion_financiacion}
+                      maxScore={5}
+                      text={evaluacion.proyeccion_financiacion_texto}
+                    />
 
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold">Evaluación Detallada</h3>
-                      
-                      <InfoSection 
-                        title="Impacto"
-                        score={evaluacion.puntaje_impacto}
-                        maxScore={30}
-                        text={evaluacion.impacto_texto}
-                      />
-                      
-                      <Separator />
-                      
-                      <InfoSection 
-                        title="Equipo"
-                        score={evaluacion.puntaje_equipo}
-                        maxScore={25}
-                        text={evaluacion.equipo_texto}
-                      />
-                      
-                      <Separator />
-                      
-                      <InfoSection 
-                        title="Innovación y Tecnología"
-                        score={evaluacion.puntaje_innovacion_tecnologia}
-                        maxScore={25}
-                        text={evaluacion.innovacion_tecnologia_texto}
-                      />
-                      
-                      <Separator />
-                      
-                      <InfoSection 
-                        title="Ventas"
-                        score={evaluacion.puntaje_ventas}
-                        maxScore={15}
-                        text={evaluacion.ventas_texto}
-                      />
-
-                      {evaluacion.comentarios_adicionales && (
-                        <>
-                          <Separator />
-                          <div className="space-y-2">
-                            <h4 className="font-semibold">Comentarios Adicionales</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                              {evaluacion.comentarios_adicionales}
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    {evaluacion.comentarios_adicionales && (
+                      <>
+                        <Separator />
+                        <div className="space-y-2">
+                          <h4 className="font-semibold">Comentarios Adicionales</h4>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {evaluacion.comentarios_adicionales}
+                          </p>
+                        </div>
+                      </>
+                    )}
 
                     <div className="text-xs text-muted-foreground text-right">
                       Evaluado el {new Date(evaluacion.created_at).toLocaleDateString('es-ES', {
