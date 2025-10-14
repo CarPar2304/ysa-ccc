@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useThemePreference } from "@/hooks/useThemePreference";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -27,7 +27,7 @@ const navigation = [
 export const Sidebar = () => {
   const { isAdmin, isMentor } = useUserRole();
   const { open } = useSidebar();
-  const { resolvedTheme } = useTheme();
+  const theme = useThemePreference();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -40,7 +40,7 @@ export const Sidebar = () => {
       <div className="flex h-14 items-center justify-center border-b border-border px-4">
         {open && (
           <img 
-            src={resolvedTheme === "dark" ? logoDark : logoLight} 
+            src={theme === "dark" ? logoDark : logoLight} 
             alt="Cámara de Comercio de Cali" 
             className="h-10 w-auto object-contain"
           />
