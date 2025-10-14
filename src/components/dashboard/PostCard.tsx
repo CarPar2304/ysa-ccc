@@ -15,6 +15,7 @@ interface PostCardProps {
       nombres: string | null;
       apellidos: string | null;
       avatar_url: string | null;
+      nivel_conocimiento: string | null;
     } | null;
     reacciones: Array<{
       id: string;
@@ -53,9 +54,16 @@ export const PostCard = ({ post, onRefresh, currentUserId }: PostCardProps) => {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground truncate">
-              {post.usuarios?.nombres} {post.usuarios?.apellidos}
-            </h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-foreground truncate">
+                {post.usuarios?.nombres} {post.usuarios?.apellidos}
+              </h3>
+              {post.usuarios?.nivel_conocimiento && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 shrink-0">
+                  Nivel {post.usuarios.nivel_conocimiento}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               {formatDistanceToNow(new Date(post.created_at), {
                 addSuffix: true,

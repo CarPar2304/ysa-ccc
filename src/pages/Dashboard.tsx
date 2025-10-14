@@ -19,6 +19,7 @@ interface Post {
     nombres: string | null;
     apellidos: string | null;
     avatar_url: string | null;
+    nivel_conocimiento: string | null;
   } | null;
   reacciones: Array<{
     id: string;
@@ -73,7 +74,7 @@ const Dashboard = () => {
         .from("posts")
         .select(`
           *,
-          usuarios!posts_user_id_fkey (nombres, apellidos, avatar_url),
+          usuarios!posts_user_id_fkey (nombres, apellidos, avatar_url, nivel_conocimiento),
           reacciones (id, tipo_reaccion, user_id),
           comentarios (id)
         `)
