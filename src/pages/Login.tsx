@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,8 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import logoLight from "@/assets/logo-light.png";
+import logoDark from "@/assets/logo-dark.png";
 const Login = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -59,10 +63,12 @@ const Login = () => {
     <div className="flex min-h-screen items-center justify-center bg-gradient-subtle p-4">
       <Card className="w-full max-w-md shadow-strong border-border">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto mb-2">
-            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              YSA Región Pacífico
-            </h1>
+          <div className="mx-auto mb-4">
+            <img 
+              src={theme === "dark" ? logoDark : logoLight} 
+              alt="Cámara de Comercio de Cali" 
+              className="h-16 mx-auto"
+            />
           </div>
           <CardTitle className="text-2xl">Bienvenido de nuevo</CardTitle>
           <CardDescription>

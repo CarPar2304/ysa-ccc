@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -14,6 +15,8 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from "./ui/sidebar";
+import logoLight from "@/assets/logo-light.png";
+import logoDark from "@/assets/logo-dark.png";
 
 const navigation = [
   { name: "YSA Conecta", href: "/", icon: Home },
@@ -24,6 +27,7 @@ const navigation = [
 export const Sidebar = () => {
   const { isAdmin, isMentor } = useUserRole();
   const { open } = useSidebar();
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -34,10 +38,18 @@ export const Sidebar = () => {
   return (
     <SidebarPrimitive collapsible="icon">
       <div className="flex h-14 items-center justify-center border-b border-border px-4">
-        {open && (
-          <h1 className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
-            YSA Región Pacífico
-          </h1>
+        {open ? (
+          <img 
+            src={theme === "dark" ? logoDark : logoLight} 
+            alt="Cámara de Comercio de Cali" 
+            className="h-10"
+          />
+        ) : (
+          <img 
+            src={theme === "dark" ? logoDark : logoLight} 
+            alt="Logo" 
+            className="h-8"
+          />
         )}
       </div>
 
