@@ -38,17 +38,11 @@ export const Sidebar = () => {
   return (
     <SidebarPrimitive collapsible="icon">
       <div className="flex h-14 items-center justify-center border-b border-border px-4">
-        {open ? (
+        {open && (
           <img 
             src={theme === "dark" ? logoDark : logoLight} 
             alt="Cámara de Comercio de Cali" 
             className="h-10 w-auto object-contain"
-          />
-        ) : (
-          <img 
-            src={theme === "dark" ? logoDark : logoLight} 
-            alt="Logo" 
-            className="h-8 w-8 object-contain"
           />
         )}
       </div>
