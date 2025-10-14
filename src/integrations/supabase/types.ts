@@ -100,6 +100,53 @@ export type Database = {
         }
         Relationships: []
       }
+      asignacion_cupos: {
+        Row: {
+          aprobado_por: string | null
+          cohorte: number
+          created_at: string | null
+          emprendimiento_id: string
+          estado: string | null
+          fecha_asignacion: string | null
+          id: string
+          nivel: Database["public"]["Enums"]["nivel_emprendimiento"]
+          notas: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aprobado_por?: string | null
+          cohorte: number
+          created_at?: string | null
+          emprendimiento_id: string
+          estado?: string | null
+          fecha_asignacion?: string | null
+          id?: string
+          nivel: Database["public"]["Enums"]["nivel_emprendimiento"]
+          notas?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aprobado_por?: string | null
+          cohorte?: number
+          created_at?: string | null
+          emprendimiento_id?: string
+          estado?: string | null
+          fecha_asignacion?: string | null
+          id?: string
+          nivel?: Database["public"]["Enums"]["nivel_emprendimiento"]
+          notas?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asignacion_cupos_emprendimiento_id_fkey"
+            columns: ["emprendimiento_id"]
+            isOneToOne: true
+            referencedRelation: "emprendimientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       autorizaciones: {
         Row: {
           celular: boolean
@@ -311,6 +358,9 @@ export type Database = {
           integracion_tecnologia:
             | Database["public"]["Enums"]["integracion_tecnologia"]
             | null
+          nivel_definitivo:
+            | Database["public"]["Enums"]["nivel_emprendimiento"]
+            | null
           nivel_innovacion:
             | Database["public"]["Enums"]["nivel_innovacion"]
             | null
@@ -373,6 +423,9 @@ export type Database = {
           integracion_tecnologia?:
             | Database["public"]["Enums"]["integracion_tecnologia"]
             | null
+          nivel_definitivo?:
+            | Database["public"]["Enums"]["nivel_emprendimiento"]
+            | null
           nivel_innovacion?:
             | Database["public"]["Enums"]["nivel_innovacion"]
             | null
@@ -434,6 +487,9 @@ export type Database = {
           industria_vertical?: string | null
           integracion_tecnologia?:
             | Database["public"]["Enums"]["integracion_tecnologia"]
+            | null
+          nivel_definitivo?:
+            | Database["public"]["Enums"]["nivel_emprendimiento"]
             | null
           nivel_innovacion?:
             | Database["public"]["Enums"]["nivel_innovacion"]
@@ -1179,6 +1235,10 @@ export type Database = {
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
+      }
+      calcular_nivel_definitivo: {
+        Args: { emprendimiento_uuid: string }
+        Returns: undefined
       }
       can_edit_modulo: {
         Args: { _modulo_id: string; _user_id: string }
