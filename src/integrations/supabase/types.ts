@@ -73,6 +73,33 @@ export type Database = {
           },
         ]
       }
+      acudientes_audit_log: {
+        Row: {
+          action: string
+          acudiente_id: string
+          admin_id: string
+          changed_fields: Json | null
+          id: string
+          timestamp: string
+        }
+        Insert: {
+          action: string
+          acudiente_id: string
+          admin_id: string
+          changed_fields?: Json | null
+          id?: string
+          timestamp?: string
+        }
+        Update: {
+          action?: string
+          acudiente_id?: string
+          admin_id?: string
+          changed_fields?: Json | null
+          id?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
       asignaciones_mentor: {
         Row: {
           created_at: string
