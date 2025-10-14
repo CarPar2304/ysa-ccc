@@ -27,7 +27,7 @@ const navigation = [
 export const Sidebar = () => {
   const { isAdmin, isMentor } = useUserRole();
   const { open } = useSidebar();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -40,7 +40,7 @@ export const Sidebar = () => {
       <div className="flex h-14 items-center justify-center border-b border-border px-4">
         {open && (
           <img 
-            src={theme === "dark" ? logoDark : logoLight} 
+            src={resolvedTheme === "dark" ? logoDark : logoLight} 
             alt="Cámara de Comercio de Cali" 
             className="h-10 w-auto object-contain"
           />
