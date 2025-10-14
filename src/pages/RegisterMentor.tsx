@@ -10,6 +10,23 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus } from "lucide-react";
+import { z } from "zod";
+
+const mentorSchema = z.object({
+  nombres: z.string().trim().min(2, "Los nombres deben tener al menos 2 caracteres").max(100, "Los nombres no pueden exceder 100 caracteres"),
+  apellidos: z.string().trim().min(2, "Los apellidos deben tener al menos 2 caracteres").max(100, "Los apellidos no pueden exceder 100 caracteres"),
+  genero: z.enum(['Masculino', 'Femenino', 'No binario', 'Prefiero no decir'], {
+    required_error: "Debe seleccionar un género"
+  }),
+  email: z.string().email("Correo electrónico inválido").max(255, "El correo no puede exceder 255 caracteres"),
+  celular: z.string().regex(/^3\d{9}$/, "Número de celular colombiano inválido (debe ser 10 dígitos comenzando con 3)"),
+  password: z.string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
+    .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+    .regex(/[a-z]/, "Debe contener al menos una minúscula")
+    .regex(/[0-9]/, "Debe contener al menos un número")
+    .regex(/[^A-Za-z0-9]/, "Debe contener al menos un carácter especial"),
+});
 
 const RegisterMentor = () => {
   const { isAdmin, loading: roleLoading } = useUserRole();
@@ -43,14 +60,17 @@ const RegisterMentor = () => {
     setLoading(true);
 
     try {
+      // Validate form data with Zod schema
+      const validatedData = mentorSchema.parse(formData);
+
       // 1. Crear usuario en auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+        email: validatedData.email,
+        password: validatedData.password,
         options: {
           data: {
-            nombres: formData.nombres,
-            apellidos: formData.apellidos,
+            nombres: validatedData.nombres,
+            apellidos: validatedData.apellidos,
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
@@ -63,8 +83,8 @@ const RegisterMentor = () => {
       const { error: usuarioError } = await supabase
         .from("usuarios")
         .update({
-          genero: formData.genero,
-          celular: formData.celular,
+          genero: validatedData.genero,
+          celular: validatedData.celular,
         })
         .eq("id", authData.user.id);
 
@@ -82,7 +102,7 @@ const RegisterMentor = () => {
 
       toast({
         title: "Mentor registrado exitosamente",
-        description: `Se ha creado el mentor ${formData.nombres} ${formData.apellidos}`,
+        description: `Se ha creado el mentor ${validatedData.nombres} ${validatedData.apellidos}`,
       });
 
       // Limpiar formulario
@@ -96,11 +116,22 @@ const RegisterMentor = () => {
       });
     } catch (error: any) {
       console.error("Error registrando mentor:", error);
-      toast({
-        title: "Error al registrar mentor",
-        description: error.message,
-        variant: "destructive",
-      });
+      
+      // Handle Zod validation errors
+      if (error instanceof z.ZodError) {
+        const errorMessages = error.errors.map(err => err.message).join(", ");
+        toast({
+          title: "Error de validación",
+          description: errorMessages,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error al registrar mentor",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -188,9 +219,11 @@ const RegisterMentor = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  minLength={6}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres, mayúscula, número y carácter especial"
                 />
+                <p className="text-xs text-muted-foreground">
+                  La contraseña debe contener al menos: 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial
+                </p>
               </div>
 
               <Button type="submit" disabled={loading} className="w-full">
