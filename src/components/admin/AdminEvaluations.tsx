@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { EvaluationViewModal } from "./EvaluationViewModal";
 
 export const AdminEvaluations = () => {
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,8 @@ export const AdminEvaluations = () => {
   const [filterMentor, setFilterMentor] = useState<string>("all");
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterTipo, setFilterTipo] = useState<string>("all");
+  const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -362,14 +365,11 @@ export const AdminEvaluations = () => {
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                // Abrir modal de edición (a implementar si es necesario)
-                                toast({
-                                  title: "Próximamente",
-                                  description: "Función de edición directa en desarrollo",
-                                });
+                                setSelectedEvaluation(evaluation);
+                                setModalOpen(true);
                               }}
                             >
-                              <Edit className="h-4 w-4 mr-2" />
+                              <Eye className="h-4 w-4 mr-2" />
                               Ver/Editar
                             </Button>
                           </TableCell>
@@ -383,6 +383,23 @@ export const AdminEvaluations = () => {
           </div>
         )}
       </CardContent>
+
+      <EvaluationViewModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        evaluation={selectedEvaluation}
+        emprendimientoNombre={
+          emprendimientos.find(e => e.id === selectedEvaluation?.emprendimiento_id)?.nombre
+        }
+        mentorNombre={
+          selectedEvaluation?.tipo_evaluacion === 'ccc' 
+            ? 'Sistema' 
+            : (() => {
+                const m = mentores.find(mn => mn.user_id === selectedEvaluation?.mentor_id);
+                return m ? `${m.usuarios?.nombres || ''} ${m.usuarios?.apellidos || ''}`.trim() : '—';
+              })()
+        }
+      />
     </Card>
   );
 };
