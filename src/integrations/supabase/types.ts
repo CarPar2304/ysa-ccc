@@ -265,6 +265,27 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          content: string | null
+          embedding: string | null
+          id: number
+          metadata: Json | null
+        }
+        Insert: {
+          content?: string | null
+          embedding?: string | null
+          id?: number
+          metadata?: Json | null
+        }
+        Update: {
+          content?: string | null
+          embedding?: string | null
+          id?: number
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       emprendimientos: {
         Row: {
           actividades_id: boolean | null
@@ -515,6 +536,7 @@ export type Database = {
       }
       evaluaciones: {
         Row: {
+          aprobada_por_admin: boolean | null
           comentarios_adicionales: string | null
           created_at: string
           cumple_dedicacion: boolean | null
@@ -527,6 +549,7 @@ export type Database = {
           equipo: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto: string | null
           estado: string | null
+          evaluacion_base_id: string | null
           id: string
           impacto_texto: string | null
           innovacion_tecnologia_texto: string | null
@@ -541,12 +564,14 @@ export type Database = {
           puntaje_referido_regional: number | null
           puntaje_ventas: number | null
           referido_regional: string | null
+          tipo_evaluacion: Database["public"]["Enums"]["tipo_evaluacion"]
           ubicacion: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at: string
           ventas_texto: string | null
           visible_para_usuario: boolean
         }
         Insert: {
+          aprobada_por_admin?: boolean | null
           comentarios_adicionales?: string | null
           created_at?: string
           cumple_dedicacion?: boolean | null
@@ -559,6 +584,7 @@ export type Database = {
           equipo?: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto?: string | null
           estado?: string | null
+          evaluacion_base_id?: string | null
           id?: string
           impacto_texto?: string | null
           innovacion_tecnologia_texto?: string | null
@@ -573,12 +599,14 @@ export type Database = {
           puntaje_referido_regional?: number | null
           puntaje_ventas?: number | null
           referido_regional?: string | null
+          tipo_evaluacion?: Database["public"]["Enums"]["tipo_evaluacion"]
           ubicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at?: string
           ventas_texto?: string | null
           visible_para_usuario?: boolean
         }
         Update: {
+          aprobada_por_admin?: boolean | null
           comentarios_adicionales?: string | null
           created_at?: string
           cumple_dedicacion?: boolean | null
@@ -591,6 +619,7 @@ export type Database = {
           equipo?: Database["public"]["Enums"]["estado_evaluacion"] | null
           equipo_texto?: string | null
           estado?: string | null
+          evaluacion_base_id?: string | null
           id?: string
           impacto_texto?: string | null
           innovacion_tecnologia_texto?: string | null
@@ -605,6 +634,7 @@ export type Database = {
           puntaje_referido_regional?: number | null
           puntaje_ventas?: number | null
           referido_regional?: string | null
+          tipo_evaluacion?: Database["public"]["Enums"]["tipo_evaluacion"]
           ubicacion?: Database["public"]["Enums"]["estado_evaluacion"] | null
           updated_at?: string
           ventas_texto?: string | null
@@ -623,6 +653,13 @@ export type Database = {
             columns: ["emprendimiento_id"]
             isOneToOne: true
             referencedRelation: "emprendimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluaciones_evaluacion_base_id_fkey"
+            columns: ["evaluacion_base_id"]
+            isOneToOne: false
+            referencedRelation: "evaluaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -1145,9 +1182,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      binary_quantize: {
+        Args: { "": string } | { "": unknown }
+        Returns: unknown
+      }
       can_edit_modulo: {
         Args: { _modulo_id: string; _user_id: string }
         Returns: boolean
+      }
+      get_evaluaciones_aprobadas: {
+        Args: { emprendimiento_uuid: string }
+        Returns: {
+          created_at: string
+          id: string
+          mentor_id: string
+          nivel: Database["public"]["Enums"]["nivel_emprendimiento"]
+          puntaje: number
+          puntaje_equipo: number
+          puntaje_impacto: number
+          puntaje_innovacion_tecnologia: number
+          puntaje_referido_regional: number
+          puntaje_ventas: number
+          tipo_evaluacion: Database["public"]["Enums"]["tipo_evaluacion"]
+        }[]
       }
       get_public_user_profiles: {
         Args: { user_ids?: string[] }
@@ -1159,12 +1216,44 @@ export type Database = {
           nombres: string
         }[]
       }
+      halfvec_avg: {
+        Args: { "": number[] }
+        Returns: unknown
+      }
+      halfvec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      halfvec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      halfvec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      hnsw_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_sparsevec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnswhandler: {
+        Args: { "": unknown }
+        Returns: unknown
       }
       is_admin: {
         Args: { _user_id: string }
@@ -1178,6 +1267,35 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      ivfflat_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflathandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      l2_norm: {
+        Args: { "": unknown } | { "": unknown }
+        Returns: number
+      }
+      l2_normalize: {
+        Args: { "": string } | { "": unknown } | { "": unknown }
+        Returns: unknown
+      }
+      match_documents: {
+        Args: { filter?: Json; match_count?: number; query_embedding: string }
+        Returns: {
+          content: string
+          id: number
+          metadata: Json
+          similarity: number
+        }[]
+      }
       mentor_has_emprendimiento: {
         Args: { _emprendimiento_id: string; _user_id: string }
         Returns: boolean
@@ -1190,6 +1308,42 @@ export type Database = {
           id: string
           nombres: string
         }[]
+      }
+      sparsevec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      sparsevec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      sparsevec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      vector_avg: {
+        Args: { "": number[] }
+        Returns: string
+      }
+      vector_dims: {
+        Args: { "": string } | { "": unknown }
+        Returns: number
+      }
+      vector_norm: {
+        Args: { "": string }
+        Returns: number
+      }
+      vector_out: {
+        Args: { "": string }
+        Returns: unknown
+      }
+      vector_send: {
+        Args: { "": string }
+        Returns: string
+      }
+      vector_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
       }
     }
     Enums: {
@@ -1252,6 +1406,7 @@ export type Database = {
         | "Cédula de extranjería"
         | "Pasaporte"
         | "Permiso de Protección Temporal (PPT)"
+      tipo_evaluacion: "ccc" | "jurado"
       ubicacion_principal: "Zona urbana" | "Zona rural" | "Zona rural dispersa"
       ventas_ultimo_ano:
         | "Sin ventas"
@@ -1454,6 +1609,7 @@ export const Constants = {
         "Pasaporte",
         "Permiso de Protección Temporal (PPT)",
       ],
+      tipo_evaluacion: ["ccc", "jurado"],
       ubicacion_principal: ["Zona urbana", "Zona rural", "Zona rural dispersa"],
       ventas_ultimo_ano: [
         "Sin ventas",
