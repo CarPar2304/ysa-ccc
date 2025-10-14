@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, TrendingUp, Download } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
@@ -238,6 +238,59 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
     }
   };
 
+  const exportToCSV = (estado?: string) => {
+    let dataToExport = emprendimientos;
+    
+    if (estado) {
+      dataToExport = emprendimientos.filter(e => e.asignacion_estado === estado);
+    }
+
+    const headers = tieneCohorts 
+      ? ["Emprendimiento", "Beneficiario", "Puntaje Promedio", "Evaluaciones", "Estado", "Cohorte"]
+      : ["Emprendimiento", "Beneficiario", "Puntaje Promedio", "Evaluaciones", "Estado"];
+    
+    const rows = dataToExport.map(emp => {
+      const baseRow = [
+        emp.nombre,
+        `${emp.beneficiario_nombre} ${emp.beneficiario_apellido}`,
+        emp.puntaje_promedio.toString(),
+        emp.total_evaluaciones.toString(),
+        emp.asignacion_estado || "Pendiente"
+      ];
+      
+      if (tieneCohorts) {
+        baseRow.push(emp.asignacion_cohorte?.toString() || "-");
+      }
+      
+      return baseRow;
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    const filename = estado 
+      ? `${nivel}_${estado}_${new Date().toISOString().split('T')[0]}.csv`
+      : `${nivel}_todos_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Exportado exitosamente",
+      description: `Se han exportado ${dataToExport.length} registros`
+    });
+  };
+
   if (loading) {
     return (
       <Card>
@@ -305,10 +358,43 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
       {/* Tabla de emprendimientos */}
       <Card>
         <CardHeader>
-          <CardTitle>Emprendimientos Elegibles - Nivel {nivel}</CardTitle>
-          <CardDescription>
-            {emprendimientos.length} emprendimiento(s) con evaluaciones aprobadas
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Emprendimientos Elegibles - Nivel {nivel}</CardTitle>
+              <CardDescription>
+                {emprendimientos.length} emprendimiento(s) con evaluaciones aprobadas
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportToCSV()}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Exportar Todos
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportToCSV("aprobado")}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Aprobados
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportToCSV("rechazado")}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Rechazados
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {emprendimientos.length === 0 ? (
