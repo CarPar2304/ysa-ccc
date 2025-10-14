@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,55 +49,27 @@ const RegisterMentor = () => {
       // Validate form data with Zod schema
       const validatedData = mentorSchema.parse(formData);
 
-      // Validar código de acceso
-      if (validatedData.accessCode !== ACCESS_CODE) {
-        toast({
-          title: "Código de acceso inválido",
-          description: "El código de acceso proporcionado no es válido",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
+      // Call edge function to register mentor
+      const response = await fetch(
+        `https://aqfpzlrpqszoxbjojavc.supabase.co/functions/v1/register-mentor`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(validatedData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error al registrar mentor");
       }
-
-      // 1. Crear usuario en auth (sin auto-login)
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: validatedData.email,
-        password: validatedData.password,
-        email_confirm: true,
-        user_metadata: {
-          nombres: validatedData.nombres,
-          apellidos: validatedData.apellidos,
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("No se pudo crear el usuario");
-
-      // 2. Actualizar información en tabla usuarios
-      const { error: usuarioError } = await supabase
-        .from("usuarios")
-        .update({
-          genero: validatedData.genero,
-          celular: validatedData.celular,
-        })
-        .eq("id", authData.user.id);
-
-      if (usuarioError) throw usuarioError;
-
-      // 3. Asignar rol de mentor
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: authData.user.id,
-          role: "mentor",
-        });
-
-      if (roleError) throw roleError;
 
       toast({
         title: "Mentor registrado exitosamente",
-        description: `Se ha creado el mentor ${validatedData.nombres} ${validatedData.apellidos}. Puede iniciar sesión con su email y contraseña.`,
+        description: data.message,
       });
 
       // Limpiar formulario
