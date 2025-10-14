@@ -42,13 +42,13 @@ export const Sidebar = () => {
           <img 
             src={theme === "dark" ? logoDark : logoLight} 
             alt="Cámara de Comercio de Cali" 
-            className="h-10"
+            className="h-10 w-auto object-contain"
           />
         ) : (
           <img 
             src={theme === "dark" ? logoDark : logoLight} 
             alt="Logo" 
-            className="h-8"
+            className="h-8 w-8 object-contain"
           />
         )}
       </div>
