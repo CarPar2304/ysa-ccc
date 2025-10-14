@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,27 +50,17 @@ const RegisterMentor = () => {
       // Validate form data with Zod schema
       const validatedData = mentorSchema.parse(formData);
 
-      // Call edge function to register mentor
-      const response = await fetch(
-        `https://aqfpzlrpqszoxbjojavc.supabase.co/functions/v1/register-mentor`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(validatedData),
-        }
-      );
+      // Invoke edge function securely via Supabase client
+      const { data, error } = await supabase.functions.invoke('register-mentor', {
+        body: validatedData,
+      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Error al registrar mentor");
-      }
+      if (error) throw new Error(error.message || 'Error al registrar mentor');
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Mentor registrado exitosamente",
-        description: data.message,
+        description: data?.message || `Se ha creado el mentor ${validatedData.nombres} ${validatedData.apellidos}. Puede iniciar sesión con su email y contraseña.`,
       });
 
       // Limpiar formulario
@@ -85,9 +76,8 @@ const RegisterMentor = () => {
     } catch (error: any) {
       console.error("Error registrando mentor:", error);
       
-      // Handle Zod validation errors
       if (error instanceof z.ZodError) {
-        const errorMessages = error.errors.map(err => err.message).join(", ");
+        const errorMessages = error.errors.map((err: any) => err.message).join(", ");
         toast({
           title: "Error de validación",
           description: errorMessages,
@@ -96,7 +86,7 @@ const RegisterMentor = () => {
       } else {
         toast({
           title: "Error al registrar mentor",
-          description: error.message,
+          description: error?.message || 'Error desconocido al invocar la función',
           variant: "destructive",
         });
       }

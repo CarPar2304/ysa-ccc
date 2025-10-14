@@ -14,11 +14,15 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  console.log('[register-mentor] Incoming request');
+
   try {
     const { accessCode, nombres, apellidos, genero, email, celular, password } = await req.json();
+    console.log('[register-mentor] Payload received for:', email);
 
     // Validate access code
     if (accessCode !== ACCESS_CODE) {
+      console.warn('[register-mentor] Invalid access code');
       return new Response(
         JSON.stringify({ error: "Código de acceso inválido" }),
         { 
@@ -104,6 +108,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log('[register-mentor] Mentor created:', authData.user.id);
 
     return new Response(
       JSON.stringify({ 
