@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, TrendingUp, Download } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
@@ -38,6 +38,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
   const [cuposUsados, setCuposUsados] = useState(0);
   const [cuposPorCohorte, setCuposPorCohorte] = useState({ 1: 0, 2: 0 });
   const [selectedCohortes, setSelectedCohortes] = useState<Record<string, number>>({});
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -239,11 +240,23 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
     }
   };
 
+  const toggleSort = () => {
+    setSortOrder(prev => prev === "desc" ? "asc" : "desc");
+  };
+
+  const sortedEmprendimientos = [...emprendimientos].sort((a, b) => {
+    if (sortOrder === "desc") {
+      return b.puntaje_promedio - a.puntaje_promedio;
+    } else {
+      return a.puntaje_promedio - b.puntaje_promedio;
+    }
+  });
+
   const exportToExcel = (estado?: string) => {
-    let dataToExport = emprendimientos;
+    let dataToExport = sortedEmprendimientos;
     
     if (estado) {
-      dataToExport = emprendimientos.filter(e => e.asignacion_estado === estado);
+      dataToExport = sortedEmprendimientos.filter(e => e.asignacion_estado === estado);
     }
 
     const worksheetData = dataToExport.map(emp => {
@@ -402,7 +415,21 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                 <TableRow>
                   <TableHead>Emprendimiento</TableHead>
                   <TableHead>Beneficiario</TableHead>
-                  <TableHead className="text-center">Puntaje Promedio</TableHead>
+                  <TableHead className="text-center">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={toggleSort}
+                      className="gap-1 hover:bg-muted"
+                    >
+                      Puntaje Promedio
+                      {sortOrder === "desc" ? (
+                        <ArrowDown className="h-4 w-4" />
+                      ) : (
+                        <ArrowUp className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TableHead>
                   <TableHead className="text-center">Evaluaciones</TableHead>
                   <TableHead className="text-center">Estado</TableHead>
                   {tieneCohorts && <TableHead className="text-center">Cohorte</TableHead>}
@@ -410,7 +437,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {emprendimientos.map((emp) => (
+                {sortedEmprendimientos.map((emp) => (
                   <TableRow key={emp.id}>
                     <TableCell className="font-medium">{emp.nombre}</TableCell>
                     <TableCell>
