@@ -57,18 +57,20 @@ export const EvaluationProgress = () => {
 
       if (asigError) throw asigError;
 
-      // Obtener evaluaciones
+      // Obtener evaluaciones (incluir CCC y jurados enviados)
       const { data: evaluaciones, error: evalError } = await supabase
         .from("evaluaciones")
-        .select("emprendimiento_id, puntaje, estado");
+        .select("emprendimiento_id, puntaje, estado, tipo_evaluacion");
 
       if (evalError) throw evalError;
 
       // Procesar datos
       const progress = emprendimientos?.map(emp => {
         const mentores = asignaciones?.filter(a => a.emprendimiento_id === emp.id).length || 0;
+        // Incluir evaluaciones CCC (sin importar estado) y jurados enviadas
         const evals = evaluaciones?.filter(
-          e => e.emprendimiento_id === emp.id && e.estado === 'enviada'
+          e => e.emprendimiento_id === emp.id && 
+          (e.tipo_evaluacion === 'ccc' || e.estado === 'enviada')
         ) || [];
         const count = evals.length;
         const promedio = count > 0

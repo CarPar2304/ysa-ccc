@@ -48,17 +48,20 @@ export const Top100Rankings = () => {
 
       if (empError) throw empError;
 
-      // Obtener todas las evaluaciones enviadas
+      // Obtener todas las evaluaciones (CCC + jurados enviados)
       const { data: evaluaciones, error: evalError } = await supabase
         .from("evaluaciones")
-        .select("emprendimiento_id, puntaje, estado")
-        .eq("estado", "enviada");
+        .select("emprendimiento_id, puntaje, estado, tipo_evaluacion");
 
       if (evalError) throw evalError;
 
       // Calcular promedios
       const promedios = emprendimientos?.map(emp => {
-        const evals = evaluaciones?.filter(e => e.emprendimiento_id === emp.id) || [];
+        // Incluir evaluaciones CCC (sin importar estado) y jurados enviadas
+        const evals = evaluaciones?.filter(
+          e => e.emprendimiento_id === emp.id && 
+          (e.tipo_evaluacion === 'ccc' || e.estado === 'enviada')
+        ) || [];
         const count = evals.length;
         const promedio = count > 0
           ? evals.reduce((sum, e) => sum + (e.puntaje || 0), 0) / count
