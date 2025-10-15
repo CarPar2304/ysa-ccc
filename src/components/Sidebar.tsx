@@ -30,6 +30,7 @@ import {
 } from "./ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import logo from "@/assets/logo-ccc.png";
+import favicon from "@/assets/favicon-ccc.png";
 
 const navigation = [
   { name: "YSA Conecta", href: "/", icon: Home },
@@ -79,11 +80,17 @@ export const Sidebar = () => {
       <SidebarPrimitive collapsible="icon" className="bg-sidebar-background border-sidebar-border">
         {/* Logo */}
         <div className="flex h-16 items-center justify-center px-4 border-b border-sidebar-border">
-          {open && (
+          {open ? (
             <img 
               src={logo} 
-              alt="YSA" 
+              alt="Cámara de Comercio de Cali" 
               className="h-12 w-auto object-contain"
+            />
+          ) : (
+            <img 
+              src={favicon} 
+              alt="CCC" 
+              className="h-10 w-10 object-contain"
             />
           )}
         </div>
