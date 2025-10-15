@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, LogIn } from "lucide-react";
+import { Loader2, Mail, Lock, LogIn, Eye, EyeOff } from "lucide-react";
 import logoLight from "@/assets/logo-light.png";
 import logoDark from "@/assets/logo-dark.png";
 const Login = () => {
@@ -16,6 +16,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -74,7 +75,7 @@ const Login = () => {
             </div>
             <div className="space-y-2">
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                Bienvenido de nuevo
+                ¡Hola de nuevo!
               </CardTitle>
               <CardDescription className="text-base">
                 Ingresa tus credenciales para acceder a la plataforma
@@ -84,8 +85,7 @@ const Login = () => {
           <CardContent className="pb-8">
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-primary" />
+                <Label htmlFor="email" className="text-sm font-semibold">
                   Correo electrónico
                 </Label>
                 <div className="relative">
@@ -102,21 +102,31 @@ const Login = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-semibold flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-primary" />
+                <Label htmlFor="password" className="text-sm font-semibold">
                   Contraseña
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-11 pl-10 bg-background/50 border-border/50 focus:border-primary focus:bg-background transition-all"
+                    className="h-11 pl-10 pr-10 bg-background/50 border-border/50 focus:border-primary focus:bg-background transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
               </div>
               <Button 
