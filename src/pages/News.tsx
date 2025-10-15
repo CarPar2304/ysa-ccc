@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Calendar, Loader2, Pencil, Trash2, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import { es } from "date-fns/locale";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NewsEditor } from "@/components/news/NewsEditor";
 import { Button } from "@/components/ui/button";
+import { useQuotaStatus } from "@/hooks/useQuotaStatus";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +38,8 @@ const News = () => {
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isBeneficiario, userId } = useUserRole();
+  const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
 
   useEffect(() => {
     fetchNoticias();
@@ -95,11 +97,35 @@ const News = () => {
     }
   };
 
-  if (loading) {
+  if (loading || quotaLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Verificar cupo aprobado solo para beneficiarios
+  if (isBeneficiario && !isApproved) {
+    return (
+      <Layout>
+        <div className="mx-auto max-w-4xl p-6">
+          <Card className="shadow-soft border-border">
+            <CardContent className="p-12 text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="p-4 bg-muted rounded-full">
+                  <Lock className="h-12 w-12 text-muted-foreground" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">Acceso Restringido</h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Tu cupo aún no ha sido aprobado. Una vez que el equipo administrativo apruebe tu solicitud, 
+                podrás acceder a YSA Now para ver las últimas noticias del programa.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );

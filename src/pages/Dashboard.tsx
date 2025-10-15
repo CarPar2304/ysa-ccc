@@ -1,5 +1,5 @@
 import { Layout } from "@/components/Layout";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { RoleRedirect } from "@/components/RoleRedirect";
 import { useState, useEffect } from "react";
@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CreatePost } from "@/components/dashboard/CreatePost";
 import { PostCard } from "@/components/dashboard/PostCard";
 import { Card, CardContent } from "@/components/ui/card";
+import { useQuotaStatus } from "@/hooks/useQuotaStatus";
 
 interface Post {
   id: string;
@@ -37,6 +38,7 @@ interface Post {
 
 const Dashboard = () => {
   const { isBeneficiario, isAdmin, loading: roleLoading, userId } = useUserRole();
+  const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
@@ -121,7 +123,7 @@ const Dashboard = () => {
 
 
 
-  if (roleLoading || loading) {
+  if (roleLoading || loading || quotaLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -133,6 +135,30 @@ const Dashboard = () => {
 
   if (!isBeneficiario && !isAdmin) {
     return <RoleRedirect />;
+  }
+
+  // Verificar cupo aprobado solo para beneficiarios
+  if (isBeneficiario && !isApproved) {
+    return (
+      <Layout>
+        <div className="mx-auto max-w-3xl p-4 md:p-6">
+          <Card className="shadow-soft border-border">
+            <CardContent className="p-12 text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="p-4 bg-muted rounded-full">
+                  <Lock className="h-12 w-12 text-muted-foreground" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">Acceso Restringido</h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Tu cupo aún no ha sido aprobado. Una vez que el equipo administrativo apruebe tu solicitud, 
+                podrás acceder a YSA Conecta para compartir y conectar con la comunidad.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
   }
 
   return (
