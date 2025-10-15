@@ -29,7 +29,7 @@ import {
   CollapsibleTrigger,
 } from "./ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import logo from "@/assets/logo-ysa.png";
+import logo from "@/assets/logo-ccc.png";
 
 const navigation = [
   { name: "YSA Conecta", href: "/", icon: Home },
