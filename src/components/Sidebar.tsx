@@ -105,7 +105,7 @@ export const Sidebar = () => {
                             <CollapsibleTrigger asChild>
                               <SidebarMenuButton
                                 className={cn(
-                                  "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-accent-foreground hover:scale-[1.02]",
+                                  "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                                   location.pathname === item.href && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)] border-l-2 border-primary"
                                 )}
                               >
@@ -123,7 +123,7 @@ export const Sidebar = () => {
                                 <SidebarMenuButton
                                   asChild
                                   className={cn(
-                                    "w-full flex items-center justify-center rounded-xl p-3 transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-accent-foreground hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-primary",
+                                    "w-full flex items-center justify-center rounded-xl p-3 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
                                     location.pathname === item.href && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)]"
                                   )}
                                 >
@@ -148,7 +148,7 @@ export const Sidebar = () => {
                                 <SidebarMenuSubItem>
                                   <SidebarMenuSubButton
                                     asChild
-                                    className="rounded-lg px-4 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-active hover:text-sidebar-foreground transition-all duration-200"
+                                    className="rounded-lg px-4 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-200 ease-in-out"
                                   >
                                     <NavLink to="/lab">
                                       Módulos
@@ -171,7 +171,7 @@ export const Sidebar = () => {
                             to={item.href}
                             className={({ isActive }) =>
                               cn(
-                                "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-accent-foreground hover:scale-[1.02]",
+                                "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                                 isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)] border-l-2 border-primary"
                               )
                             }
@@ -187,7 +187,7 @@ export const Sidebar = () => {
                               {({ isActive }) => (
                                 <SidebarMenuButton
                                   className={cn(
-                                    "w-full flex items-center justify-center rounded-xl p-3 transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-accent-foreground hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-primary",
+                                    "w-full flex items-center justify-center rounded-xl p-3 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
                                     isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)]"
                                   )}
                                 >
@@ -217,7 +217,7 @@ export const Sidebar = () => {
                           to="/admin"
                           className={({ isActive }) =>
                             cn(
-                              "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-accent-foreground hover:scale-[1.02]",
+                              "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                               isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)] border-l-2 border-primary"
                             )
                           }
@@ -233,7 +233,7 @@ export const Sidebar = () => {
                             {({ isActive }) => (
                               <SidebarMenuButton
                                 className={cn(
-                                  "w-full flex items-center justify-center rounded-xl p-3 transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-accent-foreground hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-primary",
+                                  "w-full flex items-center justify-center rounded-xl p-3 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
                                   isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)]"
                                 )}
                               >
@@ -262,7 +262,7 @@ export const Sidebar = () => {
                           to="/mentor"
                           className={({ isActive }) =>
                             cn(
-                              "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-accent-foreground hover:scale-[1.02]",
+                              "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                               isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)] border-l-2 border-primary"
                             )
                           }
@@ -278,7 +278,7 @@ export const Sidebar = () => {
                             {({ isActive }) => (
                               <SidebarMenuButton
                                 className={cn(
-                                  "w-full flex items-center justify-center rounded-xl p-3 transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) text-sidebar-foreground hover:bg-sidebar-active hover:text-sidebar-accent-foreground hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-primary",
+                                  "w-full flex items-center justify-center rounded-xl p-3 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
                                   isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)]"
                                 )}
                               >
@@ -309,7 +309,7 @@ export const Sidebar = () => {
             <div className="space-y-3">
               <button 
                 onClick={() => navigate('/profile')}
-                className="w-full flex items-center gap-3 rounded-xl bg-sidebar-foreground/8 p-3 hover:bg-sidebar-foreground/12 transition-all duration-200 shadow-sm border border-sidebar-border/50 hover:border-sidebar-border focus-visible:ring-2 focus-visible:ring-primary"
+                className="w-full flex items-center gap-3 rounded-xl bg-sidebar-accent/50 p-3 hover:bg-sidebar-accent transition-colors duration-200 ease-in-out shadow-sm border border-sidebar-border hover:border-sidebar-border/80 focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Ver perfil"
               >
                 <Avatar className="h-10 w-10">
@@ -330,7 +330,7 @@ export const Sidebar = () => {
               
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-destructive"
+                className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-destructive"
                 aria-label="Cerrar sesión"
               >
                 <LogOut className="h-4 w-4" />
@@ -343,7 +343,7 @@ export const Sidebar = () => {
                 <TooltipTrigger asChild>
                   <button 
                     onClick={() => navigate('/profile')}
-                    className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-sidebar-foreground/10 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary"
+                    className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-sidebar-accent transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label="Ver perfil"
                   >
                     <Avatar className="h-9 w-9">
@@ -367,7 +367,7 @@ export const Sidebar = () => {
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-center rounded-xl p-3 text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-destructive"
+                    className="w-full flex items-center justify-center rounded-xl p-3 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-destructive"
                     aria-label="Cerrar sesión"
                   >
                     <LogOut className="h-5 w-5" />
