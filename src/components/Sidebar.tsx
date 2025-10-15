@@ -79,20 +79,22 @@ export const Sidebar = () => {
     <TooltipProvider delayDuration={0}>
       <SidebarPrimitive collapsible="icon" className="bg-sidebar-background border-sidebar-border">
         {/* Logo */}
-        <div className="flex h-16 items-center justify-center px-4 border-b border-sidebar-border">
-          {open ? (
-            <img 
-              src={logo} 
-              alt="Cámara de Comercio de Cali" 
-              className="h-12 w-auto object-contain"
-            />
-          ) : (
-            <img 
-              src={favicon} 
-              alt="CCC" 
-              className="h-10 w-10 object-contain"
-            />
-          )}
+        <div className="border-b border-sidebar-border">
+          <div className="flex items-center justify-center px-4 py-3">
+            {open ? (
+              <img 
+                src={logo} 
+                alt="Cámara de Comercio de Cali" 
+                className="h-12 w-auto object-contain"
+              />
+            ) : (
+              <img 
+                src={favicon} 
+                alt="CCC" 
+                className="h-12 w-12 object-contain"
+              />
+            )}
+          </div>
         </div>
 
         <SidebarContent className="px-4 py-6">
@@ -130,12 +132,12 @@ export const Sidebar = () => {
                                 <SidebarMenuButton
                                   asChild
                                   className={cn(
-                                    "w-full flex items-center justify-center rounded-xl p-3 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
+                                    "w-full flex items-center justify-center rounded-xl p-3.5 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
                                     location.pathname === item.href && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)]"
                                   )}
                                 >
                                   <NavLink to={item.href}>
-                                    <item.icon className="h-5 w-5" />
+                                    <item.icon className="h-6 w-6" />
                                   </NavLink>
                                 </SidebarMenuButton>
                               </TooltipTrigger>
@@ -194,11 +196,11 @@ export const Sidebar = () => {
                               {({ isActive }) => (
                                 <SidebarMenuButton
                                   className={cn(
-                                    "w-full flex items-center justify-center rounded-xl p-3 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
+                                    "w-full flex items-center justify-center rounded-xl p-3.5 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
                                     isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)]"
                                   )}
                                 >
-                                  <item.icon className="h-5 w-5" />
+                                  <item.icon className="h-6 w-6" />
                                 </SidebarMenuButton>
                               )}
                             </NavLink>
@@ -240,11 +242,11 @@ export const Sidebar = () => {
                             {({ isActive }) => (
                               <SidebarMenuButton
                                 className={cn(
-                                  "w-full flex items-center justify-center rounded-xl p-3 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
+                                  "w-full flex items-center justify-center rounded-xl p-3.5 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
                                   isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)]"
                                 )}
                               >
-                                <Settings className="h-5 w-5" />
+                                <Settings className="h-6 w-6" />
                               </SidebarMenuButton>
                             )}
                           </NavLink>
@@ -285,11 +287,11 @@ export const Sidebar = () => {
                             {({ isActive }) => (
                               <SidebarMenuButton
                                 className={cn(
-                                  "w-full flex items-center justify-center rounded-xl p-3 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
+                                  "w-full flex items-center justify-center rounded-xl p-3.5 transition-colors duration-200 ease-in-out text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-primary",
                                   isActive && "bg-sidebar-active text-sidebar-accent-foreground shadow-[var(--sidebar-active-shadow)]"
                                 )}
                               >
-                                <FileCheck className="h-5 w-5" />
+                                <FileCheck className="h-6 w-6" />
                               </SidebarMenuButton>
                             )}
                           </NavLink>
@@ -311,85 +313,87 @@ export const Sidebar = () => {
         </SidebarContent>
 
         {/* User Profile Card at Bottom */}
-        <div className="border-t border-sidebar-border p-4 mt-auto">
-          {open ? (
-            <div className="space-y-3">
-              <button 
-                onClick={() => navigate('/profile')}
-                className="w-full flex items-center gap-3 rounded-xl bg-sidebar-accent/50 p-3 hover:bg-sidebar-accent transition-colors duration-200 ease-in-out shadow-sm border border-sidebar-border hover:border-sidebar-border/80 focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Ver perfil"
-              >
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={userProfile?.avatar_url} />
-                  <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+        <div className="border-t border-sidebar-border mt-auto">
+          <div className="p-4">
+            {open ? (
+              <div className="space-y-3">
+                <button 
+                  onClick={() => navigate('/profile')}
+                  className="w-full flex items-center gap-3 rounded-xl bg-sidebar-accent/50 p-3 hover:bg-sidebar-accent transition-colors duration-200 ease-in-out shadow-sm border border-sidebar-border hover:border-sidebar-border/80 focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label="Ver perfil"
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={userProfile?.avatar_url} />
+                    <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">
+                      {getUserFullName()}
+                    </p>
+                    <p className="text-xs text-sidebar-foreground/60 truncate">
+                      Beneficiario
+                    </p>
+                  </div>
+                </button>
+                
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-destructive"
+                  aria-label="Cerrar sesión"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Cerrar sesión</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      onClick={() => navigate('/profile')}
+                      className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-sidebar-accent transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-primary"
+                      aria-label="Ver perfil"
+                    >
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={userProfile?.avatar_url} />
+                        <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent 
+                    side="right" 
+                    className="bg-popover text-popover-foreground border-border shadow-md animate-in fade-in-0 zoom-in-95"
+                    sideOffset={8}
+                  >
                     {getUserFullName()}
-                  </p>
-                  <p className="text-xs text-sidebar-foreground/60 truncate">
-                    Beneficiario
-                  </p>
-                </div>
-              </button>
-              
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-destructive"
-                aria-label="Cerrar sesión"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Cerrar sesión</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button 
-                    onClick={() => navigate('/profile')}
-                    className="w-full flex items-center justify-center p-2 rounded-xl hover:bg-sidebar-accent transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-primary"
-                    aria-label="Ver perfil"
-                  >
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={userProfile?.avatar_url} />
-                      <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
-                        {getUserInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent 
-                  side="right" 
-                  className="bg-popover text-popover-foreground border-border shadow-md animate-in fade-in-0 zoom-in-95"
-                  sideOffset={8}
-                >
-                  {getUserFullName()}
-                </TooltipContent>
-              </Tooltip>
+                  </TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center justify-center rounded-xl p-3 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-destructive"
-                    aria-label="Cerrar sesión"
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center justify-center rounded-xl p-3.5 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-destructive"
+                      aria-label="Cerrar sesión"
+                    >
+                      <LogOut className="h-6 w-6" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent 
+                    side="right" 
+                    className="bg-popover text-popover-foreground border-border shadow-md animate-in fade-in-0 zoom-in-95"
+                    sideOffset={8}
                   >
-                    <LogOut className="h-5 w-5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent 
-                  side="right" 
-                  className="bg-popover text-popover-foreground border-border shadow-md animate-in fade-in-0 zoom-in-95"
-                  sideOffset={8}
-                >
-                  Cerrar sesión
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          )}
+                    Cerrar sesión
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          </div>
         </div>
       </SidebarPrimitive>
     </TooltipProvider>
