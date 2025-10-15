@@ -20,6 +20,8 @@ interface EmprendimientoElegible {
   beneficiario_apellido: string;
   puntaje_promedio: number;
   total_evaluaciones: number;
+  mentores_asignados: number;
+  evaluaciones_completadas: number;
   asignacion_id?: string;
   asignacion_estado?: string;
   asignacion_cohorte?: number;
@@ -59,17 +61,25 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
 
       if (empError) throw empError;
 
-      // Obtener evaluaciones aprobadas para cada emprendimiento
+      // Obtener evaluaciones para cada emprendimiento
       const empIds = empData?.map(e => e.id) || [];
       
       const { data: evalData, error: evalError } = await supabase
         .from("evaluaciones")
-        .select("emprendimiento_id, puntaje")
+        .select("emprendimiento_id, puntaje, estado")
         .in("emprendimiento_id", empIds)
-        .not("puntaje", "is", null)
-        .or(`tipo_evaluacion.eq.ccc,and(tipo_evaluacion.eq.jurado,aprobada_por_admin.eq.true)`);
+        .not("puntaje", "is", null);
 
       if (evalError) throw evalError;
+
+      // Obtener asignaciones de mentores
+      const { data: mentorAssignments, error: mentorError } = await supabase
+        .from("mentor_emprendimiento_assignments")
+        .select("emprendimiento_id, mentor_id")
+        .in("emprendimiento_id", empIds)
+        .eq("activo", true);
+
+      if (mentorError) throw mentorError;
 
       // Obtener asignaciones existentes
       const { data: asignaciones, error: asigError } = await supabase
@@ -91,10 +101,12 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
       // Procesar datos
       const empConEvaluaciones = empData?.map(emp => {
         const evaluaciones = evalData?.filter(e => e.emprendimiento_id === emp.id) || [];
+        const evaluacionesCompletadas = evaluaciones.filter(e => e.estado === 'enviada').length;
         const puntaje_promedio = evaluaciones.length > 0
           ? evaluaciones.reduce((sum, e) => sum + (e.puntaje || 0), 0) / evaluaciones.length
           : 0;
 
+        const mentoresAsignados = mentorAssignments?.filter(m => m.emprendimiento_id === emp.id).length || 0;
         const asignacion = asignaciones?.find(a => a.emprendimiento_id === emp.id);
         
         return {
@@ -105,6 +117,8 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           beneficiario_apellido: emp.usuarios?.apellidos || "",
           puntaje_promedio: Math.round(puntaje_promedio * 100) / 100,
           total_evaluaciones: evaluaciones.length,
+          mentores_asignados: mentoresAsignados,
+          evaluaciones_completadas: evaluacionesCompletadas,
           asignacion_id: asignacion?.id,
           asignacion_estado: asignacion?.estado,
           asignacion_cohorte: asignacion?.cohorte
@@ -131,6 +145,16 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
   }, [nivel]);
 
   const handleAprobar = async (emprendimiento: EmprendimientoElegible) => {
+    // Validar que todas las evaluaciones de mentores asignados estén completadas
+    if (emprendimiento.mentores_asignados > emprendimiento.evaluaciones_completadas) {
+      toast({
+        title: "Evaluaciones pendientes",
+        description: `Este emprendimiento tiene ${emprendimiento.mentores_asignados} mentor(es) asignado(s) pero solo ${emprendimiento.evaluaciones_completadas} evaluación(es) completada(s). Todas las evaluaciones deben estar completadas antes de aprobar el cupo.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     const cohorte = selectedCohortes[emprendimiento.id] || 1;
 
     // Validar límites de cupos
@@ -273,6 +297,8 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         "Beneficiario": `${emp.beneficiario_nombre} ${emp.beneficiario_apellido}`,
         "Puntaje Promedio": emp.puntaje_promedio,
         "Evaluaciones": emp.total_evaluaciones,
+        "Mentores Asignados": emp.mentores_asignados,
+        "Evaluaciones Completadas": emp.evaluaciones_completadas,
         "Estado": emp.asignacion_estado || "Pendiente"
       };
       
@@ -378,7 +404,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
             <div>
               <CardTitle>Emprendimientos Elegibles - Nivel {nivel}</CardTitle>
               <CardDescription>
-                {emprendimientos.length} emprendimiento(s) con evaluaciones aprobadas
+                {emprendimientos.length} emprendimiento(s) con evaluaciones completadas
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -439,6 +465,8 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                     </Button>
                   </TableHead>
                   <TableHead className="text-center">Evaluaciones</TableHead>
+                  <TableHead className="text-center">Mentores</TableHead>
+                  <TableHead className="text-center">Completadas</TableHead>
                   <TableHead className="text-center">Estado</TableHead>
                   {tieneCohorts && <TableHead className="text-center">Cohorte</TableHead>}
                   <TableHead className="text-center">Acciones</TableHead>
@@ -459,6 +487,16 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="secondary">{emp.total_evaluaciones}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline">{emp.mentores_asignados}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge 
+                        variant={emp.mentores_asignados === emp.evaluaciones_completadas ? "default" : "destructive"}
+                      >
+                        {emp.evaluaciones_completadas}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
                       {emp.asignacion_estado === "aprobado" && (
@@ -503,6 +541,10 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                             size="sm"
                             onClick={() => handleAprobar(emp)}
                             className="gap-1"
+                            disabled={emp.mentores_asignados > emp.evaluaciones_completadas}
+                            title={emp.mentores_asignados > emp.evaluaciones_completadas 
+                              ? "Faltan evaluaciones por completar" 
+                              : "Aprobar cupo"}
                           >
                             <CheckCircle className="h-4 w-4" />
                             Aprobar
