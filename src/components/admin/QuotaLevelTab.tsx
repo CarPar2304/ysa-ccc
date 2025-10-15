@@ -144,6 +144,45 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
     fetchData();
   }, [nivel]);
 
+  const sendWebhookNotification = async (
+    accion: "Aprobada" | "Rechazada",
+    emprendimiento: EmprendimientoElegible,
+    cohorte: number
+  ) => {
+    try {
+      // Obtener email y celular del usuario
+      const { data: userData, error: userError } = await supabase
+        .from("usuarios")
+        .select("email, celular")
+        .eq("id", emprendimiento.user_id)
+        .single();
+
+      if (userError) {
+        console.error("Error fetching user data:", userError);
+        return;
+      }
+
+      // Enviar al webhook
+      await fetch("https://n8n-n8n.5cj84u.easypanel.host/webhook/088e775b-34e3-46e8-bb2c-e7b0ec381ab8", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accion,
+          emprendimiento: emprendimiento.nombre,
+          nombre: `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`,
+          email: userData?.email || "",
+          celular: userData?.celular || "",
+          nivel,
+          cohorte,
+        }),
+      });
+    } catch (error) {
+      console.error("Error sending webhook notification:", error);
+    }
+  };
+
   const handleAprobar = async (emprendimiento: EmprendimientoElegible) => {
     // Validar que todas las evaluaciones de mentores asignados estén completadas
     if (emprendimiento.mentores_asignados > emprendimiento.evaluaciones_completadas) {
@@ -217,6 +256,9 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
 
       if (evalError) throw evalError;
 
+      // Enviar notificación al webhook
+      sendWebhookNotification("Aprobada", emprendimiento, cohorte);
+
       toast({
         title: "Cupo aprobado",
         description: `${emprendimiento.nombre} ha sido aprobado para ${nivel} - Cohorte ${cohorte}. Las evaluaciones ahora son visibles para el usuario.`
@@ -260,6 +302,8 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
 
   const handleRechazar = async (emprendimiento: EmprendimientoElegible) => {
     try {
+      const cohorte = selectedCohortes[emprendimiento.id] || 1;
+      
       if (emprendimiento.asignacion_id) {
         const { error } = await supabase
           .from("asignacion_cupos")
@@ -275,13 +319,16 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           .insert({
             emprendimiento_id: emprendimiento.id,
             nivel,
-            cohorte: 1,
+            cohorte,
             estado: "rechazado",
             aprobado_por: user?.id
           });
 
         if (error) throw error;
       }
+
+      // Enviar notificación al webhook
+      sendWebhookNotification("Rechazada", emprendimiento, cohorte);
 
       toast({
         title: "Cupo rechazado",
