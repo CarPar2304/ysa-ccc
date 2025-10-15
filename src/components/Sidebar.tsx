@@ -1,6 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck, Search, ChevronDown } from "lucide-react";
-import { useThemePreference } from "@/hooks/useThemePreference";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -32,8 +31,7 @@ import {
 } from "./ui/collapsible";
 import { Input } from "./ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import logoLight from "@/assets/logo-light.png";
-import logoDark from "@/assets/logo-dark.png";
+import logo from "@/assets/logo-ysa.png";
 
 const navigation = [
   { name: "YSA Conecta", href: "/", icon: Home },
@@ -44,7 +42,6 @@ const navigation = [
 export const Sidebar = () => {
   const { isAdmin, isMentor } = useUserRole();
   const { open } = useSidebar();
-  const theme = useThemePreference();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [labOpen, setLabOpen] = useState(false);
@@ -91,7 +88,7 @@ export const Sidebar = () => {
         <div className="flex h-16 items-center justify-center px-4 border-b border-sidebar-border">
           {open && (
             <img 
-              src={theme === "dark" ? logoDark : logoLight} 
+              src={logo} 
               alt="YSA" 
               className="h-12 w-auto object-contain"
             />
