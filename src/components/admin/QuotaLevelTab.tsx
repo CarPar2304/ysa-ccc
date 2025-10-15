@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
@@ -220,6 +220,32 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
       toast({
         title: "Cupo aprobado",
         description: `${emprendimiento.nombre} ha sido aprobado para ${nivel} - Cohorte ${cohorte}. Las evaluaciones ahora son visibles para el usuario.`
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRevertir = async (emprendimiento: EmprendimientoElegible) => {
+    try {
+      if (!emprendimiento.asignacion_id) return;
+
+      const { error } = await supabase
+        .from("asignacion_cupos")
+        .delete()
+        .eq("id", emprendimiento.asignacion_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cupo revertido",
+        description: `${emprendimiento.nombre} ha vuelto al estado pendiente`
       });
 
       fetchData();
@@ -550,7 +576,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                             Aprobar
                           </Button>
                         )}
-                        {emp.asignacion_estado !== "rechazado" && (
+                        {emp.asignacion_estado !== "rechazado" && emp.asignacion_estado !== "aprobado" && (
                           <Button
                             size="sm"
                             variant="destructive"
@@ -559,6 +585,18 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                           >
                             <XCircle className="h-4 w-4" />
                             Rechazar
+                          </Button>
+                        )}
+                        {(emp.asignacion_estado === "aprobado" || emp.asignacion_estado === "rechazado") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRevertir(emp)}
+                            className="gap-1"
+                            title="Volver al estado pendiente"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            Revertir
                           </Button>
                         )}
                       </div>
