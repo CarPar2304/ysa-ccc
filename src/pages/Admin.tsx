@@ -4,7 +4,6 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { RoleRedirect } from "@/components/RoleRedirect";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminEvaluations } from "@/components/admin/AdminEvaluations";
-import { AdminEvaluationApproval } from "@/components/admin/AdminEvaluationApproval";
 import { MentorAssignments } from "@/components/admin/MentorAssignments";
 import { Top100Rankings } from "@/components/admin/Top100Rankings";
 import { EvaluationProgress } from "@/components/admin/EvaluationProgress";
@@ -41,8 +40,8 @@ const Admin = () => {
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="evaluations">Evaluaciones</TabsTrigger>
             <TabsTrigger value="diagnostics">Diagnósticos</TabsTrigger>
-            <TabsTrigger value="mentors">Gestión de Mentores</TabsTrigger>
-            <TabsTrigger value="cupos">Asignación Cupos</TabsTrigger>
+            <TabsTrigger value="mentors">Mentores</TabsTrigger>
+            <TabsTrigger value="cupos">Cupos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
@@ -53,17 +52,12 @@ const Admin = () => {
             <Tabs defaultValue="gestion" className="space-y-4">
               <TabsList>
                 <TabsTrigger value="gestion">Gestión</TabsTrigger>
-                <TabsTrigger value="aprobacion">Aprobación</TabsTrigger>
                 <TabsTrigger value="progreso">Progreso</TabsTrigger>
                 <TabsTrigger value="rankings">Top 100</TabsTrigger>
               </TabsList>
 
               <TabsContent value="gestion">
                 <AdminEvaluations />
-              </TabsContent>
-
-              <TabsContent value="aprobacion">
-                <AdminEvaluationApproval />
               </TabsContent>
 
               <TabsContent value="progreso">

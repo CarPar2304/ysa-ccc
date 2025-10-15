@@ -35,18 +35,17 @@ export const ProfileEvaluation = () => {
         return;
       }
 
-      // Obtener solo evaluaciones aprobadas y visibles
+      // Obtener evaluaciones visibles
       const { data: evaluacionesData } = await supabase
         .from("evaluaciones")
         .select("*")
         .eq("emprendimiento_id", emprendimiento.id)
         .eq("visible_para_usuario", true)
-        .or(`tipo_evaluacion.eq.ccc,and(tipo_evaluacion.eq.jurado,aprobada_por_admin.eq.true)` as any)
         .order("created_at", { ascending: false });
 
       setEvaluaciones(evaluacionesData || []);
 
-      // Calcular promedio basado en todas las evaluaciones aprobadas (CCC + jurados)
+      // Calcular promedio basado en todas las evaluaciones visibles
       if (evaluacionesData && evaluacionesData.length > 0) {
         const totalPuntaje = evaluacionesData.reduce((sum: number, ev: any) => sum + (ev.puntaje || 0), 0);
         const promedio = totalPuntaje / evaluacionesData.length;

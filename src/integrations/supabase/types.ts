@@ -592,7 +592,6 @@ export type Database = {
       }
       evaluaciones: {
         Row: {
-          aprobada_por_admin: boolean | null
           comentarios_adicionales: string | null
           created_at: string
           cumple_dedicacion: boolean | null
@@ -625,7 +624,6 @@ export type Database = {
           visible_para_usuario: boolean
         }
         Insert: {
-          aprobada_por_admin?: boolean | null
           comentarios_adicionales?: string | null
           created_at?: string
           cumple_dedicacion?: boolean | null
@@ -658,7 +656,6 @@ export type Database = {
           visible_para_usuario?: boolean
         }
         Update: {
-          aprobada_por_admin?: boolean | null
           comentarios_adicionales?: string | null
           created_at?: string
           cumple_dedicacion?: boolean | null
