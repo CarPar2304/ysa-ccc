@@ -184,13 +184,15 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Buscar evaluación existente del jurado
+      // Buscar la última evaluación existente del jurado (más reciente)
       const { data: evaluation } = await supabase
         .from("evaluaciones")
         .select("*")
         .eq("emprendimiento_id", emprendimientoId)
         .eq("mentor_id", user.id)
         .eq("tipo_evaluacion", "jurado")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (evaluation) {
