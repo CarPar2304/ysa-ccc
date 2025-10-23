@@ -162,20 +162,28 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         return;
       }
 
+      const payload = {
+        accion, // "Aprobada" o "Rechazada"
+        nivel, // Nivel donde fue aprobado el cupo
+        email: userData?.email || "", // Email del usuario
+        nombre: `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`, // Nombre del usuario
+        emprendimiento: emprendimiento.nombre, // Nombre del emprendimiento
+      };
+
+      console.log("Enviando webhook con payload:", payload);
+
       // Enviar al webhook con los parámetros requeridos
-      await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/1d5d0e38-477d-429c-a848-9b214e49d3e7", {
+      const response = await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/1d5d0e38-477d-429c-a848-9b214e49d3e7", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          accion, // "Aprobada" o "Rechazada"
-          nivel, // Nivel donde fue aprobado el cupo
-          email: userData?.email || "", // Email del usuario
-          nombre: `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`, // Nombre del usuario
-          emprendimiento: emprendimiento.nombre, // Nombre del emprendimiento
-        }),
+        mode: "no-cors",
+        body: JSON.stringify(payload),
       });
+
+      console.log("Webhook enviado exitosamente");
+      
     } catch (error) {
       console.error("Error sending webhook notification:", error);
     }
