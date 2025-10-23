@@ -275,7 +275,6 @@ export const AdminEvaluations = () => {
                         <TableHead>Nivel</TableHead>
                         <TableHead>Puntaje</TableHead>
                         <TableHead>Estado</TableHead>
-                        <TableHead>Aprobación</TableHead>
                         <TableHead>Visible</TableHead>
                         <TableHead>Editable</TableHead>
                         <TableHead>Acciones</TableHead>
@@ -319,19 +318,6 @@ export const AdminEvaluations = () => {
                             <Badge variant={evaluation.estado === 'enviada' ? 'default' : 'outline'}>
                               {evaluation.estado === 'enviada' ? 'Enviada' : 'Borrador'}
                             </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {evaluation.tipo_evaluacion === 'jurado' ? (
-                              <Badge variant={
-                                evaluation.aprobada_por_admin === null ? 'outline' :
-                                evaluation.aprobada_por_admin ? 'default' : 'destructive'
-                              }>
-                                {evaluation.aprobada_por_admin === null ? 'Pendiente' :
-                                 evaluation.aprobada_por_admin ? 'Aprobada' : 'Rechazada'}
-                              </Badge>
-                            ) : (
-                              <Badge>Auto-aprobada</Badge>
-                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
