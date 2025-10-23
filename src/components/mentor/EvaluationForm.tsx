@@ -21,21 +21,94 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, Info } from "lucide-react";
 
-const evaluationSchema = z.object({
+// Schema base sin validaciones condicionales
+const evaluationSchemaBase = z.object({
   // Criterios calificables (editables para jurado)
   puntaje_impacto: z.number().min(0).max(30),
-  impacto_texto: z.string().min(10, "Debes agregar comentarios sobre el impacto"),
+  impacto_texto: z.string().trim(),
   puntaje_equipo: z.number().min(0).max(25),
-  equipo_texto: z.string().min(10, "Debes agregar comentarios sobre el equipo"),
+  equipo_texto: z.string().trim(),
   puntaje_innovacion_tecnologia: z.number().min(0).max(25),
-  innovacion_tecnologia_texto: z.string().min(10, "Debes agregar comentarios sobre innovación"),
+  innovacion_tecnologia_texto: z.string().trim(),
   puntaje_ventas: z.number().min(0).max(15),
-  ventas_texto: z.string().min(10, "Debes agregar comentarios sobre ventas"),
+  ventas_texto: z.string().trim(),
   puntaje_proyeccion_financiacion: z.number().min(0).max(5),
-  proyeccion_financiacion_texto: z.string().min(10, "Debes agregar comentarios sobre proyección y financiación"),
+  proyeccion_financiacion_texto: z.string().trim(),
   
-  comentarios_adicionales: z.string().optional(),
+  comentarios_adicionales: z.string().trim().optional(),
 });
+
+// Función para crear schema con validaciones condicionales basadas en CCC
+const createEvaluationSchema = (cccEvaluation: any) => {
+  return evaluationSchemaBase.refine(
+    (data) => {
+      // Validar impacto_texto solo si el puntaje cambió
+      const impactoChanged = data.puntaje_impacto !== (cccEvaluation?.puntaje_impacto || 0);
+      if (impactoChanged && data.impacto_texto.length < 10) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Debes agregar comentarios sobre el impacto (mínimo 10 caracteres) al modificar el puntaje",
+      path: ["impacto_texto"],
+    }
+  ).refine(
+    (data) => {
+      // Validar equipo_texto solo si el puntaje cambió
+      const equipoChanged = data.puntaje_equipo !== (cccEvaluation?.puntaje_equipo || 0);
+      if (equipoChanged && data.equipo_texto.length < 10) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Debes agregar comentarios sobre el equipo (mínimo 10 caracteres) al modificar el puntaje",
+      path: ["equipo_texto"],
+    }
+  ).refine(
+    (data) => {
+      // Validar innovacion_tecnologia_texto solo si el puntaje cambió
+      const innovacionChanged = data.puntaje_innovacion_tecnologia !== (cccEvaluation?.puntaje_innovacion_tecnologia || 0);
+      if (innovacionChanged && data.innovacion_tecnologia_texto.length < 10) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Debes agregar comentarios sobre innovación (mínimo 10 caracteres) al modificar el puntaje",
+      path: ["innovacion_tecnologia_texto"],
+    }
+  ).refine(
+    (data) => {
+      // Validar ventas_texto solo si el puntaje cambió
+      const ventasChanged = data.puntaje_ventas !== (cccEvaluation?.puntaje_ventas || 0);
+      if (ventasChanged && data.ventas_texto.length < 10) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Debes agregar comentarios sobre ventas (mínimo 10 caracteres) al modificar el puntaje",
+      path: ["ventas_texto"],
+    }
+  ).refine(
+    (data) => {
+      // Validar proyeccion_financiacion_texto solo si el puntaje cambió
+      const proyeccionChanged = data.puntaje_proyeccion_financiacion !== (cccEvaluation?.puntaje_proyeccion_financiacion || 0);
+      if (proyeccionChanged && data.proyeccion_financiacion_texto.length < 10) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Debes agregar comentarios sobre proyección y financiación (mínimo 10 caracteres) al modificar el puntaje",
+      path: ["proyeccion_financiacion_texto"],
+    }
+  );
+};
+
+type EvaluationFormData = z.infer<typeof evaluationSchemaBase>;
 
 // Función para calcular el nivel automáticamente basado en el puntaje (valores del enum)
 const calculateNivel = (puntaje: number): "Starter" | "Growth" | "Scale" => {
@@ -54,7 +127,7 @@ const getNivelLabel = (nivel: "Starter" | "Growth" | "Scale"): string => {
   return labels[nivel];
 };
 
-type EvaluationFormData = z.infer<typeof evaluationSchema>;
+
 
 interface EvaluationFormProps {
   emprendimientoId: string;
@@ -70,6 +143,9 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
   const [showCccReference, setShowCccReference] = useState(false);
   const { toast } = useToast();
 
+  // Crear schema dinámico con validaciones condicionales
+  const evaluationSchema = createEvaluationSchema(cccEvaluation);
+  
   const form = useForm<EvaluationFormData>({
     resolver: zodResolver(evaluationSchema),
     defaultValues: {
