@@ -150,10 +150,10 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
     cohorte: number
   ) => {
     try {
-      // Obtener email y celular del usuario
+      // Obtener email del usuario
       const { data: userData, error: userError } = await supabase
         .from("usuarios")
-        .select("email, celular")
+        .select("email")
         .eq("id", emprendimiento.user_id)
         .single();
 
@@ -162,20 +162,18 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         return;
       }
 
-      // Enviar al webhook
-      await fetch("https://n8n-n8n.5cj84u.easypanel.host/webhook/088e775b-34e3-46e8-bb2c-e7b0ec381ab8", {
+      // Enviar al webhook con los parámetros requeridos
+      await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/1d5d0e38-477d-429c-a848-9b214e49d3e7", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          accion,
-          emprendimiento: emprendimiento.nombre,
-          nombre: `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`,
-          email: userData?.email || "",
-          celular: userData?.celular || "",
-          nivel,
-          cohorte,
+          accion, // "Aprobada" o "Rechazada"
+          nivel, // Nivel donde fue aprobado el cupo
+          email: userData?.email || "", // Email del usuario
+          nombre: `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`, // Nombre del usuario
+          emprendimiento: emprendimiento.nombre, // Nombre del emprendimiento
         }),
       });
     } catch (error) {
