@@ -264,23 +264,12 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
         puede_editar: estado === 'borrador',
       };
 
-      console.log("Guardando evaluación:", { evaluationData, existingEvaluation });
+      console.log("Guardando evaluación (siempre inserta nueva fila):", { evaluationData });
 
-      let result;
-      if (existingEvaluation) {
-        console.log("Actualizando evaluación existente:", existingEvaluation.id);
-        result = await supabase
-          .from("evaluaciones")
-          .update(evaluationData)
-          .eq("id", existingEvaluation.id)
-          .select();
-      } else {
-        console.log("Insertando nueva evaluación de jurado");
-        result = await supabase
-          .from("evaluaciones")
-          .insert(evaluationData)
-          .select();
-      }
+      const result = await supabase
+        .from("evaluaciones")
+        .insert(evaluationData)
+        .select();
 
       const { data, error } = result;
 
