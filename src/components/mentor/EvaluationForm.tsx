@@ -37,11 +37,21 @@ const evaluationSchema = z.object({
   comentarios_adicionales: z.string().optional(),
 });
 
-// Función para calcular el nivel automáticamente basado en el puntaje
-const calculateNivel = (puntaje: number): "bajo" | "medio" | "alto" => {
-  if (puntaje >= 0 && puntaje <= 50) return "bajo";
-  if (puntaje > 50 && puntaje <= 80) return "medio";
-  return "alto";
+// Función para calcular el nivel automáticamente basado en el puntaje (valores del enum)
+const calculateNivel = (puntaje: number): "Starter" | "Growth" | "Scale" => {
+  if (puntaje >= 0 && puntaje <= 50) return "Starter";
+  if (puntaje > 50 && puntaje <= 80) return "Growth";
+  return "Scale";
+};
+
+// Mapear valores del enum a etiquetas en español para UI
+const getNivelLabel = (nivel: "Starter" | "Growth" | "Scale"): string => {
+  const labels = {
+    "Starter": "Bajo",
+    "Growth": "Medio",
+    "Scale": "Alto"
+  };
+  return labels[nivel];
 };
 
 type EvaluationFormData = z.infer<typeof evaluationSchema>;
@@ -98,12 +108,13 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Buscar evaluación existente
+      // Buscar evaluación existente del jurado
       const { data: evaluation } = await supabase
         .from("evaluaciones")
         .select("*")
         .eq("emprendimiento_id", emprendimientoId)
         .eq("mentor_id", user.id)
+        .eq("tipo_evaluacion", "jurado")
         .maybeSingle();
 
       if (evaluation) {
@@ -232,6 +243,21 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
     );
   }
 
+  // Validar que existe evaluación CCC antes de mostrar el formulario
+  if (!cccEvaluation) {
+    return (
+      <div className="p-6 border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+        <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+          ⚠️ Evaluación CCC no disponible
+        </h3>
+        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+          Este emprendimiento aún no tiene una evaluación CCC de referencia. 
+          Contacta al administrador para que cree primero la evaluación CCC antes de poder evaluar como jurado.
+        </p>
+      </div>
+    );
+  }
+
   const canEdit = !existingEvaluation || existingEvaluation.puede_editar;
   const isReadOnly = !canEdit;
 
@@ -351,12 +377,12 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
               <Badge 
                 variant="outline" 
                 className={`capitalize text-lg px-4 py-2 ${
-                  nivelCalculado === 'alto' ? 'border-green-500 text-green-700 dark:text-green-400' :
-                  nivelCalculado === 'medio' ? 'border-yellow-500 text-yellow-700 dark:text-yellow-400' :
+                  nivelCalculado === 'Scale' ? 'border-green-500 text-green-700 dark:text-green-400' :
+                  nivelCalculado === 'Growth' ? 'border-yellow-500 text-yellow-700 dark:text-yellow-400' :
                   'border-red-500 text-red-700 dark:text-red-400'
                 }`}
               >
-                {nivelCalculado}
+                {getNivelLabel(nivelCalculado)}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
