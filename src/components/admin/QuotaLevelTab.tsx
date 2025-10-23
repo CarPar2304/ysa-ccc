@@ -162,24 +162,30 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         return;
       }
 
-      const payload = {
-        accion, // "Aprobada" o "Rechazada"
-        nivel, // Nivel donde fue aprobado el cupo
-        email: userData?.email || "", // Email del usuario
-        nombre: `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`, // Nombre del usuario
-        emprendimiento: emprendimiento.nombre, // Nombre del emprendimiento
-      };
+      // Crear FormData para enviar parámetros por separado
+      const formData = new URLSearchParams();
+      formData.append("accion", accion); // "Aprobada" o "Rechazada"
+      formData.append("nivel", nivel); // Nivel donde fue aprobado el cupo
+      formData.append("email", userData?.email || ""); // Email del usuario
+      formData.append("nombre", `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`); // Nombre del usuario
+      formData.append("emprendimiento", emprendimiento.nombre); // Nombre del emprendimiento
 
-      console.log("Enviando webhook con payload:", payload);
+      console.log("Enviando webhook con parámetros:", {
+        accion,
+        nivel,
+        email: userData?.email || "",
+        nombre: `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`,
+        emprendimiento: emprendimiento.nombre,
+      });
 
-      // Enviar al webhook con los parámetros requeridos
+      // Enviar al webhook con parámetros como form-data
       const response = await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/1d5d0e38-477d-429c-a848-9b214e49d3e7", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         mode: "no-cors",
-        body: JSON.stringify(payload),
+        body: formData.toString(),
       });
 
       console.log("Webhook enviado exitosamente");
