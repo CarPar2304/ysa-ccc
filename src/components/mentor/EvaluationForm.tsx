@@ -225,31 +225,30 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
     try {
       setSaving(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.error("No user found");
+        toast({
+          title: "Error",
+          description: "Debes iniciar sesión",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const formData = form.getValues();
       
-      // Calcular puntaje total de requisitos calificables (sin referido regional para jurado)
-      const puntajeCalificables = 
-        formData.puntaje_impacto + 
-        formData.puntaje_equipo + 
-        formData.puntaje_innovacion_tecnologia + 
-        formData.puntaje_ventas + 
-        formData.puntaje_proyeccion_financiacion;
+      // El trigger en BD se encargará de:
+      // - Copiar campos de CCC (cumple_*, referido_regional, puntaje_referido_regional)
+      // - Recalcular puntaje total
+      // - Calcular nivel automáticamente
+      // - Setear evaluacion_base_id
       
-      // Agregar puntaje de referido regional desde CCC
-      const puntajeReferidoRegional = cccEvaluation?.puntaje_referido_regional || 0;
-      const puntajeTotal = puntajeCalificables + puntajeReferidoRegional;
-      
-      // Calcular nivel automáticamente
-      const nivelCalculado = calculateNivel(puntajeTotal);
-
+      // Solo enviamos los campos editables por el jurado
       const evaluationData = {
         emprendimiento_id: emprendimientoId,
         mentor_id: user.id,
-        tipo_evaluacion: 'jurado',
-        nivel: nivelCalculado, // Nivel calculado automáticamente
-        evaluacion_base_id: cccEvaluation?.id || null,
+        tipo_evaluacion: 'jurado' as const,
+        // Puntajes y textos calificables (editables por jurado)
         puntaje_impacto: formData.puntaje_impacto,
         impacto_texto: formData.impacto_texto,
         puntaje_equipo: formData.puntaje_equipo,
@@ -260,32 +259,37 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
         ventas_texto: formData.ventas_texto,
         puntaje_proyeccion_financiacion: formData.puntaje_proyeccion_financiacion,
         proyeccion_financiacion_texto: formData.proyeccion_financiacion_texto,
-        puntaje_referido_regional: puntajeReferidoRegional, // Desde CCC
-        referido_regional: cccEvaluation?.referido_regional || null, // Desde CCC
-        puntaje: puntajeTotal,
         comentarios_adicionales: formData.comentarios_adicionales,
-        // Requisitos habilitantes desde CCC
-        cumple_ubicacion: cccEvaluation?.cumple_ubicacion ?? true,
-        cumple_equipo_minimo: cccEvaluation?.cumple_equipo_minimo ?? false,
-        cumple_dedicacion: cccEvaluation?.cumple_dedicacion ?? false,
-        cumple_interes: cccEvaluation?.cumple_interes ?? false,
         estado,
         puede_editar: estado === 'borrador',
       };
 
-      let error;
+      console.log("Guardando evaluación:", { evaluationData, existingEvaluation });
+
+      let result;
       if (existingEvaluation) {
-        ({ error } = await supabase
+        console.log("Actualizando evaluación existente:", existingEvaluation.id);
+        result = await supabase
           .from("evaluaciones")
-          .update(evaluationData as any)
-          .eq("id", existingEvaluation.id));
+          .update(evaluationData)
+          .eq("id", existingEvaluation.id)
+          .select();
       } else {
-        ({ error } = await supabase
+        console.log("Insertando nueva evaluación de jurado");
+        result = await supabase
           .from("evaluaciones")
-          .insert(evaluationData as any));
+          .insert(evaluationData)
+          .select();
       }
 
-      if (error) throw error;
+      const { data, error } = result;
+
+      if (error) {
+        console.error("Error al guardar evaluación:", error);
+        throw error;
+      }
+
+      console.log("Evaluación guardada exitosamente:", data);
 
       toast({
         title: "Éxito",
@@ -294,16 +298,20 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
           : "Borrador guardado correctamente",
       });
 
+      // Refrescar datos para actualizar la UI
+      await fetchData();
+
       if (onSuccess) onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving evaluation:", error);
       toast({
         title: "Error",
-        description: "No se pudo guardar la evaluación",
+        description: error?.message || "No se pudo guardar la evaluación",
         variant: "destructive",
       });
     } finally {
       setSaving(false);
+      setShowConfirmDialog(false);
     }
   };
 
