@@ -22,18 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, Info } from "lucide-react";
 
 const evaluationSchema = z.object({
-  // Criterios habilitantes - ahora manuales
-  cumple_ubicacion: z.boolean(),
-  cumple_equipo_minimo: z.boolean(),
-  cumple_dedicacion: z.boolean(),
-  cumple_interes: z.boolean(),
-  
-  // Nivel de evaluación
-  nivel: z.enum(["alto", "medio", "bajo"], {
-    required_error: "Debes seleccionar un nivel de evaluación"
-  }),
-  
-  // Criterios calificables
+  // Criterios calificables (editables para jurado)
   puntaje_impacto: z.number().min(0).max(30),
   impacto_texto: z.string().min(10, "Debes agregar comentarios sobre el impacto"),
   puntaje_equipo: z.number().min(0).max(25),
@@ -45,12 +34,15 @@ const evaluationSchema = z.object({
   puntaje_proyeccion_financiacion: z.number().min(0).max(5),
   proyeccion_financiacion_texto: z.string().min(10, "Debes agregar comentarios sobre proyección y financiación"),
   
-  // Referido regional - ahora manual
-  puntaje_referido_regional: z.number().min(0).max(5),
-  referido_regional: z.string().optional(),
-  
   comentarios_adicionales: z.string().optional(),
 });
+
+// Función para calcular el nivel automáticamente basado en el puntaje
+const calculateNivel = (puntaje: number): "bajo" | "medio" | "alto" => {
+  if (puntaje >= 0 && puntaje <= 50) return "bajo";
+  if (puntaje > 50 && puntaje <= 80) return "medio";
+  return "alto";
+};
 
 type EvaluationFormData = z.infer<typeof evaluationSchema>;
 
@@ -71,11 +63,6 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
   const form = useForm<EvaluationFormData>({
     resolver: zodResolver(evaluationSchema),
     defaultValues: {
-      cumple_ubicacion: true,
-      cumple_equipo_minimo: false,
-      cumple_dedicacion: false,
-      cumple_interes: false,
-      nivel: cccEvaluation?.nivel || "medio",
       puntaje_impacto: cccEvaluation?.puntaje_impacto || 0,
       impacto_texto: "",
       puntaje_equipo: cccEvaluation?.puntaje_equipo || 0,
@@ -86,8 +73,6 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
       ventas_texto: "",
       puntaje_proyeccion_financiacion: cccEvaluation?.puntaje_proyeccion_financiacion || 0,
       proyeccion_financiacion_texto: "",
-      puntaje_referido_regional: cccEvaluation?.puntaje_referido_regional || 0,
-      referido_regional: "",
       comentarios_adicionales: "",
     },
   });
@@ -112,11 +97,6 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
       if (evaluation) {
         setExistingEvaluation(evaluation);
         form.reset({
-          cumple_ubicacion: evaluation.cumple_ubicacion ?? true,
-          cumple_equipo_minimo: evaluation.cumple_equipo_minimo ?? false,
-          cumple_dedicacion: evaluation.cumple_dedicacion ?? false,
-          cumple_interes: evaluation.cumple_interes ?? false,
-          nivel: evaluation.nivel || cccEvaluation?.nivel || "medio",
           puntaje_impacto: evaluation.puntaje_impacto || 0,
           impacto_texto: evaluation.impacto_texto || "",
           puntaje_equipo: evaluation.puntaje_equipo || 0,
@@ -127,8 +107,6 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
           ventas_texto: evaluation.ventas_texto || "",
           puntaje_proyeccion_financiacion: evaluation.puntaje_proyeccion_financiacion || 0,
           proyeccion_financiacion_texto: evaluation.proyeccion_financiacion_texto || "",
-          puntaje_referido_regional: evaluation.puntaje_referido_regional || 0,
-          referido_regional: evaluation.referido_regional || "",
           comentarios_adicionales: evaluation.comentarios_adicionales || "",
         });
       }
@@ -151,19 +129,27 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
       if (!user) return;
 
       const formData = form.getValues();
-      const puntajeTotal = 
+      
+      // Calcular puntaje total de requisitos calificables (sin referido regional para jurado)
+      const puntajeCalificables = 
         formData.puntaje_impacto + 
         formData.puntaje_equipo + 
         formData.puntaje_innovacion_tecnologia + 
         formData.puntaje_ventas + 
-        formData.puntaje_proyeccion_financiacion +
-        formData.puntaje_referido_regional;
+        formData.puntaje_proyeccion_financiacion;
+      
+      // Agregar puntaje de referido regional desde CCC
+      const puntajeReferidoRegional = cccEvaluation?.puntaje_referido_regional || 0;
+      const puntajeTotal = puntajeCalificables + puntajeReferidoRegional;
+      
+      // Calcular nivel automáticamente
+      const nivelCalculado = calculateNivel(puntajeTotal);
 
       const evaluationData = {
         emprendimiento_id: emprendimientoId,
         mentor_id: user.id,
         tipo_evaluacion: 'jurado',
-        nivel: formData.nivel,
+        nivel: nivelCalculado, // Nivel calculado automáticamente
         evaluacion_base_id: cccEvaluation?.id || null,
         puntaje_impacto: formData.puntaje_impacto,
         impacto_texto: formData.impacto_texto,
@@ -175,14 +161,15 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
         ventas_texto: formData.ventas_texto,
         puntaje_proyeccion_financiacion: formData.puntaje_proyeccion_financiacion,
         proyeccion_financiacion_texto: formData.proyeccion_financiacion_texto,
-        puntaje_referido_regional: formData.puntaje_referido_regional,
-        referido_regional: formData.referido_regional,
+        puntaje_referido_regional: puntajeReferidoRegional, // Desde CCC
+        referido_regional: cccEvaluation?.referido_regional || null, // Desde CCC
         puntaje: puntajeTotal,
         comentarios_adicionales: formData.comentarios_adicionales,
-        cumple_ubicacion: formData.cumple_ubicacion,
-        cumple_equipo_minimo: formData.cumple_equipo_minimo,
-        cumple_dedicacion: formData.cumple_dedicacion,
-        cumple_interes: formData.cumple_interes,
+        // Requisitos habilitantes desde CCC
+        cumple_ubicacion: cccEvaluation?.cumple_ubicacion ?? true,
+        cumple_equipo_minimo: cccEvaluation?.cumple_equipo_minimo ?? false,
+        cumple_dedicacion: cccEvaluation?.cumple_dedicacion ?? false,
+        cumple_interes: cccEvaluation?.cumple_interes ?? false,
         estado,
         puede_editar: estado === 'borrador',
       };
@@ -237,13 +224,21 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
   const isReadOnly = !canEdit;
 
   const watchedValues = form.watch();
-  const currentTotal = 
+  
+  // Calcular puntaje total de requisitos calificables
+  const puntajeCalificables = 
     watchedValues.puntaje_impacto + 
     watchedValues.puntaje_equipo + 
     watchedValues.puntaje_innovacion_tecnologia + 
     watchedValues.puntaje_ventas + 
-    watchedValues.puntaje_proyeccion_financiacion +
-    watchedValues.puntaje_referido_regional;
+    watchedValues.puntaje_proyeccion_financiacion;
+  
+  // Agregar puntaje de referido regional desde CCC
+  const puntajeReferidoRegional = cccEvaluation?.puntaje_referido_regional || 0;
+  const currentTotal = puntajeCalificables + puntajeReferidoRegional;
+  
+  // Calcular nivel basado en puntaje total
+  const nivelCalculado = calculateNivel(currentTotal);
 
   return (
     <Form {...form}>
@@ -256,214 +251,144 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
           </div>
         )}
 
-        {/* Referencia a evaluación CCC */}
+        {/* Referencia a evaluación CCC - Visible por defecto */}
         {cccEvaluation && !isReadOnly && (
-          <Collapsible open={showCccReference} onOpenChange={setShowCccReference}>
-            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Info className="h-5 w-5 text-blue-600" />
-                    <CardTitle className="text-lg">Evaluación CCC de Referencia</CardTitle>
-                  </div>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <ChevronDown className={`h-4 w-4 transition-transform ${showCccReference ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </CollapsibleTrigger>
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-blue-600" />
+                <CardTitle className="text-lg">Evaluación CCC de Referencia</CardTitle>
+              </div>
+              <CardDescription>
+                Los valores de esta evaluación se usarán como base. Los puntajes de requisitos calificables están pre-cargados para tu evaluación.
+                <br />
+                <strong>Nota:</strong> Los requisitos habilitantes, el referido regional y el nivel son de solo lectura y provienen de esta evaluación.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Puntaje Total</p>
+                  <p className="text-2xl font-bold text-primary">{cccEvaluation.puntaje || 0}</p>
                 </div>
-                <CardDescription>
-                  Esta es la evaluación preliminar automática. Puedes usarla como referencia y modificar los puntajes si lo consideras necesario.
-                </CardDescription>
-              </CardHeader>
-              <CollapsibleContent>
-                <CardContent className="space-y-2">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Puntaje Total</p>
-                      <p className="text-2xl font-bold text-primary">{cccEvaluation.puntaje || 0}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Impacto</p>
-                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_impacto || 0} / 30</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Equipo</p>
-                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_equipo || 0} / 25</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Innovación</p>
-                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_innovacion_tecnologia || 0} / 25</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Ventas</p>
-                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_ventas || 0} / 15</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Proyección</p>
-                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_proyeccion_financiacion || 0} / 5</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Referido</p>
-                      <p className="text-lg font-semibold">{cccEvaluation.puntaje_referido_regional || 0} / 5</p>
-                    </div>
-                  </div>
-                  {cccEvaluation.nivel && (
-                    <div className="pt-2 border-t">
-                      <p className="text-sm text-muted-foreground">Nivel asignado:</p>
-                      <Badge variant="outline" className="capitalize mt-1">{cccEvaluation.nivel}</Badge>
-                    </div>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Impacto</p>
+                  <p className="text-lg font-semibold">{cccEvaluation.puntaje_impacto || 0} / 30</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Equipo</p>
+                  <p className="text-lg font-semibold">{cccEvaluation.puntaje_equipo || 0} / 25</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Innovación</p>
+                  <p className="text-lg font-semibold">{cccEvaluation.puntaje_innovacion_tecnologia || 0} / 25</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Ventas</p>
+                  <p className="text-lg font-semibold">{cccEvaluation.puntaje_ventas || 0} / 15</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Proyección</p>
+                  <p className="text-lg font-semibold">{cccEvaluation.puntaje_proyeccion_financiacion || 0} / 5</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Referido Regional</p>
+                  <p className="text-lg font-semibold">{cccEvaluation.puntaje_referido_regional || 0} / 5</p>
+                </div>
+              </div>
+              
+              {/* Requisitos Habilitantes de CCC */}
+              <div className="pt-4 border-t space-y-2">
+                <p className="text-sm font-semibold text-muted-foreground">Requisitos Habilitantes (desde CCC):</p>
+                <div className="grid gap-2">
+                  <RequirementBadge 
+                    label="Ubicación en jurisdicción de CCC o suroccidente"
+                    cumple={cccEvaluation.cumple_ubicacion ?? true}
+                  />
+                  <RequirementBadge 
+                    label="Equipo de trabajo de al menos 2 personas"
+                    cumple={cccEvaluation.cumple_equipo_minimo ?? false}
+                  />
+                  <RequirementBadge 
+                    label="Al menos 1 persona dedicada al 100%"
+                    cumple={cccEvaluation.cumple_dedicacion ?? false}
+                  />
+                  <RequirementBadge 
+                    label="Interés en crear negocio innovador de base tecnológica"
+                    cumple={cccEvaluation.cumple_interes ?? false}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Nivel de Evaluación */}
+        {/* Nivel de Evaluación - Calculado Automáticamente */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Nivel de Evaluación</h3>
-          <FormField
-            control={form.control}
-            name="nivel"
-            render={({ field }) => (
-              <NivelSelector 
-                value={field.value} 
-                onChange={field.onChange}
-                disabled={isReadOnly}
-              />
-            )}
-          />
+          <div className="p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Nivel calculado automáticamente según puntaje:</p>
+                <ul className="text-xs text-muted-foreground space-y-1 ml-4">
+                  <li>• Bajo: 0-50 puntos</li>
+                  <li>• Medio: 51-80 puntos</li>
+                  <li>• Alto: 81-100 puntos</li>
+                </ul>
+              </div>
+              <Badge 
+                variant="outline" 
+                className={`capitalize text-lg px-4 py-2 ${
+                  nivelCalculado === 'alto' ? 'border-green-500 text-green-700 dark:text-green-400' :
+                  nivelCalculado === 'medio' ? 'border-yellow-500 text-yellow-700 dark:text-yellow-400' :
+                  'border-red-500 text-red-700 dark:text-red-400'
+                }`}
+              >
+                {nivelCalculado}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Puntaje actual: <strong>{currentTotal} / 100</strong>
+            </p>
+          </div>
         </div>
 
         <Separator />
 
-        {/* Requisitos Habilitantes - Ahora Editables */}
+        {/* Requisitos Habilitantes - Solo Lectura desde CCC */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">1. Requisitos Habilitantes</h3>
-          <p className="text-sm text-muted-foreground">Evalúa manualmente cada criterio habilitante</p>
-          
-          <div className="space-y-4">
-            {/* Ubicación */}
-            <FormField
-              control={form.control}
-              name="cumple_ubicacion"
-              render={({ field }) => (
-                <FormItem className="p-4 border rounded-lg space-y-3">
-                  <FormLabel>Emprendedor ubicado en jurisdicción de Cámara de Comercio de Cali o suroccidente colombiano</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      disabled={isReadOnly}
-                      value={field.value ? "true" : "false"}
-                      onValueChange={(value) => field.onChange(value === "true")}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="true" id="ubicacion-cumple" />
-                        <Label htmlFor="ubicacion-cumple" className="cursor-pointer">Cumple</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="false" id="ubicacion-no-cumple" />
-                        <Label htmlFor="ubicacion-no-cumple" className="cursor-pointer">No Cumple</Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* Equipo Mínimo */}
-            <FormField
-              control={form.control}
-              name="cumple_equipo_minimo"
-              render={({ field }) => (
-                <FormItem className="p-4 border rounded-lg space-y-3">
-                  <FormLabel>Equipo de trabajo de al menos 2 personas</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      disabled={isReadOnly}
-                      value={field.value ? "true" : "false"}
-                      onValueChange={(value) => field.onChange(value === "true")}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="true" id="equipo-cumple" />
-                        <Label htmlFor="equipo-cumple" className="cursor-pointer">Cumple</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="false" id="equipo-no-cumple" />
-                        <Label htmlFor="equipo-no-cumple" className="cursor-pointer">No Cumple</Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* Dedicación */}
-            <FormField
-              control={form.control}
-              name="cumple_dedicacion"
-              render={({ field }) => (
-                <FormItem className="p-4 border rounded-lg space-y-3">
-                  <FormLabel>Al menos 1 persona dedicada al 100%</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      disabled={isReadOnly}
-                      value={field.value ? "true" : "false"}
-                      onValueChange={(value) => field.onChange(value === "true")}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="true" id="dedicacion-cumple" />
-                        <Label htmlFor="dedicacion-cumple" className="cursor-pointer">Cumple</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="false" id="dedicacion-no-cumple" />
-                        <Label htmlFor="dedicacion-no-cumple" className="cursor-pointer">No Cumple</Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* Interés */}
-            <FormField
-              control={form.control}
-              name="cumple_interes"
-              render={({ field }) => (
-                <FormItem className="p-4 border rounded-lg space-y-3">
-                  <FormLabel>Interés en crear negocio innovador de base tecnológica/científica</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      disabled={isReadOnly}
-                      value={field.value ? "true" : "false"}
-                      onValueChange={(value) => field.onChange(value === "true")}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="true" id="interes-cumple" />
-                        <Label htmlFor="interes-cumple" className="cursor-pointer">Cumple</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="false" id="interes-no-cumple" />
-                        <Label htmlFor="interes-no-cumple" className="cursor-pointer">No Cumple</Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {(!watchedValues.cumple_equipo_minimo || !watchedValues.cumple_dedicacion || !watchedValues.cumple_interes || !watchedValues.cumple_ubicacion) && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                ⚠️ Algunos requisitos habilitantes no se cumplen. Esto puede afectar la elegibilidad del emprendimiento.
-              </p>
+          <div className="p-4 bg-muted/30 rounded-lg border">
+            <p className="text-sm text-muted-foreground mb-3">
+              <Info className="h-4 w-4 inline mr-1" />
+              Estos requisitos provienen de la evaluación CCC y son de solo lectura para el jurado.
+            </p>
+            <div className="grid gap-2">
+              <RequirementBadge 
+                label="Emprendedor ubicado en jurisdicción de CCC o suroccidente colombiano"
+                cumple={cccEvaluation?.cumple_ubicacion ?? true}
+              />
+              <RequirementBadge 
+                label="Equipo de trabajo de al menos 2 personas"
+                cumple={cccEvaluation?.cumple_equipo_minimo ?? false}
+              />
+              <RequirementBadge 
+                label="Al menos 1 persona dedicada al 100%"
+                cumple={cccEvaluation?.cumple_dedicacion ?? false}
+              />
+              <RequirementBadge 
+                label="Interés en crear negocio innovador de base tecnológica/científica"
+                cumple={cccEvaluation?.cumple_interes ?? false}
+              />
             </div>
-          )}
+            {(!cccEvaluation?.cumple_equipo_minimo || !cccEvaluation?.cumple_dedicacion || !cccEvaluation?.cumple_interes || !cccEvaluation?.cumple_ubicacion) && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800 mt-3">
+                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  ⚠️ Algunos requisitos habilitantes no se cumplen según la evaluación CCC.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <Separator />
@@ -677,45 +602,29 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
             />
           </div>
 
-          {/* Referido Regional - Ahora Manual */}
-          <div className="space-y-4 p-4 border rounded-lg">
-            <FormField
-              control={form.control}
-              name="puntaje_referido_regional"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <ScoreInput
-                      label="Referido Regional"
-                      description="Puntaje para emprendimientos ubicados fuera de Cali (máximo 5 puntos)"
-                      maxScore={5}
-                      value={field.value}
-                      onChange={field.onChange}
-                      disabled={isReadOnly}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="referido_regional"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Comentarios sobre Referido Regional</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      {...field} 
-                      placeholder="Agrega observaciones sobre la ubicación del emprendimiento..."
-                      className="min-h-[80px]"
-                      disabled={isReadOnly}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* Referido Regional - Solo Lectura desde CCC */}
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-start gap-2">
+              <Info className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+              <div className="flex-1">
+                <Label className="text-base font-semibold">Referido Regional (Solo Lectura)</Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Este puntaje proviene de la evaluación CCC y no es editable para el jurado.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 p-3 bg-background rounded-md border">
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">Puntaje asignado:</p>
+                <p className="text-2xl font-bold">{puntajeReferidoRegional} / 5</p>
+              </div>
+            </div>
+            {cccEvaluation?.referido_regional && (
+              <div className="p-3 bg-background rounded-md border">
+                <p className="text-sm text-muted-foreground mb-1">Comentarios de CCC:</p>
+                <p className="text-sm">{cccEvaluation.referido_regional}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -753,7 +662,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
           puntajeInnovacion={watchedValues.puntaje_innovacion_tecnologia}
           puntajeVentas={watchedValues.puntaje_ventas}
           puntajeProyeccionFinanciacion={watchedValues.puntaje_proyeccion_financiacion}
-          puntajeReferido={watchedValues.puntaje_referido_regional}
+          puntajeReferido={puntajeReferidoRegional}
         />
 
         {/* Botones de Acción */}
