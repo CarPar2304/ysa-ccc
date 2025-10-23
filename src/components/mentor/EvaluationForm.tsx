@@ -63,15 +63,15 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
   const form = useForm<EvaluationFormData>({
     resolver: zodResolver(evaluationSchema),
     defaultValues: {
-      puntaje_impacto: cccEvaluation?.puntaje_impacto || 0,
+      puntaje_impacto: 0,
       impacto_texto: "",
-      puntaje_equipo: cccEvaluation?.puntaje_equipo || 0,
+      puntaje_equipo: 0,
       equipo_texto: "",
-      puntaje_innovacion_tecnologia: cccEvaluation?.puntaje_innovacion_tecnologia || 0,
+      puntaje_innovacion_tecnologia: 0,
       innovacion_tecnologia_texto: "",
-      puntaje_ventas: cccEvaluation?.puntaje_ventas || 0,
+      puntaje_ventas: 0,
       ventas_texto: "",
-      puntaje_proyeccion_financiacion: cccEvaluation?.puntaje_proyeccion_financiacion || 0,
+      puntaje_proyeccion_financiacion: 0,
       proyeccion_financiacion_texto: "",
       comentarios_adicionales: "",
     },
@@ -80,6 +80,18 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
   useEffect(() => {
     fetchData();
   }, [emprendimientoId]);
+
+  // Pre-cargar valores desde cccEvaluation cuando esté disponible
+  useEffect(() => {
+    if (cccEvaluation && !existingEvaluation) {
+      console.log("Pre-cargando valores desde evaluación CCC:", cccEvaluation);
+      form.setValue("puntaje_impacto", cccEvaluation.puntaje_impacto || 0);
+      form.setValue("puntaje_equipo", cccEvaluation.puntaje_equipo || 0);
+      form.setValue("puntaje_innovacion_tecnologia", cccEvaluation.puntaje_innovacion_tecnologia || 0);
+      form.setValue("puntaje_ventas", cccEvaluation.puntaje_ventas || 0);
+      form.setValue("puntaje_proyeccion_financiacion", cccEvaluation.puntaje_proyeccion_financiacion || 0);
+    }
+  }, [cccEvaluation, existingEvaluation]);
 
   const fetchData = async () => {
     try {

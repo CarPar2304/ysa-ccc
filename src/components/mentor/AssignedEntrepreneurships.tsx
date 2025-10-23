@@ -12,21 +12,36 @@ import { EvaluationForm } from "./EvaluationForm";
 // Wrapper para cargar evaluación CCC
 const EvaluationFormWithCCC = ({ emprendimientoId, onSuccess }: { emprendimientoId: string, onSuccess: () => void }) => {
   const [cccEvaluation, setCccEvaluation] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCCC = async () => {
-      const { data } = await supabase
-        .from("evaluaciones")
-        .select("*")
-        .eq("emprendimiento_id", emprendimientoId)
-        .maybeSingle();
-      
-      if (data && (data as any).tipo_evaluacion === 'ccc') {
+      try {
+        const { data, error } = await supabase
+          .from("evaluaciones")
+          .select("*")
+          .eq("emprendimiento_id", emprendimientoId)
+          .eq("tipo_evaluacion", "ccc")
+          .maybeSingle();
+        
+        if (error) throw error;
         setCccEvaluation(data);
+      } catch (error) {
+        console.error("Error fetching CCC evaluation:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchCCC();
   }, [emprendimientoId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return <EvaluationForm emprendimientoId={emprendimientoId} cccEvaluation={cccEvaluation} onSuccess={onSuccess} />;
 };
