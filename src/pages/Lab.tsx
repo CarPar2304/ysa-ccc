@@ -64,11 +64,14 @@ const Lab = () => {
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
 
   useEffect(() => {
-    fetchModulos();
     if (isBeneficiario && userId) {
       fetchUserNivel();
     }
   }, [userId, isBeneficiario]);
+
+  useEffect(() => {
+    fetchModulos();
+  }, [userId, isAdmin, isBeneficiario, userNivel]);
 
   const fetchUserNivel = async () => {
     if (!userId) return;
@@ -108,9 +111,14 @@ const Lab = () => {
         .select("*")
         .order("orden", { ascending: true });
 
-      // Si no es admin, solo mostrar módulos activos
+      // Si no es admin, solo mostrar módulos activos y del nivel del usuario
       if (!isAdmin) {
         query = query.eq("activo", true);
+        
+        // Filtrar por nivel si el usuario tiene un nivel asignado
+        if (userNivel) {
+          query = query.or(`nivel.eq.${userNivel},nivel.is.null`);
+        }
       }
 
       const { data, error } = await query;

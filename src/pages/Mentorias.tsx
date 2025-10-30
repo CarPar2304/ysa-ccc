@@ -1,0 +1,330 @@
+import { useState, useEffect } from "react";
+import { Layout } from "@/components/Layout";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar as CalendarIcon, Search } from "lucide-react";
+
+interface PerfilAsesoria {
+  id: string;
+  mentor_id: string;
+  titulo: string;
+  descripcion: string;
+  tematica: string;
+  foto_url: string;
+  banner_url: string;
+  perfil_mentor: string;
+}
+
+interface Disponibilidad {
+  id: string;
+  dia_semana: number;
+  hora_inicio: string;
+  hora_fin: string;
+}
+
+interface ReservaExistente {
+  fecha_reserva: string;
+}
+
+const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+const Mentorias = () => {
+  const [perfiles, setPerfiles] = useState<PerfilAsesoria[]>([]);
+  const [filteredPerfiles, setFilteredPerfiles] = useState<PerfilAsesoria[]>([]);
+  const [tematicas, setTematicas] = useState<string[]>([]);
+  const [selectedTematica, setSelectedTematica] = useState<string>("todas");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPerfil, setSelectedPerfil] = useState<PerfilAsesoria | null>(null);
+  const [disponibilidades, setDisponibilidades] = useState<Disponibilidad[]>([]);
+  const [reservasExistentes, setReservasExistentes] = useState<ReservaExistente[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedSlot, setSelectedSlot] = useState<string>("");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchPerfiles();
+  }, []);
+
+  useEffect(() => {
+    filterPerfiles();
+  }, [perfiles, selectedTematica, searchTerm]);
+
+  const fetchPerfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("perfiles_asesoria")
+        .select("*")
+        .eq("activo", true)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setPerfiles(data || []);
+      
+      const uniqueTematicas = [...new Set(data?.map(p => p.tematica) || [])];
+      setTematicas(uniqueTematicas);
+    } catch (error) {
+      console.error("Error fetching perfiles:", error);
+    }
+  };
+
+  const filterPerfiles = () => {
+    let filtered = perfiles;
+
+    if (selectedTematica !== "todas") {
+      filtered = filtered.filter(p => p.tematica === selectedTematica);
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(p => 
+        p.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredPerfiles(filtered);
+  };
+
+  const handleOpenPerfil = async (perfil: PerfilAsesoria) => {
+    setSelectedPerfil(perfil);
+    setSelectedDate(undefined);
+    setSelectedSlot("");
+    
+    try {
+      const { data: disp, error: dispError } = await supabase
+        .from("disponibilidades_mentor")
+        .select("*")
+        .eq("perfil_asesoria_id", perfil.id)
+        .order("dia_semana", { ascending: true });
+
+      if (dispError) throw dispError;
+      setDisponibilidades(disp || []);
+
+      const { data: reservas, error: reservasError } = await supabase
+        .from("reservas_asesoria")
+        .select("fecha_reserva")
+        .eq("perfil_asesoria_id", perfil.id);
+
+      if (reservasError) throw reservasError;
+      setReservasExistentes(reservas || []);
+    } catch (error) {
+      console.error("Error fetching disponibilidades:", error);
+    }
+  };
+
+  const getAvailableSlots = () => {
+    if (!selectedDate) return [];
+    
+    const dayOfWeek = selectedDate.getDay();
+    const slotsForDay = disponibilidades.filter(d => d.dia_semana === dayOfWeek);
+    
+    const reserved = reservasExistentes
+      .map(r => new Date(r.fecha_reserva))
+      .filter(date => 
+        date.getDate() === selectedDate.getDate() &&
+        date.getMonth() === selectedDate.getMonth() &&
+        date.getFullYear() === selectedDate.getFullYear()
+      )
+      .map(date => `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`);
+
+    return slotsForDay.filter(slot => !reserved.includes(slot.hora_inicio));
+  };
+
+  const handleReservar = async () => {
+    if (!selectedPerfil || !selectedDate || !selectedSlot) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const [hours, minutes] = selectedSlot.split(':');
+      const fechaReserva = new Date(selectedDate);
+      fechaReserva.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+      const { error } = await supabase
+        .from("reservas_asesoria")
+        .insert([{
+          perfil_asesoria_id: selectedPerfil.id,
+          beneficiario_id: user.id,
+          mentor_id: selectedPerfil.mentor_id,
+          fecha_reserva: fechaReserva.toISOString(),
+          estado: "pendiente",
+        }]);
+
+      if (error) throw error;
+
+      toast({ title: "¡Asesoría agendada exitosamente!" });
+      setSelectedPerfil(null);
+      setSelectedDate(undefined);
+      setSelectedSlot("");
+    } catch (error: any) {
+      toast({
+        title: "Error al agendar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const availableSlots = getAvailableSlots();
+
+  return (
+    <Layout>
+      <div className="mx-auto max-w-7xl p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Mentorías YSA</h1>
+          <p className="text-muted-foreground">Agenda sesiones con nuestros mentores expertos</p>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Buscar mentorías..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <Select value={selectedTematica} onValueChange={setSelectedTematica}>
+            <SelectTrigger className="w-full md:w-64">
+              <SelectValue placeholder="Filtrar por temática" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las temáticas</SelectItem>
+              {tematicas.map((tem) => (
+                <SelectItem key={tem} value={tem}>{tem}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPerfiles.map((perfil) => (
+            <Card key={perfil.id} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleOpenPerfil(perfil)}>
+              {perfil.banner_url && (
+                <div className="h-32 bg-cover bg-center" style={{ backgroundImage: `url(${perfil.banner_url})` }} />
+              )}
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  {perfil.foto_url && (
+                    <img src={perfil.foto_url} alt={perfil.titulo} className="w-12 h-12 rounded-full object-cover" />
+                  )}
+                  <div>
+                    <CardTitle className="text-lg">{perfil.titulo}</CardTitle>
+                    <CardDescription className="text-xs">{perfil.tematica}</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground line-clamp-3">{perfil.descripcion}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <Dialog open={!!selectedPerfil} onOpenChange={() => setSelectedPerfil(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedPerfil?.titulo}</DialogTitle>
+            </DialogHeader>
+            
+            {selectedPerfil && (
+              <div className="space-y-6">
+                {selectedPerfil.banner_url && (
+                  <div className="h-48 bg-cover bg-center rounded-lg" style={{ backgroundImage: `url(${selectedPerfil.banner_url})` }} />
+                )}
+
+                <div className="flex items-center gap-4">
+                  {selectedPerfil.foto_url && (
+                    <img src={selectedPerfil.foto_url} alt={selectedPerfil.titulo} className="w-20 h-20 rounded-full object-cover" />
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-lg">{selectedPerfil.titulo}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedPerfil.tematica}</p>
+                  </div>
+                </div>
+
+                {selectedPerfil.descripcion && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Descripción</h4>
+                    <p className="text-sm text-muted-foreground">{selectedPerfil.descripcion}</p>
+                  </div>
+                )}
+
+                {selectedPerfil.perfil_mentor && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Sobre el Mentor</h4>
+                    <p className="text-sm text-muted-foreground">{selectedPerfil.perfil_mentor}</p>
+                  </div>
+                )}
+
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold mb-4 flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4" />
+                    Agendar Sesión
+                  </h4>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium mb-2">Selecciona una fecha:</p>
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        disabled={(date) => {
+                          const dayOfWeek = date.getDay();
+                          return !disponibilidades.some(d => d.dia_semana === dayOfWeek) || date < new Date();
+                        }}
+                        className="rounded-md border pointer-events-auto"
+                      />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium mb-2">Horarios disponibles:</p>
+                      {!selectedDate ? (
+                        <p className="text-sm text-muted-foreground">Selecciona una fecha primero</p>
+                      ) : availableSlots.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No hay horarios disponibles para esta fecha</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {availableSlots.map((slot) => (
+                            <Button
+                              key={slot.id}
+                              variant={selectedSlot === slot.hora_inicio ? "default" : "outline"}
+                              className="w-full justify-start"
+                              onClick={() => setSelectedSlot(slot.hora_inicio)}
+                            >
+                              {slot.hora_inicio} - {slot.hora_fin}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full mt-4"
+                    disabled={!selectedDate || !selectedSlot}
+                    onClick={handleReservar}
+                  >
+                    Agendar Mentoría
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Layout>
+  );
+};
+
+export default Mentorias;

@@ -312,6 +312,41 @@ export type Database = {
           },
         ]
       }
+      disponibilidades_mentor: {
+        Row: {
+          created_at: string
+          dia_semana: number
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          perfil_asesoria_id: string
+        }
+        Insert: {
+          created_at?: string
+          dia_semana: number
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          perfil_asesoria_id: string
+        }
+        Update: {
+          created_at?: string
+          dia_semana?: number
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          perfil_asesoria_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disponibilidades_mentor_perfil_asesoria_id_fkey"
+            columns: ["perfil_asesoria_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_asesoria"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           content: string | null
@@ -937,6 +972,48 @@ export type Database = {
           },
         ]
       }
+      perfiles_asesoria: {
+        Row: {
+          activo: boolean
+          banner_url: string | null
+          created_at: string
+          descripcion: string | null
+          foto_url: string | null
+          id: string
+          mentor_id: string
+          perfil_mentor: string | null
+          tematica: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          banner_url?: string | null
+          created_at?: string
+          descripcion?: string | null
+          foto_url?: string | null
+          id?: string
+          mentor_id: string
+          perfil_mentor?: string | null
+          tematica: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          banner_url?: string | null
+          created_at?: string
+          descripcion?: string | null
+          foto_url?: string | null
+          id?: string
+          mentor_id?: string
+          perfil_mentor?: string | null
+          tematica?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       post_tags: {
         Row: {
           created_at: string
@@ -1125,6 +1202,50 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservas_asesoria: {
+        Row: {
+          beneficiario_id: string
+          created_at: string
+          estado: string
+          fecha_reserva: string
+          id: string
+          mentor_id: string
+          perfil_asesoria_id: string
+          updated_at: string
+          url_asesoria: string | null
+        }
+        Insert: {
+          beneficiario_id: string
+          created_at?: string
+          estado?: string
+          fecha_reserva: string
+          id?: string
+          mentor_id: string
+          perfil_asesoria_id: string
+          updated_at?: string
+          url_asesoria?: string | null
+        }
+        Update: {
+          beneficiario_id?: string
+          created_at?: string
+          estado?: string
+          fecha_reserva?: string
+          id?: string
+          mentor_id?: string
+          perfil_asesoria_id?: string
+          updated_at?: string
+          url_asesoria?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_asesoria_perfil_asesoria_id_fkey"
+            columns: ["perfil_asesoria_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles_asesoria"
             referencedColumns: ["id"]
           },
         ]

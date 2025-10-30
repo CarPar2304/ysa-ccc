@@ -10,6 +10,7 @@ import Lab from "./pages/Lab";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import MentorPanel from "./pages/MentorPanel";
+import Mentorias from "./pages/Mentorias";
 import RegisterMentor from "./pages/RegisterMentor";
 import NotFound from "./pages/NotFound";
 
@@ -26,6 +27,7 @@ const App = () => (
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
         <Route path="/lab" element={<ProtectedRoute><Lab /></ProtectedRoute>} />
+        <Route path="/mentorias" element={<ProtectedRoute><Mentorias /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/mentor" element={<ProtectedRoute><MentorPanel /></ProtectedRoute>} />

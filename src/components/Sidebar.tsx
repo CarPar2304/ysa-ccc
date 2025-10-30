@@ -22,6 +22,7 @@ const navigation = [
   { name: "YSA Conecta", href: "/", icon: Home },
   { name: "YSA Now", href: "/news", icon: Newspaper },
   { name: "YSA Lab", href: "/lab", icon: BookOpen },
+  { name: "Mentorías", href: "/mentorias", icon: User },
 ];
 
 export const Sidebar = () => {
