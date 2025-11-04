@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Lock, FileText } from "lucide-react";
+import { Loader2, Lock, FileText, Globe, Calendar, Briefcase } from "lucide-react";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 
 interface DiagnosticViewProps {
@@ -15,9 +15,16 @@ interface Diagnostico {
   updated_at: string;
 }
 
+interface Emprendimiento {
+  nombre: string;
+  pagina_web: string | null;
+  ano_fundacion: number | null;
+}
+
 export function DiagnosticView({ emprendimientoId }: DiagnosticViewProps) {
   const [loading, setLoading] = useState(true);
   const [diagnostico, setDiagnostico] = useState<Diagnostico | null>(null);
+  const [emprendimiento, setEmprendimiento] = useState<Emprendimiento | null>(null);
 
   useEffect(() => {
     fetchDiagnostico();
@@ -27,15 +34,24 @@ export function DiagnosticView({ emprendimientoId }: DiagnosticViewProps) {
     try {
       setLoading(true);
 
-      const { data: diagData, error: diagError } = await supabase
-        .from("diagnosticos")
-        .select("id, contenido, created_at, updated_at")
-        .eq("emprendimiento_id", emprendimientoId)
-        .maybeSingle();
+      const [diagResult, empResult] = await Promise.all([
+        supabase
+          .from("diagnosticos")
+          .select("id, contenido, created_at, updated_at")
+          .eq("emprendimiento_id", emprendimientoId)
+          .maybeSingle(),
+        supabase
+          .from("emprendimientos")
+          .select("nombre, pagina_web, ano_fundacion")
+          .eq("id", emprendimientoId)
+          .single()
+      ]);
 
-      if (diagError) throw diagError;
+      if (diagResult.error) throw diagResult.error;
+      if (empResult.error) throw empResult.error;
 
-      setDiagnostico(diagData);
+      setDiagnostico(diagResult.data);
+      setEmprendimiento(empResult.data);
     } catch (error) {
       console.error("Error fetching diagnostico:", error);
     } finally {
@@ -68,24 +84,58 @@ export function DiagnosticView({ emprendimientoId }: DiagnosticViewProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          <CardTitle>Diagnóstico del Emprendimiento</CardTitle>
-        </div>
-        <CardDescription>
-          Última actualización:{" "}
-          {new Date(diagnostico.updated_at).toLocaleDateString("es-ES", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-2">
-        <MarkdownRenderer content={diagnostico.contenido} />
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      {emprendimiento && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              <CardTitle>{emprendimiento.nombre}</CardTitle>
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              {emprendimiento.pagina_web && (
+                <div className="flex items-center gap-1">
+                  <Globe className="h-4 w-4" />
+                  <a 
+                    href={emprendimiento.pagina_web} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                  >
+                    {emprendimiento.pagina_web}
+                  </a>
+                </div>
+              )}
+              {emprendimiento.ano_fundacion && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  Fundado en {emprendimiento.ano_fundacion}
+                </div>
+              )}
+            </div>
+          </CardHeader>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            <CardTitle>Diagnóstico del Emprendimiento</CardTitle>
+          </div>
+          <CardDescription>
+            Última actualización:{" "}
+            {new Date(diagnostico.updated_at).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-2">
+          <MarkdownRenderer content={diagnostico.contenido} />
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -372,6 +372,7 @@ export type Database = {
         Row: {
           actividades_id: boolean | null
           alcance_mercado: Database["public"]["Enums"]["alcance_mercado"] | null
+          ano_fundacion: number | null
           categoria:
             | Database["public"]["Enums"]["categoria_emprendimiento"]
             | null
@@ -400,6 +401,7 @@ export type Database = {
             | Database["public"]["Enums"]["nivel_innovacion"]
             | null
           nombre: string
+          pagina_web: string | null
           pais_registro: string | null
           participaciones_previas: boolean | null
           plan_negocios: Database["public"]["Enums"]["plan_negocios"] | null
@@ -437,6 +439,7 @@ export type Database = {
           alcance_mercado?:
             | Database["public"]["Enums"]["alcance_mercado"]
             | null
+          ano_fundacion?: number | null
           categoria?:
             | Database["public"]["Enums"]["categoria_emprendimiento"]
             | null
@@ -465,6 +468,7 @@ export type Database = {
             | Database["public"]["Enums"]["nivel_innovacion"]
             | null
           nombre: string
+          pagina_web?: string | null
           pais_registro?: string | null
           participaciones_previas?: boolean | null
           plan_negocios?: Database["public"]["Enums"]["plan_negocios"] | null
@@ -502,6 +506,7 @@ export type Database = {
           alcance_mercado?:
             | Database["public"]["Enums"]["alcance_mercado"]
             | null
+          ano_fundacion?: number | null
           categoria?:
             | Database["public"]["Enums"]["categoria_emprendimiento"]
             | null
@@ -530,6 +535,7 @@ export type Database = {
             | Database["public"]["Enums"]["nivel_innovacion"]
             | null
           nombre?: string
+          pagina_web?: string | null
           pais_registro?: string | null
           participaciones_previas?: boolean | null
           plan_negocios?: Database["public"]["Enums"]["plan_negocios"] | null
@@ -1293,6 +1299,7 @@ export type Database = {
           menor_de_edad: boolean
           municipio: string | null
           nivel_conocimiento: string | null
+          nivel_ingles: string | null
           nombres: string | null
           numero_identificacion: string | null
           referido: string | null
@@ -1315,6 +1322,7 @@ export type Database = {
           menor_de_edad?: boolean
           municipio?: string | null
           nivel_conocimiento?: string | null
+          nivel_ingles?: string | null
           nombres?: string | null
           numero_identificacion?: string | null
           referido?: string | null
@@ -1337,6 +1345,7 @@ export type Database = {
           menor_de_edad?: boolean
           municipio?: string | null
           nivel_conocimiento?: string | null
+          nivel_ingles?: string | null
           nombres?: string | null
           numero_identificacion?: string | null
           referido?: string | null

@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { EvaluationSummary } from "@/components/evaluation/EvaluationSummary";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Globe, Calendar, Loader2 } from "lucide-react";
 
 interface EvaluationViewModalProps {
   open: boolean;
@@ -19,6 +22,33 @@ export const EvaluationViewModal = ({
   emprendimientoNombre,
   mentorNombre 
 }: EvaluationViewModalProps) => {
+  const [emprendimiento, setEmprendimiento] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && evaluation?.emprendimiento_id) {
+      fetchEmprendimiento();
+    }
+  }, [open, evaluation?.emprendimiento_id]);
+
+  const fetchEmprendimiento = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("emprendimientos")
+        .select("pagina_web, ano_fundacion")
+        .eq("id", evaluation.emprendimiento_id)
+        .single();
+
+      if (error) throw error;
+      setEmprendimiento(data);
+    } catch (error) {
+      console.error("Error fetching emprendimiento:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!evaluation) return null;
 
   const InfoSection = ({ 
@@ -52,11 +82,31 @@ export const EvaluationViewModal = ({
                 {evaluation.tipo_evaluacion === 'ccc' ? 'CCC' : 'Jurado'}
               </Badge>
             </div>
-            <div className="text-sm font-normal text-muted-foreground">
-              <p>{emprendimientoNombre}</p>
+            <div className="text-sm font-normal text-muted-foreground space-y-1">
+              <p className="font-semibold text-base">{emprendimientoNombre}</p>
               <p>Evaluador: {mentorNombre || 'Sistema'}</p>
               {evaluation.nivel && (
                 <p className="capitalize">Nivel: {evaluation.nivel}</p>
+              )}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : emprendimiento && (
+                <>
+                  {emprendimiento.pagina_web && (
+                    <p className="flex items-center gap-1">
+                      <Globe className="h-3 w-3" />
+                      <a href={emprendimiento.pagina_web} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                        {emprendimiento.pagina_web}
+                      </a>
+                    </p>
+                  )}
+                  {emprendimiento.ano_fundacion && (
+                    <p className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Fundado en {emprendimiento.ano_fundacion}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </DialogTitle>

@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Briefcase, FileText, TrendingUp, Target } from "lucide-react";
+import { Loader2, Briefcase, FileText, TrendingUp, Target, Globe, Calendar } from "lucide-react";
 
 interface ProfileEntrepreneurshipProps {
   readOnly?: boolean;
@@ -18,6 +18,8 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
     categoria: "",
     alcance_mercado: "",
     tipo_cliente: "",
+    pagina_web: "",
+    ano_fundacion: "",
   });
   const { toast } = useToast();
 
@@ -47,6 +49,8 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
           categoria: data.categoria || "",
           alcance_mercado: data.alcance_mercado || "",
           tipo_cliente: data.tipo_cliente || "",
+          pagina_web: data.pagina_web || "",
+          ano_fundacion: data.ano_fundacion ? String(data.ano_fundacion) : "",
         });
       }
     } catch (error) {
@@ -94,6 +98,10 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
           {formData.descripcion && (
             <InfoItem icon={FileText} label="Descripción" value={formData.descripcion} />
           )}
+          <div className="grid gap-4 md:grid-cols-2">
+            <InfoItem icon={Globe} label="Página Web" value={formData.pagina_web} />
+            <InfoItem icon={Calendar} label="Año de Fundación" value={formData.ano_fundacion} />
+          </div>
         </CardContent>
       </Card>
 

@@ -24,6 +24,7 @@ export const ProfileBasicInfo = ({ readOnly = false }: ProfileBasicInfoProps) =>
     ano_nacimiento: "",
     identificacion_etnica: "",
     biografia: "",
+    nivel_ingles: "",
   });
   const { toast } = useToast();
 
@@ -59,6 +60,7 @@ export const ProfileBasicInfo = ({ readOnly = false }: ProfileBasicInfoProps) =>
           ano_nacimiento: data.ano_nacimiento || "",
           identificacion_etnica: data.identificacion_etnica || "",
           biografia: data.biografia || "",
+          nivel_ingles: data.nivel_ingles || "",
         });
       }
     } catch (error) {
@@ -136,6 +138,7 @@ export const ProfileBasicInfo = ({ readOnly = false }: ProfileBasicInfoProps) =>
           <InfoItem icon={User} label="Género" value={formData.genero} />
           <InfoItem icon={Calendar} label="Año de Nacimiento" value={formData.ano_nacimiento} />
           <InfoItem icon={User} label="Identificación Étnica" value={formData.identificacion_etnica} />
+          <InfoItem icon={User} label="Nivel de Inglés" value={formData.nivel_ingles} />
           {formData.biografia && (
             <div className="md:col-span-2">
               <InfoItem icon={User} label="Biografía" value={formData.biografia} />
