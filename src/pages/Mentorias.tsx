@@ -8,7 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Search } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar as CalendarIcon, Search, BookMarked } from "lucide-react";
+import { MisAsesorias } from "@/components/mentor/MisAsesorias";
 
 interface PerfilAsesoria {
   id: string;
@@ -164,6 +166,8 @@ const Mentorias = () => {
           id_beneficiario: user.id,
           id_asesor: selectedPerfil.mentor_id,
           fecha_agendamiento: fechaReserva.toISOString(),
+          titulo: selectedPerfil.titulo,
+          tipo_accion: "agendar",
         });
 
         await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/mentorias-ysa-pacifico", {
@@ -199,6 +203,20 @@ const Mentorias = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">Mentorías YSA</h1>
           <p className="text-muted-foreground">Agenda sesiones con nuestros mentores expertos</p>
         </div>
+
+        <Tabs defaultValue="explorar" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="explorar">
+              <Search className="w-4 h-4 mr-2" />
+              Explorar Mentorías
+            </TabsTrigger>
+            <TabsTrigger value="mis-asesorias">
+              <BookMarked className="w-4 h-4 mr-2" />
+              Mis Asesorías
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="explorar" className="space-y-6 mt-6">
 
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -248,6 +266,12 @@ const Mentorias = () => {
             </Card>
           ))}
         </div>
+          </TabsContent>
+
+          <TabsContent value="mis-asesorias" className="mt-6">
+            <MisAsesorias />
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={!!selectedPerfil} onOpenChange={() => setSelectedPerfil(null)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
