@@ -154,7 +154,7 @@ const Mentorias = () => {
       const fechaFin = new Date(selectedDate);
       fechaFin.setHours(parseInt(hoursEnd), parseInt(minutesEnd), 0, 0);
 
-      const { error } = await supabase
+      const { data: reservaData, error } = await supabase
         .from("reservas_asesoria")
         .insert([{
           perfil_asesoria_id: selectedPerfil.id,
@@ -162,7 +162,9 @@ const Mentorias = () => {
           mentor_id: selectedPerfil.mentor_id,
           fecha_reserva: fechaReserva.toISOString(),
           estado: "pendiente",
-        }]);
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
 
@@ -182,6 +184,7 @@ const Mentorias = () => {
           id_beneficiario: user.id,
           id_asesor: selectedPerfil.mentor_id,
           id_asesoria: selectedPerfil.id,
+          id_reserva: reservaData.id,
           fecha_agendamiento: formatDate(fechaReserva),
           hora_inicio: formatDate(fechaReserva),
           hora_fin: formatDate(fechaFin),

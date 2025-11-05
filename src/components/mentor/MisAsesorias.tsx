@@ -83,10 +83,14 @@ export const MisAsesorias = () => {
 
   const handleWebhook = async (tipo_accion: string, reserva: Reserva) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const webhookData = new URLSearchParams({
-        id_beneficiario: reserva.mentor_id,
+        id_reserva: reserva.id,
+        id_beneficiario: user.id,
         id_asesor: reserva.mentor_id,
-        fecha_agendamiento: reserva.fecha_reserva,
+        id_asesoria: reserva.perfil_asesoria_id,
         titulo: reserva.perfiles_asesoria.titulo,
         tipo_accion: tipo_accion,
         id_mentoria: reserva.id,
@@ -189,6 +193,7 @@ export const MisAsesorias = () => {
       if (!user) throw new Error("Usuario no autenticado");
 
       const webhookData = new URLSearchParams({
+        id_reserva: editingReserva.id,
         id_beneficiario: user.id,
         id_asesor: editingReserva.mentor_id,
         id_asesoria: editingReserva.perfil_asesoria_id,
