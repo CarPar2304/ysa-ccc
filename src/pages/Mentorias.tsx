@@ -148,6 +148,12 @@ const Mentorias = () => {
       const fechaReserva = new Date(selectedDate);
       fechaReserva.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
+      // Encontrar el slot completo para obtener hora_fin
+      const slotCompleto = availableSlots.find(s => s.hora_inicio === selectedSlot);
+      const [hoursEnd, minutesEnd] = slotCompleto!.hora_fin.split(':');
+      const fechaFin = new Date(selectedDate);
+      fechaFin.setHours(parseInt(hoursEnd), parseInt(minutesEnd), 0, 0);
+
       const { error } = await supabase
         .from("reservas_asesoria")
         .insert([{
@@ -160,12 +166,25 @@ const Mentorias = () => {
 
       if (error) throw error;
 
-      // Enviar webhook
+      // Enviar webhook con formato de fecha correcto
       try {
+        const formatDate = (date: Date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        };
+
         const webhookData = new URLSearchParams({
           id_beneficiario: user.id,
           id_asesor: selectedPerfil.mentor_id,
-          fecha_agendamiento: fechaReserva.toISOString(),
+          id_asesoria: selectedPerfil.id,
+          fecha_agendamiento: formatDate(fechaReserva),
+          hora_inicio: formatDate(fechaReserva),
+          hora_fin: formatDate(fechaFin),
           titulo: selectedPerfil.titulo,
           tipo_accion: "agendar",
         });
