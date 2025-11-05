@@ -43,6 +43,8 @@ export const MisAsesorias = () => {
   const [reservasExistentes, setReservasExistentes] = useState<ReservaExistente[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedSlot, setSelectedSlot] = useState<string>("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isCancelling, setIsCancelling] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -127,7 +129,8 @@ export const MisAsesorias = () => {
         .from("reservas_asesoria")
         .select("fecha_reserva")
         .eq("perfil_asesoria_id", reserva.perfil_asesoria_id)
-        .neq("id", reserva.id); // Excluir la reserva actual
+        .neq("id", reserva.id)
+        .neq("estado", "cancelada");
 
       if (reservasError) throw reservasError;
       setReservasExistentes(reservasData || []);
@@ -157,6 +160,7 @@ export const MisAsesorias = () => {
   const handleConfirmarEdicion = async () => {
     if (!editingReserva || !selectedDate || !selectedSlot) return;
 
+    setIsUpdating(true);
     try {
       const [hours, minutes] = selectedSlot.split(':');
       const fechaReserva = new Date(selectedDate);
@@ -228,10 +232,13 @@ export const MisAsesorias = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const handleCancelar = async (reserva: Reserva) => {
+    setIsCancelling(reserva.id);
     try {
       const { error } = await supabase
         .from("reservas_asesoria")
@@ -254,6 +261,8 @@ export const MisAsesorias = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsCancelling(null);
     }
   };
 
@@ -342,10 +351,10 @@ export const MisAsesorias = () => {
                   size="sm"
                   className="flex-1"
                   onClick={() => handleCancelar(reserva)}
-                  disabled={reserva.estado === "cancelada" || reserva.estado === "completada"}
+                  disabled={reserva.estado === "cancelada" || reserva.estado === "completada" || isCancelling === reserva.id}
                 >
                   <X className="w-4 h-4 mr-2" />
-                  Cancelar
+                  {isCancelling === reserva.id ? "Cancelando..." : "Cancelar"}
                 </Button>
               </div>
             </CardContent>
@@ -412,10 +421,10 @@ export const MisAsesorias = () => {
 
                 <Button
                   className="w-full mt-4"
-                  disabled={!selectedDate || !selectedSlot}
+                  disabled={!selectedDate || !selectedSlot || isUpdating}
                   onClick={handleConfirmarEdicion}
                 >
-                  Confirmar Reprogramación
+                  {isUpdating ? "Reprogramando..." : "Confirmar Reprogramación"}
                 </Button>
               </div>
             </div>

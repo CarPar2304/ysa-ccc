@@ -47,6 +47,7 @@ const Mentorias = () => {
   const [reservasExistentes, setReservasExistentes] = useState<ReservaExistente[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedSlot, setSelectedSlot] = useState<string>("");
+  const [isReserving, setIsReserving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -110,7 +111,8 @@ const Mentorias = () => {
       const { data: reservas, error: reservasError } = await supabase
         .from("reservas_asesoria")
         .select("fecha_reserva")
-        .eq("perfil_asesoria_id", perfil.id);
+        .eq("perfil_asesoria_id", perfil.id)
+        .neq("estado", "cancelada");
 
       if (reservasError) throw reservasError;
       setReservasExistentes(reservas || []);
@@ -140,6 +142,7 @@ const Mentorias = () => {
   const handleReservar = async () => {
     if (!selectedPerfil || !selectedDate || !selectedSlot) return;
 
+    setIsReserving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuario no autenticado");
@@ -213,6 +216,8 @@ const Mentorias = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsReserving(false);
     }
   };
 
@@ -377,10 +382,10 @@ const Mentorias = () => {
 
                   <Button
                     className="w-full mt-4"
-                    disabled={!selectedDate || !selectedSlot}
+                    disabled={!selectedDate || !selectedSlot || isReserving}
                     onClick={handleReservar}
                   >
-                    Agendar Mentoría
+                    {isReserving ? "Agendando..." : "Agendar Mentoría"}
                   </Button>
                 </div>
               </div>
