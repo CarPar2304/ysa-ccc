@@ -158,6 +158,25 @@ const Mentorias = () => {
 
       if (error) throw error;
 
+      // Enviar webhook
+      try {
+        const webhookData = new URLSearchParams({
+          id_beneficiario: user.id,
+          id_asesor: selectedPerfil.mentor_id,
+          fecha_agendamiento: fechaReserva.toISOString(),
+        });
+
+        await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/mentorias-ysa-pacifico", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: webhookData.toString(),
+        });
+      } catch (webhookError) {
+        console.error("Error sending webhook:", webhookError);
+      }
+
       toast({ title: "¡Asesoría agendada exitosamente!" });
       setSelectedPerfil(null);
       setSelectedDate(undefined);
