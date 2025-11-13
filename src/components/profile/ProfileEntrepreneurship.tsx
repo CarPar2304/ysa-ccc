@@ -74,31 +74,31 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
   }
 
   const InfoItem = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
-    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
-      <Icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+    <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg hover:bg-accent/50 transition-colors">
+      <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <p className="text-base text-foreground break-words">{value || "No especificado"}</p>
+        <p className="text-xs sm:text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-sm sm:text-base text-foreground break-words">{value || "No especificado"}</p>
       </div>
     </div>
   );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4 sm:gap-6">
       <Card className="shadow-medium border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-2xl">
+            <Briefcase className="h-4 w-4 sm:h-5 sm:w-5" />
             Información del Emprendimiento
           </CardTitle>
-          <CardDescription>Detalles sobre tu proyecto o startup</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">Detalles sobre tu proyecto o startup</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
           <InfoItem icon={Briefcase} label="Nombre" value={formData.nombre} />
           {formData.descripcion && (
             <InfoItem icon={FileText} label="Descripción" value={formData.descripcion} />
           )}
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             <InfoItem icon={Globe} label="Página Web" value={formData.pagina_web} />
             <InfoItem icon={Calendar} label="Año de Fundación" value={formData.ano_fundacion} />
           </div>
@@ -106,13 +106,13 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
       </Card>
 
       <Card className="shadow-medium border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-2xl">
+            <Target className="h-4 w-4 sm:h-5 sm:w-5" />
             Clasificación
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-3 sm:gap-4 md:grid-cols-2 p-4 sm:p-6 pt-0">
           <InfoItem icon={Target} label="Industria" value={formData.industria_vertical} />
           <InfoItem icon={TrendingUp} label="Etapa" value={formData.etapa} />
           <InfoItem icon={Briefcase} label="Categoría" value={formData.categoria} />
