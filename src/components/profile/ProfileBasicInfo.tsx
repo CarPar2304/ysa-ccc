@@ -84,26 +84,26 @@ export const ProfileBasicInfo = ({ readOnly = false }: ProfileBasicInfoProps) =>
   }
 
   const InfoItem = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
-    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors">
-      <Icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+    <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg hover:bg-accent/50 transition-colors">
+      <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <p className="text-base text-foreground break-words">{value || "No especificado"}</p>
+        <p className="text-xs sm:text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-sm sm:text-base text-foreground break-words">{value || "No especificado"}</p>
       </div>
     </div>
   );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4 sm:gap-6">
       <Card className="shadow-medium border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-2xl">
+            <User className="h-4 w-4 sm:h-5 sm:w-5" />
             Información Personal
           </CardTitle>
-          <CardDescription>Datos básicos del perfil</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">Datos básicos del perfil</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-3 sm:gap-4 md:grid-cols-2 p-4 sm:p-6 pt-0">
           <InfoItem icon={User} label="Nombres" value={formData.nombres} />
           <InfoItem icon={User} label="Apellidos" value={formData.apellidos} />
           <InfoItem icon={Mail} label="Email" value={formData.email} />
@@ -114,13 +114,13 @@ export const ProfileBasicInfo = ({ readOnly = false }: ProfileBasicInfoProps) =>
       </Card>
 
       <Card className="shadow-medium border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-2xl">
+            <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
             Ubicación
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-3 sm:gap-4 md:grid-cols-2 p-4 sm:p-6 pt-0">
           <InfoItem icon={MapPin} label="Departamento" value={formData.departamento} />
           <InfoItem icon={MapPin} label="Municipio" value={formData.municipio} />
           <InfoItem icon={MapPin} label="Dirección" value={formData.direccion} />
@@ -128,13 +128,13 @@ export const ProfileBasicInfo = ({ readOnly = false }: ProfileBasicInfoProps) =>
       </Card>
 
       <Card className="shadow-medium border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-2xl">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
             Información Adicional
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-3 sm:gap-4 md:grid-cols-2 p-4 sm:p-6 pt-0">
           <InfoItem icon={User} label="Género" value={formData.genero} />
           <InfoItem icon={Calendar} label="Año de Nacimiento" value={formData.ano_nacimiento} />
           <InfoItem icon={User} label="Identificación Étnica" value={formData.identificacion_etnica} />
