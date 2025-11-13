@@ -10,6 +10,7 @@ import { ProfileProjections } from "@/components/profile/ProfileProjections";
 import { ProfileFinancing } from "@/components/profile/ProfileFinancing";
 import { ProfileEvaluation } from "@/components/profile/ProfileEvaluation";
 import { ProfilePosts } from "@/components/profile/ProfilePosts";
+import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
 import { Lock, Upload, User as UserIcon, Briefcase, Award, MessageSquare, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -120,9 +121,7 @@ const Profile = () => {
   if (loading || !usuario) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
+        <ProfileSkeleton />
       </Layout>
     );
   }
@@ -133,19 +132,19 @@ const Profile = () => {
   if (!isBeneficiario) {
     return (
       <Layout>
-        <div className="mx-auto max-w-4xl p-6 space-y-6">
-          <Card className="p-6">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <Avatar className="h-24 w-24">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-x-hidden">
+          <Card className="p-3 sm:p-4 lg:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6">
+              <div className="relative flex-shrink-0">
+                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24">
                   <AvatarImage src={usuario.avatar_url} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-lg sm:text-xl lg:text-2xl">
                     {nombreCompleto.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </AvatarFallback>
                 </Avatar>
                 <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 cursor-pointer">
-                  <div className="rounded-full bg-primary p-2 text-primary-foreground hover:bg-primary/90 transition-colors">
-                    <Upload className="h-4 w-4" />
+                  <div className="rounded-full bg-primary p-1.5 sm:p-2 text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
                   </div>
                   <input
                     id="avatar-upload"
@@ -157,10 +156,10 @@ const Profile = () => {
                   />
                 </label>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">{nombreCompleto}</h1>
-                <p className="text-muted-foreground">{usuario.email}</p>
-                <p className="text-sm text-muted-foreground mt-1">
+              <div className="text-center sm:text-left">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground break-words">{nombreCompleto}</h1>
+                <p className="text-muted-foreground text-sm sm:text-base break-all">{usuario.email}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   Rol: {role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Sin rol asignado'}
                 </p>
               </div>
@@ -175,19 +174,19 @@ const Profile = () => {
   // Vista completa con pestañas para Beneficiarios
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl p-6 space-y-6">
-        <Card className="p-6">
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              <Avatar className="h-24 w-24">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 overflow-x-hidden">
+        <Card className="p-3 sm:p-4 lg:p-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6">
+            <div className="relative flex-shrink-0">
+              <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24">
                 <AvatarImage src={usuario.avatar_url} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                <AvatarFallback className="bg-primary text-primary-foreground text-lg sm:text-xl lg:text-2xl">
                   {nombreCompleto.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
               <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 cursor-pointer">
-                <div className="rounded-full bg-primary p-2 text-primary-foreground hover:bg-primary/90 transition-colors">
-                  <Upload className="h-4 w-4" />
+                <div className="rounded-full bg-primary p-1.5 sm:p-2 text-primary-foreground hover:bg-primary/90 transition-colors">
+                  <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
                 </div>
                 <input
                   id="avatar-upload"
@@ -199,19 +198,19 @@ const Profile = () => {
                 />
               </label>
             </div>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-foreground">{nombreCompleto}</h1>
-              <p className="text-muted-foreground">{usuario.email}</p>
-              <p className="text-sm text-muted-foreground mt-1">Beneficiario</p>
+            <div className="flex-1 text-center sm:text-left min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground break-words">{nombreCompleto}</h1>
+              <p className="text-muted-foreground text-sm sm:text-base break-all">{usuario.email}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Beneficiario</p>
               {asignacion && (
-                <div className="mt-3 flex items-center gap-2">
-                  <div className="inline-flex items-center gap-2 rounded-md bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
-                    <Award className="h-4 w-4" />
+                <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                  <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-md bg-primary/10 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-primary">
+                    <Award className="h-3 w-3 sm:h-4 sm:w-4" />
                     Nivel: {asignacion.nivel}
                   </div>
                   {asignacion.cohorte && (
-                    <div className="inline-flex items-center gap-2 rounded-md bg-secondary/50 px-3 py-1.5 text-sm font-medium text-secondary-foreground">
-                      <Users className="h-4 w-4" />
+                    <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-md bg-secondary/50 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium text-secondary-foreground">
+                      <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                       Cohorte: {asignacion.cohorte}
                     </div>
                   )}
@@ -221,24 +220,27 @@ const Profile = () => {
           </div>
         </Card>
 
-        <Tabs defaultValue="usuario" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="usuario" className="flex items-center gap-2">
-              <UserIcon className="h-4 w-4" />
-              Usuario
+        <Tabs defaultValue="usuario" className="space-y-4 sm:space-y-6">
+          <TabsList className="sticky top-0 z-10 backdrop-blur-sm bg-background/95 shadow-sm lg:static lg:shadow-none grid w-full grid-cols-4 p-0.5 sm:p-1 gap-0.5 sm:gap-1">
+            <TabsTrigger value="usuario" className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+              <UserIcon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span>Usuario</span>
             </TabsTrigger>
-            <TabsTrigger value="emprendimiento" className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
-              Emprendimiento
+            <TabsTrigger value="emprendimiento" className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+              <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate sm:hidden">Emprend.</span>
+              <span className="hidden sm:inline">Emprendimiento</span>
             </TabsTrigger>
-            <TabsTrigger value="publicaciones" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Publicaciones
+            <TabsTrigger value="publicaciones" className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+              <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate sm:hidden">Public.</span>
+              <span className="hidden sm:inline">Publicaciones</span>
             </TabsTrigger>
-            <TabsTrigger value="evaluacion" className="flex items-center gap-2">
-              <Award className="h-4 w-4" />
-              Evaluación
-              <Lock className="h-3 w-3 ml-1 text-muted-foreground" />
+            <TabsTrigger value="evaluacion" className="flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+              <Award className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate sm:hidden">Eval.</span>
+              <span className="hidden sm:inline">Evaluación</span>
+              <Lock className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-0.5 sm:ml-1 text-muted-foreground" />
             </TabsTrigger>
           </TabsList>
 
