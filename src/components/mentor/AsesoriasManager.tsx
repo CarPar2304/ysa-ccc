@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Clock } from "lucide-react";
+import { Plus, Trash2, Clock, Upload, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DisponibilidadManager } from "./DisponibilidadManager";
 
@@ -27,6 +27,8 @@ export const AsesoriasManager = () => {
   const [loading, setLoading] = useState(false);
   const [editingPerfil, setEditingPerfil] = useState<PerfilAsesoria | null>(null);
   const { toast } = useToast();
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   const [formData, setFormData] = useState({
     titulo: "",
@@ -57,6 +59,54 @@ export const AsesoriasManager = () => {
       setPerfiles(data || []);
     } catch (error) {
       console.error("Error fetching perfiles:", error);
+    }
+  };
+
+  const handleImageUpload = async (file: File, type: "foto" | "banner") => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuario no autenticado");
+
+      if (type === "foto") setUploadingFoto(true);
+      else setUploadingBanner(true);
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/${type}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("mentoria-images")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("mentoria-images")
+        .getPublicUrl(fileName);
+
+      if (type === "foto") {
+        setFormData({ ...formData, foto_url: publicUrl });
+      } else {
+        setFormData({ ...formData, banner_url: publicUrl });
+      }
+
+      toast({ title: "Imagen subida exitosamente" });
+    } catch (error: any) {
+      toast({
+        title: "Error al subir imagen",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      if (type === "foto") setUploadingFoto(false);
+      else setUploadingBanner(false);
+    }
+  };
+
+  const handleRemoveImage = (type: "foto" | "banner") => {
+    if (type === "foto") {
+      setFormData({ ...formData, foto_url: "" });
+    } else {
+      setFormData({ ...formData, banner_url: "" });
     }
   };
 
@@ -200,25 +250,75 @@ export const AsesoriasManager = () => {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="foto_url">URL de Foto de Perfil</Label>
-                <Input
-                  id="foto_url"
-                  type="url"
-                  value={formData.foto_url}
-                  onChange={(e) => setFormData({ ...formData, foto_url: e.target.value })}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="foto_perfil">Foto de Perfil</Label>
+                {formData.foto_url ? (
+                  <div className="relative">
+                    <img 
+                      src={formData.foto_url} 
+                      alt="Vista previa foto" 
+                      className="w-full h-32 object-cover rounded-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => handleRemoveImage("foto")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="foto_perfil"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file, "foto");
+                      }}
+                      disabled={uploadingFoto}
+                    />
+                    {uploadingFoto && <span className="text-sm text-muted-foreground">Subiendo...</span>}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="banner_url">URL de Banner</Label>
-                <Input
-                  id="banner_url"
-                  type="url"
-                  value={formData.banner_url}
-                  onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
-                  placeholder="https://..."
-                />
+                <Label htmlFor="banner">Banner</Label>
+                {formData.banner_url ? (
+                  <div className="relative">
+                    <img 
+                      src={formData.banner_url} 
+                      alt="Vista previa banner" 
+                      className="w-full h-32 object-cover rounded-md"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={() => handleRemoveImage("banner")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="banner"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file, "banner");
+                      }}
+                      disabled={uploadingBanner}
+                    />
+                    {uploadingBanner && <span className="text-sm text-muted-foreground">Subiendo...</span>}
+                  </div>
+                )}
               </div>
             </div>
 
