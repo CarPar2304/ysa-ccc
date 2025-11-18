@@ -6,8 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { NotificacionesModal } from "@/components/estudiantes/NotificacionesModal";
+import { useState } from "react";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
 
@@ -30,6 +33,7 @@ interface ModuleWithProgress {
 
 const Estudiantes = () => {
   const { isAdmin, loading } = useUserRole();
+  const [modalOpen, setModalOpen] = useState(false);
 
   const { data: modulosData, isLoading } = useQuery({
     queryKey: ["modulos-progreso"],
@@ -227,11 +231,17 @@ const Estudiantes = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-7xl p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Progreso de Estudiantes</h1>
-          <p className="text-muted-foreground">
-            Visualiza el progreso de los estudiantes con cupo aprobado por nivel
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Progreso de Estudiantes</h1>
+            <p className="text-muted-foreground">
+              Visualiza el progreso de los estudiantes con cupo aprobado por nivel
+            </p>
+          </div>
+          <Button onClick={() => setModalOpen(true)}>
+            <Send className="mr-2 h-4 w-4" />
+            Enviar Notificaciones
+          </Button>
         </div>
 
         <Tabs defaultValue="Starter" className="space-y-6">
@@ -245,6 +255,8 @@ const Estudiantes = () => {
           <TabsContent value="Growth">{renderNivelContent("Growth")}</TabsContent>
           <TabsContent value="Scale">{renderNivelContent("Scale")}</TabsContent>
         </Tabs>
+
+        <NotificacionesModal open={modalOpen} onOpenChange={setModalOpen} />
       </div>
     </Layout>
   );
