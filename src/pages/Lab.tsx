@@ -86,18 +86,16 @@ const Lab = () => {
 
       if (!emprendimiento) return;
 
-      // Obtener la evaluación más reciente con nivel
-      const { data: evaluacion } = await supabase
-        .from("evaluaciones")
+      // Obtener el nivel del cupo aprobado
+      const { data: asignacion } = await supabase
+        .from("asignacion_cupos")
         .select("nivel")
         .eq("emprendimiento_id", emprendimiento.id)
-        .not("nivel", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
+        .eq("estado", "aprobado")
         .maybeSingle();
 
-      if (evaluacion?.nivel) {
-        setUserNivel(evaluacion.nivel);
+      if (asignacion?.nivel) {
+        setUserNivel(asignacion.nivel);
       }
     } catch (error) {
       console.error("Error fetching user nivel:", error);
