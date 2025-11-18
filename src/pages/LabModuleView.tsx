@@ -41,7 +41,7 @@ interface Clase {
   imagen_url: string | null;
   duracion_minutos: number | null;
   orden: number | null;
-  recursos_url: string[] | null;
+  recursos_url: { titulo: string; url: string }[] | null;
 }
 
 const LabModuleView = () => {
@@ -92,7 +92,7 @@ const LabModuleView = () => {
         .order("orden", { ascending: true });
 
       if (error) throw error;
-      setClases(data || []);
+      setClases((data || []) as unknown as Clase[]);
     } catch (error) {
       console.error("Error fetching classes:", error);
       toast({
@@ -208,6 +208,7 @@ const LabModuleView = () => {
               <Card 
                 key={clase.id} 
                 className="border-border hover:shadow-md transition-all cursor-pointer group"
+                onClick={() => !isAdmin && navigate(`/lab/${moduloId}/${clase.id}`)}
               >
                 <CardContent className="p-0">
                   <div className="flex items-center gap-4 p-4">
