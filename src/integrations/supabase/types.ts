@@ -230,7 +230,7 @@ export type Database = {
           imagen_url: string | null
           modulo_id: string
           orden: number | null
-          recursos_url: string[] | null
+          recursos_url: Json | null
           titulo: string
           updated_at: string
           video_url: string | null
@@ -244,7 +244,7 @@ export type Database = {
           imagen_url?: string | null
           modulo_id: string
           orden?: number | null
-          recursos_url?: string[] | null
+          recursos_url?: Json | null
           titulo: string
           updated_at?: string
           video_url?: string | null
@@ -258,7 +258,7 @@ export type Database = {
           imagen_url?: string | null
           modulo_id?: string
           orden?: number | null
-          recursos_url?: string[] | null
+          recursos_url?: Json | null
           titulo?: string
           updated_at?: string
           video_url?: string | null
