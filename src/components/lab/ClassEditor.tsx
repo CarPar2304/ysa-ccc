@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus } from "lucide-react";
+import { Plus, Upload, X } from "lucide-react";
 
 interface ClassEditorProps {
   clase?: {
@@ -18,6 +18,7 @@ interface ClassEditorProps {
     duracion_minutos: number;
     orden: number;
     recursos_url: string[];
+    imagen_url?: string;
   };
   moduloId: string;
   onSuccess: () => void;
@@ -27,6 +28,9 @@ interface ClassEditorProps {
 export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditorProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -34,6 +38,7 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
     descripcion: "",
     contenido: "",
     video_url: "",
+    imagen_url: "",
     duracion_minutos: 0,
     orden: 0,
     recursos_url: "",
@@ -46,18 +51,73 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
         descripcion: clase.descripcion || "",
         contenido: clase.contenido || "",
         video_url: clase.video_url || "",
+        imagen_url: clase.imagen_url || "",
         duracion_minutos: clase.duracion_minutos || 0,
         orden: clase.orden || 0,
         recursos_url: clase.recursos_url?.join(", ") || "",
       });
+      setImagePreview(clase.imagen_url || null);
     }
   }, [clase]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setFormData({ ...formData, imagen_url: "" });
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return formData.imagen_url || null;
+
+    setUploading(true);
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `clases/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('lab-images')
+        .upload(filePath, imageFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('lab-images')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error: any) {
+      toast({
+        title: "Error al subir imagen",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Subir imagen si hay una nueva
+      const imageUrl = await uploadImage();
+
       const recursos = formData.recursos_url
         .split(",")
         .map((url) => url.trim())
@@ -68,6 +128,7 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
         descripcion: formData.descripcion,
         contenido: formData.contenido,
         video_url: formData.video_url,
+        imagen_url: imageUrl || formData.imagen_url,
         duracion_minutos: formData.duracion_minutos,
         orden: formData.orden,
         recursos_url: recursos,
@@ -113,10 +174,13 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
           descripcion: "",
           contenido: "",
           video_url: "",
+          imagen_url: "",
           duracion_minutos: 0,
           orden: 0,
           recursos_url: "",
         });
+        setImageFile(null);
+        setImagePreview(null);
       }
     } catch (error: any) {
       toast({
@@ -187,6 +251,49 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
               placeholder="https://youtube.com/..."
             />
           </div>
+
+          {/* Campo de carga de imagen */}
+          <div className="space-y-2">
+            <Label>Miniatura de la clase</Label>
+            {imagePreview ? (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-48 object-cover rounded-md border border-border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-border rounded-md p-8 text-center">
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <Label htmlFor="image-upload" className="cursor-pointer">
+                  <span className="text-sm text-primary hover:underline">
+                    Haz clic para subir una miniatura
+                  </span>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG, WEBP hasta 5MB
+                </p>
+              </div>
+            )}
+          </div>
+
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

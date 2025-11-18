@@ -227,6 +227,7 @@ export type Database = {
           descripcion: string | null
           duracion_minutos: number | null
           id: string
+          imagen_url: string | null
           modulo_id: string
           orden: number | null
           recursos_url: string[] | null
@@ -240,6 +241,7 @@ export type Database = {
           descripcion?: string | null
           duracion_minutos?: number | null
           id?: string
+          imagen_url?: string | null
           modulo_id: string
           orden?: number | null
           recursos_url?: string[] | null
@@ -253,6 +255,7 @@ export type Database = {
           descripcion?: string | null
           duracion_minutos?: number | null
           id?: string
+          imagen_url?: string | null
           modulo_id?: string
           orden?: number | null
           recursos_url?: string[] | null

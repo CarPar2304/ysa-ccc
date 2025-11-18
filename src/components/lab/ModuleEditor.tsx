@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus } from "lucide-react";
+import { Plus, Upload, X } from "lucide-react";
 
 interface ModuleEditorProps {
   modulo?: {
@@ -28,6 +28,9 @@ interface ModuleEditorProps {
 export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<{
@@ -59,20 +62,78 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
         imagen_url: modulo.imagen_url || "",
         nivel: (modulo.nivel as "Starter" | "Growth" | "Scale") || "Starter",
       });
+      setImagePreview(modulo.imagen_url || null);
     }
   }, [modulo]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setFormData({ ...formData, imagen_url: "" });
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return formData.imagen_url || null;
+
+    setUploading(true);
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `modulos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('lab-images')
+        .upload(filePath, imageFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('lab-images')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error: any) {
+      toast({
+        title: "Error al subir imagen",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Subir imagen si hay una nueva
+      const imageUrl = await uploadImage();
+      
+      const dataToSave = {
+        ...formData,
+        imagen_url: imageUrl || formData.imagen_url,
+      };
       if (modulo) {
         // Actualizar módulo existente
         const { error } = await supabase
           .from("modulos")
           .update({
-            ...formData,
+            ...dataToSave,
             updated_at: new Date().toISOString(),
           })
           .eq("id", modulo.id);
@@ -84,10 +145,9 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
           description: "El módulo se actualizó correctamente",
         });
       } else {
-        // Crear nuevo módulo
         const { error } = await supabase
           .from("modulos")
-          .insert(formData);
+          .insert(dataToSave);
 
         if (error) throw error;
 
@@ -110,6 +170,8 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
           imagen_url: "",
           nivel: "Starter",
         });
+        setImageFile(null);
+        setImagePreview(null);
       }
     } catch (error: any) {
       toast({
@@ -182,8 +244,50 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
             </div>
           </div>
 
+          {/* Campo de carga de imagen */}
           <div className="space-y-2">
-            <Label htmlFor="imagen_url">URL de Imagen</Label>
+            <Label>Imagen del módulo</Label>
+            {imagePreview ? (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-48 object-cover rounded-md border border-border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-border rounded-md p-8 text-center">
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <Label htmlFor="image-upload" className="cursor-pointer">
+                  <span className="text-sm text-primary hover:underline">
+                    Haz clic para subir una imagen
+                  </span>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG, WEBP hasta 5MB
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="imagen_url">O URL de imagen</Label>
             <Input
               id="imagen_url"
               type="url"

@@ -38,6 +38,7 @@ interface Clase {
   descripcion: string | null;
   contenido: string | null;
   video_url: string | null;
+  imagen_url: string | null;
   duracion_minutos: number | null;
   orden: number | null;
   recursos_url: string[] | null;
@@ -217,7 +218,13 @@ const LabModuleView = () => {
 
                     {/* Miniatura de la clase */}
                     <div className="relative w-24 h-16 shrink-0 rounded-md overflow-hidden bg-muted">
-                      {clase.video_url ? (
+                      {clase.imagen_url ? (
+                        <img 
+                          src={clase.imagen_url} 
+                          alt={clase.titulo}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : clase.video_url ? (
                         <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/20 to-primary/5">
                           <div className="w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center">
                             <div className="w-0 h-0 border-t-4 border-t-transparent border-l-6 border-l-primary border-b-4 border-b-transparent ml-0.5" />
@@ -225,7 +232,7 @@ const LabModuleView = () => {
                         </div>
                       ) : (
                         <div className="flex items-center justify-center h-full bg-muted">
-                          <span className="text-xs text-muted-foreground">Sin video</span>
+                          <span className="text-xs text-muted-foreground">Sin imagen</span>
                         </div>
                       )}
                     </div>
