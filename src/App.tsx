@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import News from "./pages/News";
 import Lab from "./pages/Lab";
+import LabModuleView from "./pages/LabModuleView";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import MentorPanel from "./pages/MentorPanel";
@@ -27,6 +28,7 @@ const App = () => (
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
         <Route path="/lab" element={<ProtectedRoute><Lab /></ProtectedRoute>} />
+        <Route path="/lab/:moduloId" element={<ProtectedRoute><LabModuleView /></ProtectedRoute>} />
         <Route path="/mentorias" element={<ProtectedRoute><Mentorias /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
