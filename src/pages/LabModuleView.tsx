@@ -199,28 +199,56 @@ const LabModuleView = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
+            <h2 className="text-2xl font-bold text-foreground mb-4">
+              Clases del curso
+            </h2>
             {clases.map((clase, index) => (
-              <Card key={clase.id} className="border-border shadow-soft hover:shadow-medium transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
+              <Card 
+                key={clase.id} 
+                className="border-border hover:shadow-md transition-all cursor-pointer group"
+              >
+                <CardContent className="p-0">
+                  <div className="flex items-center gap-4 p-4">
+                    {/* Número de clase */}
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       {index + 1}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-xl">{clase.titulo}</CardTitle>
-                      {clase.descripcion && (
-                        <CardDescription className="mt-2">
-                          {clase.descripcion}
-                        </CardDescription>
-                      )}
-                      {clase.duracion_minutos && (
-                        <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          {clase.duracion_minutos} minutos
+
+                    {/* Miniatura de la clase */}
+                    <div className="relative w-24 h-16 shrink-0 rounded-md overflow-hidden bg-muted">
+                      {clase.video_url ? (
+                        <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/20 to-primary/5">
+                          <div className="w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                            <div className="w-0 h-0 border-t-4 border-t-transparent border-l-6 border-l-primary border-b-4 border-b-transparent ml-0.5" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full bg-muted">
+                          <span className="text-xs text-muted-foreground">Sin video</span>
                         </div>
                       )}
                     </div>
+
+                    {/* Info de la clase */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                        {clase.titulo}
+                      </h3>
+                      {clase.descripcion && (
+                        <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
+                          {clase.descripcion}
+                        </p>
+                      )}
+                      {clase.duracion_minutos && (
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>{clase.duracion_minutos} minutos</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Botones de admin */}
                     {isAdmin && (
                       <div className="flex items-center gap-1 shrink-0">
                         <ClassEditor
@@ -257,21 +285,7 @@ const LabModuleView = () => {
                       </div>
                     )}
                   </div>
-                </CardHeader>
-                {clase.contenido && (
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {clase.contenido}
-                    </p>
-                    {clase.video_url && (
-                      <Button variant="outline" className="mt-4" asChild>
-                        <a href={clase.video_url} target="_blank" rel="noopener noreferrer">
-                          Ver video
-                        </a>
-                      </Button>
-                    )}
-                  </CardContent>
-                )}
+                </CardContent>
               </Card>
             ))}
           </div>
