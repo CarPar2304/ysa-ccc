@@ -278,18 +278,21 @@ const Lab = () => {
 
   return (
     <Layout>
-      <div className="mx-auto max-w-5xl p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-foreground mb-2">YSA Lab</h1>
+      <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">YSA Lab</h1>
               {userNivel && (
-                <Badge variant="outline" className="mb-2">
-                  Nivel: {userNivel}
+                <Badge variant="secondary" className="text-sm">
+                  Nivel {userNivel}
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground">Accede a módulos y clases del programa de incubación</p>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Descubre los módulos del programa de incubación y desarrolla tu emprendimiento
+            </p>
           </div>
           {isAdmin && (
             <ModuleEditor onSuccess={fetchModulos} />
@@ -303,73 +306,103 @@ const Lab = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {modulos.map((modulo) => (
               <Card
                 key={modulo.id}
-                className="shadow-medium border-border hover:shadow-strong transition-all cursor-pointer"
+                className="group overflow-hidden shadow-medium border-border hover:shadow-strong transition-all cursor-pointer"
                 onClick={() => handleModuloClick(modulo)}
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2 flex-1">
-                      <Badge className="bg-primary text-primary-foreground">
-                        {modulo.activo ? "Disponible" : "Inactivo"}
-                      </Badge>
-                      <CardTitle className="text-xl text-foreground hover:text-primary transition-colors">
-                        {modulo.titulo}
-                      </CardTitle>
-                      <CardDescription className="text-muted-foreground">
-                        {modulo.descripcion || "Sin descripción"}
-                      </CardDescription>
+                {/* Imagen del módulo */}
+                <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                  {modulo.imagen_url ? (
+                    <img
+                      src={modulo.imagen_url}
+                      alt={modulo.titulo}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                      <BookOpen className="h-16 w-16 text-primary/40" />
                     </div>
-                    {isAdmin && (
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <ModuleEditor
-                          modulo={modulo}
-                          onSuccess={fetchModulos}
-                          trigger={
-                            <Button variant="ghost" size="sm">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          }
-                        />
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar módulo?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. El módulo y todas sus clases serán eliminados.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={(e) => handleDeleteModulo(modulo.id, e)}>
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    )}
+                  )}
+                  {/* Badge de estado */}
+                  <div className="absolute top-3 left-3">
+                    <Badge 
+                      className={modulo.activo 
+                        ? "bg-primary text-primary-foreground shadow-md" 
+                        : "bg-muted text-muted-foreground shadow-md"
+                      }
+                    >
+                      {modulo.activo ? "Disponible" : "Inactivo"}
+                    </Badge>
                   </div>
+                  {/* Badge de nivel */}
+                  {modulo.nivel && (
+                    <div className="absolute top-3 right-3">
+                      <Badge variant="outline" className="bg-background/90 backdrop-blur-sm shadow-md">
+                        {modulo.nivel}
+                      </Badge>
+                    </div>
+                  )}
+                  {/* Botones de admin */}
+                  {isAdmin && (
+                    <div className="absolute bottom-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                      <ModuleEditor
+                        modulo={modulo}
+                        onSuccess={fetchModulos}
+                        trigger={
+                          <Button variant="secondary" size="sm" className="shadow-md">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="secondary" size="sm" className="shadow-md">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar módulo?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción no se puede deshacer. El módulo y todas sus clases serán eliminados.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={(e) => handleDeleteModulo(modulo.id, e)}>
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
+                </div>
+
+                {/* Contenido de la card */}
+                <CardHeader className="space-y-3">
+                  <CardTitle className="text-lg line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                    {modulo.titulo}
+                  </CardTitle>
+                  <CardDescription className="text-sm line-clamp-2 text-muted-foreground">
+                    {modulo.descripcion || "Explora este módulo para aprender más"}
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-6 pt-2 text-sm text-muted-foreground">
+
+                <CardContent className="pt-0">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     {modulo.duracion && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <Clock className="h-4 w-4" />
-                        {modulo.duracion}
+                        <span>{modulo.duracion}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <BookOpen className="h-4 w-4" />
-                      Ver clases
+                      <span>Ver clases</span>
                     </div>
                   </div>
                 </CardContent>
