@@ -147,6 +147,38 @@ export type Database = {
           },
         ]
       }
+      asignaciones_mentor: {
+        Row: {
+          created_at: string
+          id: string
+          mentor_id: string
+          modulo_id: string
+          puede_editar: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mentor_id: string
+          modulo_id: string
+          puede_editar?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mentor_id?: string
+          modulo_id?: string
+          puede_editar?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asignaciones_mentor_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       autorizaciones: {
         Row: {
           celular: boolean
@@ -1219,6 +1251,7 @@ export type Database = {
           estado: string
           fecha_reserva: string
           id: string
+          id_reunion_outlook: string | null
           mentor_id: string
           perfil_asesoria_id: string
           updated_at: string
@@ -1230,6 +1263,7 @@ export type Database = {
           estado?: string
           fecha_reserva: string
           id?: string
+          id_reunion_outlook?: string | null
           mentor_id: string
           perfil_asesoria_id: string
           updated_at?: string
@@ -1241,6 +1275,7 @@ export type Database = {
           estado?: string
           fecha_reserva?: string
           id?: string
+          id_reunion_outlook?: string | null
           mentor_id?: string
           perfil_asesoria_id?: string
           updated_at?: string
