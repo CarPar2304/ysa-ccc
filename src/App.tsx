@@ -15,6 +15,7 @@ import MentorPanel from "./pages/MentorPanel";
 import Mentorias from "./pages/Mentorias";
 import RegisterMentor from "./pages/RegisterMentor";
 import NotFound from "./pages/NotFound";
+import Estudiantes from "./pages/Estudiantes";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
         <Route path="/mentorias" element={<ProtectedRoute><Mentorias /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/estudiantes" element={<ProtectedRoute><Estudiantes /></ProtectedRoute>} />
         <Route path="/mentor" element={<ProtectedRoute><MentorPanel /></ProtectedRoute>} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
