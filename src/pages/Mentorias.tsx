@@ -9,8 +9,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Search, BookMarked } from "lucide-react";
+import { Calendar as CalendarIcon, Search, BookMarked, Lock } from "lucide-react";
 import { MisAsesorias } from "@/components/mentor/MisAsesorias";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useQuotaStatus } from "@/hooks/useQuotaStatus";
 
 interface PerfilAsesoria {
   id: string;
@@ -37,6 +39,8 @@ interface ReservaExistente {
 const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 const Mentorias = () => {
+  const { userId } = useUserRole();
+  const { isApproved, loading: loadingQuota, quotaInfo } = useQuotaStatus(userId);
   const [perfiles, setPerfiles] = useState<PerfilAsesoria[]>([]);
   const [filteredPerfiles, setFilteredPerfiles] = useState<PerfilAsesoria[]>([]);
   const [tematicas, setTematicas] = useState<string[]>([]);
@@ -223,12 +227,61 @@ const Mentorias = () => {
 
   const availableSlots = getAvailableSlots();
 
+  if (loadingQuota) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Verificando acceso...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isApproved) {
+    return (
+      <Layout>
+        <div className="mx-auto max-w-3xl p-6">
+          <Card className="border-muted">
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Lock className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <CardTitle className="text-2xl">Acceso Restringido</CardTitle>
+              <CardDescription className="text-base mt-2">
+                Para acceder a las mentorías, necesitas tener un cupo aprobado
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                El acceso a las mentorías está disponible únicamente para beneficiarios con cupo aprobado. 
+                Por favor, espera a que tu solicitud sea evaluada y aprobada por el equipo administrativo.
+              </p>
+              <div className="pt-4">
+                <Button variant="outline" onClick={() => window.history.back()}>
+                  Volver
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="mx-auto max-w-7xl p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Mentorías YSA</h1>
           <p className="text-muted-foreground">Agenda sesiones con nuestros mentores expertos</p>
+          {quotaInfo && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Nivel {quotaInfo.nivel} • Cohorte {quotaInfo.cohorte}
+            </p>
+          )}
         </div>
 
         <Tabs defaultValue="explorar" className="w-full">
