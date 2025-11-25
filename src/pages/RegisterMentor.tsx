@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const mentorSchema = z.object({
 
 const RegisterMentor = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     accessCode: "",
@@ -57,15 +59,8 @@ const RegisterMentor = () => {
         description: data?.message || `Se ha creado el mentor ${validatedData.nombres} ${validatedData.apellidos}. Puede iniciar sesión con su email y contraseña.`,
       });
 
-      // Limpiar formulario
-      setFormData({
-        accessCode: "",
-        nombres: "",
-        apellidos: "",
-        email: "",
-        celular: "",
-        password: "",
-      });
+      // Redirigir al login
+      navigate("/login");
     } catch (error: any) {
       console.error("Error registrando mentor:", error);
       
