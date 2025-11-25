@@ -139,6 +139,32 @@ serve(async (req) => {
 
     console.log('[register-mentor] Mentor created:', authData.user.id);
 
+    // Notify webhook
+    try {
+      const webhookUrl = 'https://n8n-n8n.yajjj6.easypanel.host/webhook/registro-mentores';
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombres,
+          apellidos,
+          email,
+          celular,
+        }),
+      });
+
+      if (!webhookResponse.ok) {
+        console.warn('[register-mentor] Webhook notification failed:', webhookResponse.status);
+      } else {
+        console.log('[register-mentor] Webhook notification sent successfully');
+      }
+    } catch (webhookError) {
+      // Log but don't fail the registration if webhook fails
+      console.error('[register-mentor] Webhook error:', webhookError);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,
