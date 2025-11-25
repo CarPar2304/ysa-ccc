@@ -8,7 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Upload, X } from "lucide-react";
+import { Plus, Upload, X, UserPlus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ModuleEditorProps {
   modulo?: {
@@ -31,6 +33,9 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
   const [uploading, setUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [mentores, setMentores] = useState<Array<{ id: string; nombres: string; apellidos: string }>>([]);
+  const [selectedMentores, setSelectedMentores] = useState<string[]>([]);
+  const [loadingMentores, setLoadingMentores] = useState(true);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState<{
@@ -63,8 +68,63 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
         nivel: (modulo.nivel as "Starter" | "Growth" | "Scale") || "Starter",
       });
       setImagePreview(modulo.imagen_url || null);
+      loadMentoresAsignados();
     }
   }, [modulo]);
+
+  useEffect(() => {
+    loadMentores();
+  }, []);
+
+  const loadMentores = async () => {
+    setLoadingMentores(true);
+    try {
+      const { data: mentoresData, error } = await supabase
+        .from("user_roles")
+        .select(`
+          user_id,
+          usuarios!inner(id, nombres, apellidos)
+        `)
+        .eq("role", "mentor");
+
+      if (error) throw error;
+
+      const mentoresList = mentoresData.map((item: any) => ({
+        id: item.usuarios.id,
+        nombres: item.usuarios.nombres || "",
+        apellidos: item.usuarios.apellidos || "",
+      }));
+
+      setMentores(mentoresList);
+    } catch (error: any) {
+      console.error("Error cargando mentores:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los mentores",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingMentores(false);
+    }
+  };
+
+  const loadMentoresAsignados = async () => {
+    if (!modulo) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("asignaciones_mentor")
+        .select("mentor_id")
+        .eq("modulo_id", modulo.id)
+        .eq("puede_editar", true);
+
+      if (error) throw error;
+      
+      setSelectedMentores(data.map((item) => item.mentor_id));
+    } catch (error: any) {
+      console.error("Error cargando mentores asignados:", error);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -128,6 +188,9 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
         ...formData,
         imagen_url: imageUrl || formData.imagen_url,
       };
+
+      let moduloId = modulo?.id;
+
       if (modulo) {
         // Actualizar módulo existente
         const { error } = await supabase
@@ -139,23 +202,46 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
           .eq("id", modulo.id);
 
         if (error) throw error;
-
-        toast({
-          title: "Módulo actualizado",
-          description: "El módulo se actualizó correctamente",
-        });
       } else {
-        const { error } = await supabase
+        // Crear nuevo módulo
+        const { data: newModulo, error } = await supabase
           .from("modulos")
-          .insert(dataToSave);
+          .insert(dataToSave)
+          .select()
+          .single();
 
         if (error) throw error;
-
-        toast({
-          title: "Módulo creado",
-          description: "El módulo se creó correctamente",
-        });
+        moduloId = newModulo.id;
       }
+
+      // Actualizar asignaciones de mentores
+      if (moduloId) {
+        // Eliminar asignaciones existentes
+        await supabase
+          .from("asignaciones_mentor")
+          .delete()
+          .eq("modulo_id", moduloId);
+
+        // Crear nuevas asignaciones
+        if (selectedMentores.length > 0) {
+          const asignaciones = selectedMentores.map((mentorId) => ({
+            modulo_id: moduloId,
+            mentor_id: mentorId,
+            puede_editar: true,
+          }));
+
+          const { error: asignacionError } = await supabase
+            .from("asignaciones_mentor")
+            .insert(asignaciones);
+
+          if (asignacionError) throw asignacionError;
+        }
+      }
+
+      toast({
+        title: modulo ? "Módulo actualizado" : "Módulo creado",
+        description: modulo ? "El módulo se actualizó correctamente" : "El módulo se creó correctamente",
+      });
 
       setOpen(false);
       onSuccess();
@@ -172,6 +258,7 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
         });
         setImageFile(null);
         setImagePreview(null);
+        setSelectedMentores([]);
       }
     } catch (error: any) {
       toast({
@@ -184,6 +271,14 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
     }
   };
 
+  const toggleMentor = (mentorId: string) => {
+    setSelectedMentores((prev) =>
+      prev.includes(mentorId)
+        ? prev.filter((id) => id !== mentorId)
+        : [...prev, mentorId]
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -194,7 +289,7 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{modulo ? "Editar Módulo" : "Crear Nuevo Módulo"}</DialogTitle>
         </DialogHeader>
@@ -318,6 +413,48 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
               onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
             />
             <Label htmlFor="activo">Módulo activo</Label>
+          </div>
+
+          {/* Sección de Mentores Creadores */}
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              <Label className="text-base font-semibold">Mentores Creadores</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Selecciona los mentores que podrán crear y editar clases en este módulo
+            </p>
+            
+            {loadingMentores ? (
+              <div className="text-sm text-muted-foreground">Cargando mentores...</div>
+            ) : mentores.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No hay mentores disponibles</div>
+            ) : (
+              <ScrollArea className="h-48 border rounded-md p-3">
+                <div className="space-y-3">
+                  {mentores.map((mentor) => (
+                    <div key={mentor.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`mentor-${mentor.id}`}
+                        checked={selectedMentores.includes(mentor.id)}
+                        onCheckedChange={() => toggleMentor(mentor.id)}
+                      />
+                      <Label
+                        htmlFor={`mentor-${mentor.id}`}
+                        className="text-sm font-normal cursor-pointer flex-1"
+                      >
+                        {mentor.nombres} {mentor.apellidos}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+            {selectedMentores.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {selectedMentores.length} mentor{selectedMentores.length > 1 ? "es" : ""} seleccionado{selectedMentores.length > 1 ? "s" : ""}
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2">
