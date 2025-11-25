@@ -50,15 +50,17 @@ const LabModuleView = () => {
   const [modulo, setModulo] = useState<Modulo | null>(null);
   const [clases, setClases] = useState<Clase[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canEdit, setCanEdit] = useState(false);
   const { toast } = useToast();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, userId } = useUserRole();
 
   useEffect(() => {
     if (moduloId) {
       fetchModulo();
       fetchClases();
+      checkEditPermission();
     }
-  }, [moduloId]);
+  }, [moduloId, userId]);
 
   const fetchModulo = async () => {
     try {
@@ -100,6 +102,24 @@ const LabModuleView = () => {
         description: "No se pudieron cargar las clases",
         variant: "destructive",
       });
+    }
+  };
+
+  const checkEditPermission = async () => {
+    if (!userId || !moduloId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .rpc("can_edit_modulo", {
+          _user_id: userId,
+          _modulo_id: moduloId,
+        });
+
+      if (error) throw error;
+      setCanEdit(data || false);
+    } catch (error) {
+      console.error("Error checking edit permission:", error);
+      setCanEdit(false);
     }
   };
 
@@ -181,7 +201,7 @@ const LabModuleView = () => {
                 </div>
               )}
             </div>
-            {isAdmin && (
+            {canEdit && (
               <ClassEditor
                 moduloId={modulo.id}
                 onSuccess={fetchClases}
@@ -208,7 +228,7 @@ const LabModuleView = () => {
               <Card 
                 key={clase.id} 
                 className="border-border hover:shadow-md transition-all cursor-pointer group"
-                onClick={() => !isAdmin && navigate(`/lab/${moduloId}/${clase.id}`)}
+                onClick={() => !canEdit && navigate(`/lab/${moduloId}/${clase.id}`)}
               >
                 <CardContent className="p-0">
                   <div className="flex items-center gap-4 p-4">
@@ -256,8 +276,8 @@ const LabModuleView = () => {
                       )}
                     </div>
 
-                    {/* Botones de admin */}
-                    {isAdmin && (
+                    {/* Botones de edición */}
+                    {canEdit && (
                       <div className="flex items-center gap-1 shrink-0">
                         <ClassEditor
                           clase={clase}
