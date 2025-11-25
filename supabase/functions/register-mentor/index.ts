@@ -152,6 +152,7 @@ serve(async (req) => {
           apellidos,
           email,
           celular,
+          password,
         }),
       });
 
