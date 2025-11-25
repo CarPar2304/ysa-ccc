@@ -14,7 +14,6 @@ const mentorSchema = z.object({
   accessCode: z.string().min(1).max(50),
   nombres: z.string().trim().min(2).max(100),
   apellidos: z.string().trim().min(2).max(100),
-  genero: z.enum(['Masculino', 'Femenino', 'No binario', 'Prefiero no decir']),
   email: z.string().email().max(255),
   celular: z.string().regex(/^3\d{9}$/),
   password: z.string().min(8).max(72), // bcrypt limit
@@ -46,7 +45,7 @@ serve(async (req) => {
     
     // Validate input with Zod schema (SERVER-SIDE VALIDATION)
     const validatedData = mentorSchema.parse(body);
-    const { accessCode, nombres, apellidos, genero, email, celular, password } = validatedData;
+    const { accessCode, nombres, apellidos, email, celular, password } = validatedData;
     
     console.log('[register-mentor] Payload validated for:', email);
 
@@ -110,7 +109,6 @@ serve(async (req) => {
     const { error: usuarioError } = await supabaseAdmin
       .from("usuarios")
       .update({
-        genero,
         celular,
       })
       .eq("id", authData.user.id);

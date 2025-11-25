@@ -13,9 +13,6 @@ const mentorSchema = z.object({
   accessCode: z.string().min(1, "El código de acceso es requerido"),
   nombres: z.string().trim().min(2, "Los nombres deben tener al menos 2 caracteres").max(100, "Los nombres no pueden exceder 100 caracteres"),
   apellidos: z.string().trim().min(2, "Los apellidos deben tener al menos 2 caracteres").max(100, "Los apellidos no pueden exceder 100 caracteres"),
-  genero: z.enum(['Masculino', 'Femenino', 'No binario', 'Prefiero no decir'], {
-    required_error: "Debe seleccionar un género"
-  }),
   email: z.string().email("Correo electrónico inválido").max(255, "El correo no puede exceder 255 caracteres"),
   celular: z.string().regex(/^3\d{9}$/, "Número de celular colombiano inválido (debe ser 10 dígitos comenzando con 3)"),
   password: z.string()
@@ -33,7 +30,6 @@ const RegisterMentor = () => {
     accessCode: "",
     nombres: "",
     apellidos: "",
-    genero: "",
     email: "",
     celular: "",
     password: "",
@@ -66,7 +62,6 @@ const RegisterMentor = () => {
         accessCode: "",
         nombres: "",
         apellidos: "",
-        genero: "",
         email: "",
         celular: "",
         password: "",
@@ -143,21 +138,6 @@ const RegisterMentor = () => {
               onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
               required
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="genero">Género *</Label>
-            <Select value={formData.genero} onValueChange={(value) => setFormData({ ...formData, genero: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un género" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Masculino">Masculino</SelectItem>
-                <SelectItem value="Femenino">Femenino</SelectItem>
-                <SelectItem value="No binario">No binario</SelectItem>
-                <SelectItem value="Prefiero no decir">Prefiero no decir</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">
