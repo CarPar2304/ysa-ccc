@@ -241,116 +241,251 @@ const Lab = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {modulos.map((modulo) => (
-              <Card
-                key={modulo.id}
-                className="group overflow-hidden shadow-medium border-border hover:shadow-strong transition-all cursor-pointer"
-                onClick={() => handleModuloClick(modulo.id)}
-              >
-                {/* Imagen del módulo */}
-                <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                  {modulo.imagen_url ? (
-                    <img
-                      src={modulo.imagen_url}
-                      alt={modulo.titulo}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                      <BookOpen className="h-16 w-16 text-primary/40" />
-                    </div>
-                  )}
-                  {/* Badge de estado */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-2">
-                    <Badge 
-                      className={modulo.activo 
-                        ? "bg-primary text-primary-foreground shadow-md" 
-                        : "bg-muted text-muted-foreground shadow-md"
-                      }
-                    >
-                      {modulo.activo ? "Disponible" : "Inactivo"}
-                    </Badge>
-                    {/* Badge de editor para mentores */}
-                    {isMentor && editableModules.has(modulo.id) && (
-                      <Badge className="bg-accent text-accent-foreground shadow-md flex items-center gap-1">
-                        <Edit className="h-3 w-3" />
-                        Puedes editarlo
-                      </Badge>
-                    )}
-                  </div>
-                  {/* Badge de nivel */}
-                  {modulo.nivel && (
-                    <div className="absolute top-3 right-3">
-                      <Badge variant="outline" className="bg-background/90 backdrop-blur-sm shadow-md">
-                        {modulo.nivel}
-                      </Badge>
-                    </div>
-                  )}
-                  {/* Botones de admin */}
-                  {isAdmin && (
-                    <div className="absolute bottom-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                      <ModuleEditor
-                        modulo={modulo}
-                        onSuccess={fetchModulos}
-                        trigger={
-                          <Button variant="secondary" size="sm" className="shadow-md">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        }
-                      />
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="secondary" size="sm" className="shadow-md">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Eliminar módulo?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta acción no se puede deshacer. El módulo y todas sus clases serán eliminados.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={(e) => handleDeleteModulo(modulo.id, e)}>
-                              Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  )}
+          <>
+            {/* Sección de módulos editables para mentores */}
+            {isMentor && editableModules.size > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Edit className="h-5 w-5 text-accent" />
+                  <h2 className="text-2xl font-bold text-foreground">Módulos que puedes editar</h2>
+                  <Badge variant="secondary">{editableModules.size}</Badge>
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  Estos son los módulos donde tienes permisos de creación y edición de clases
+                </p>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {modulos
+                    .filter((modulo) => editableModules.has(modulo.id))
+                    .map((modulo) => (
+                      <Card
+                        key={modulo.id}
+                        className="group overflow-hidden shadow-medium border-border hover:shadow-strong transition-all cursor-pointer"
+                        onClick={() => handleModuloClick(modulo.id)}
+                      >
+                        {/* Imagen del módulo */}
+                        <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                          {modulo.imagen_url ? (
+                            <img
+                              src={modulo.imagen_url}
+                              alt={modulo.titulo}
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                              <BookOpen className="h-16 w-16 text-primary/40" />
+                            </div>
+                          )}
+                          {/* Badge de estado */}
+                          <div className="absolute top-3 left-3 flex flex-col gap-2">
+                            <Badge 
+                              className={modulo.activo 
+                                ? "bg-primary text-primary-foreground shadow-md" 
+                                : "bg-muted text-muted-foreground shadow-md"
+                              }
+                            >
+                              {modulo.activo ? "Disponible" : "Inactivo"}
+                            </Badge>
+                            {/* Badge de editor para mentores */}
+                            <Badge className="bg-accent text-accent-foreground shadow-md flex items-center gap-1">
+                              <Edit className="h-3 w-3" />
+                              Puedes editarlo
+                            </Badge>
+                          </div>
+                          {/* Badge de nivel */}
+                          {modulo.nivel && (
+                            <div className="absolute top-3 right-3">
+                              <Badge variant="outline" className="bg-background/90 backdrop-blur-sm shadow-md">
+                                {modulo.nivel}
+                              </Badge>
+                            </div>
+                          )}
+                          {/* Botones de admin */}
+                          {isAdmin && (
+                            <div className="absolute bottom-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                              <ModuleEditor
+                                modulo={modulo}
+                                onSuccess={fetchModulos}
+                                trigger={
+                                  <Button variant="secondary" size="sm" className="shadow-md">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="secondary" size="sm" className="shadow-md">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Eliminar módulo?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta acción no se puede deshacer. El módulo y todas sus clases serán eliminados.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={(e) => handleDeleteModulo(modulo.id, e)}>
+                                      Eliminar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          )}
+                        </div>
 
-                {/* Contenido de la card */}
-                <CardHeader className="space-y-3">
-                  <CardTitle className="text-lg line-clamp-2 text-foreground group-hover:text-primary transition-colors">
-                    {modulo.titulo}
-                  </CardTitle>
-                  <CardDescription className="text-sm line-clamp-2 text-muted-foreground">
-                    {modulo.descripcion || "Explora este módulo para aprender más"}
-                  </CardDescription>
-                </CardHeader>
+                        {/* Contenido de la card */}
+                        <CardHeader className="space-y-3">
+                          <CardTitle className="text-lg line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                            {modulo.titulo}
+                          </CardTitle>
+                          <CardDescription className="text-sm line-clamp-2 text-muted-foreground">
+                            {modulo.descripcion || "Explora este módulo para aprender más"}
+                          </CardDescription>
+                        </CardHeader>
 
-                <CardContent className="pt-0">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    {modulo.duracion && (
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-4 w-4" />
-                        <span>{modulo.duracion}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5">
-                      <BookOpen className="h-4 w-4" />
-                      <span>Ver clases</span>
-                    </div>
+                        <CardContent className="pt-0">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            {modulo.duracion && (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="h-4 w-4" />
+                                <span>{modulo.duracion}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5">
+                              <BookOpen className="h-4 w-4" />
+                              <span>Ver clases</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sección de todos los módulos o módulos no editables */}
+            <div className="space-y-4">
+              {isMentor && editableModules.size > 0 && (
+                <>
+                  <div className="flex items-center gap-2 mt-8">
+                    <BookOpen className="h-5 w-5 text-muted-foreground" />
+                    <h2 className="text-2xl font-bold text-foreground">Otros módulos</h2>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <p className="text-sm text-muted-foreground">
+                    Módulos disponibles para consulta
+                  </p>
+                </>
+              )}
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {modulos
+                  .filter((modulo) => !editableModules.has(modulo.id))
+                  .map((modulo) => (
+                    <Card
+                      key={modulo.id}
+                      className="group overflow-hidden shadow-medium border-border hover:shadow-strong transition-all cursor-pointer"
+                      onClick={() => handleModuloClick(modulo.id)}
+                    >
+                      {/* Imagen del módulo */}
+                      <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                        {modulo.imagen_url ? (
+                          <img
+                            src={modulo.imagen_url}
+                            alt={modulo.titulo}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                            <BookOpen className="h-16 w-16 text-primary/40" />
+                          </div>
+                        )}
+                        {/* Badge de estado */}
+                        <div className="absolute top-3 left-3 flex flex-col gap-2">
+                          <Badge 
+                            className={modulo.activo 
+                              ? "bg-primary text-primary-foreground shadow-md" 
+                              : "bg-muted text-muted-foreground shadow-md"
+                            }
+                          >
+                            {modulo.activo ? "Disponible" : "Inactivo"}
+                          </Badge>
+                        </div>
+                        {/* Badge de nivel */}
+                        {modulo.nivel && (
+                          <div className="absolute top-3 right-3">
+                            <Badge variant="outline" className="bg-background/90 backdrop-blur-sm shadow-md">
+                              {modulo.nivel}
+                            </Badge>
+                          </div>
+                        )}
+                        {/* Botones de admin */}
+                        {isAdmin && (
+                          <div className="absolute bottom-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                            <ModuleEditor
+                              modulo={modulo}
+                              onSuccess={fetchModulos}
+                              trigger={
+                                <Button variant="secondary" size="sm" className="shadow-md">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="secondary" size="sm" className="shadow-md">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Eliminar módulo?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. El módulo y todas sus clases serán eliminados.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={(e) => handleDeleteModulo(modulo.id, e)}>
+                                    Eliminar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Contenido de la card */}
+                      <CardHeader className="space-y-3">
+                        <CardTitle className="text-lg line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                          {modulo.titulo}
+                        </CardTitle>
+                        <CardDescription className="text-sm line-clamp-2 text-muted-foreground">
+                          {modulo.descripcion || "Explora este módulo para aprender más"}
+                        </CardDescription>
+                      </CardHeader>
+
+                      <CardContent className="pt-0">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          {modulo.duracion && (
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-4 w-4" />
+                              <span>{modulo.duracion}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5">
+                            <BookOpen className="h-4 w-4" />
+                            <span>Ver clases</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            </div>
+          </>
         )}
       </div>
     </Layout>
