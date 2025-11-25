@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Loader2, BookOpen, Pencil, Trash2, Lock } from "lucide-react";
+import { Clock, Loader2, BookOpen, Pencil, Trash2, Lock, Edit } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,9 +37,10 @@ const Lab = () => {
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [loading, setLoading] = useState(true);
   const [userNivel, setUserNivel] = useState<string | null>(null);
+  const [editableModules, setEditableModules] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userId, isAdmin, isBeneficiario } = useUserRole();
+  const { userId, isAdmin, isBeneficiario, isMentor } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
 
   useEffect(() => {
@@ -51,6 +52,12 @@ const Lab = () => {
   useEffect(() => {
     fetchModulos();
   }, [userId, isAdmin, isBeneficiario, userNivel]);
+
+  useEffect(() => {
+    if (isMentor && userId && modulos.length > 0) {
+      checkEditableModules();
+    }
+  }, [isMentor, userId, modulos]);
 
   const fetchUserNivel = async () => {
     if (!userId) return;
@@ -116,6 +123,33 @@ const Lab = () => {
 
   const handleModuloClick = (moduloId: string) => {
     navigate(`/lab/${moduloId}`);
+  };
+
+  const checkEditableModules = async () => {
+    if (!userId) return;
+    
+    try {
+      const editableIds = new Set<string>();
+      
+      // Verificar para cada módulo si el mentor puede editarlo
+      await Promise.all(
+        modulos.map(async (modulo) => {
+          const { data, error } = await supabase
+            .rpc("can_edit_modulo", {
+              _user_id: userId,
+              _modulo_id: modulo.id,
+            });
+
+          if (!error && data) {
+            editableIds.add(modulo.id);
+          }
+        })
+      );
+      
+      setEditableModules(editableIds);
+    } catch (error) {
+      console.error("Error checking editable modules:", error);
+    }
   };
 
   const handleDeleteModulo = async (id: string, e: React.MouseEvent) => {
@@ -228,7 +262,7 @@ const Lab = () => {
                     </div>
                   )}
                   {/* Badge de estado */}
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-3 left-3 flex flex-col gap-2">
                     <Badge 
                       className={modulo.activo 
                         ? "bg-primary text-primary-foreground shadow-md" 
@@ -237,6 +271,13 @@ const Lab = () => {
                     >
                       {modulo.activo ? "Disponible" : "Inactivo"}
                     </Badge>
+                    {/* Badge de editor para mentores */}
+                    {isMentor && editableModules.has(modulo.id) && (
+                      <Badge className="bg-accent text-accent-foreground shadow-md flex items-center gap-1">
+                        <Edit className="h-3 w-3" />
+                        Puedes editarlo
+                      </Badge>
+                    )}
                   </div>
                   {/* Badge de nivel */}
                   {modulo.nivel && (
