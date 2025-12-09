@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Search, Download, Eye, RefreshCw } from "lucide-react";
 import { CandidatoData } from "@/pages/Candidatos";
-import { CandidatoDetailModal } from "./CandidatoDetailModal";
+import { CandidatoFullDetailModal } from "./CandidatoFullDetailModal";
+import { ExportOptionsModal } from "./ExportOptionsModal";
 import * as XLSX from "xlsx";
 
 interface CandidatosListProps {
@@ -21,6 +22,8 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
   const [selectedCandidato, setSelectedCandidato] = useState<CandidatoData | null>(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportCandidato, setExportCandidato] = useState<CandidatoData | null>(null);
 
   const filteredCandidatos = candidatos.filter((candidato) => {
     const matchesSearch = 
@@ -222,10 +225,19 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         </CardContent>
       </Card>
 
-      <CandidatoDetailModal
+      <CandidatoFullDetailModal
         candidato={selectedCandidato}
         open={!!selectedCandidato}
         onClose={() => setSelectedCandidato(null)}
+      />
+
+      <ExportOptionsModal
+        candidato={exportCandidato}
+        open={exportModalOpen}
+        onClose={() => {
+          setExportModalOpen(false);
+          setExportCandidato(null);
+        }}
       />
     </>
   );
