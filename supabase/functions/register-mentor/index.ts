@@ -139,7 +139,7 @@ serve(async (req) => {
 
     console.log('[register-mentor] Mentor created:', authData.user.id);
 
-    // Notify webhook
+    // Notify webhook (password intentionally excluded for security)
     try {
       const webhookUrl = 'https://n8n-n8n.yajjj6.easypanel.host/webhook/registro-mentores';
       const webhookResponse = await fetch(webhookUrl, {
@@ -148,11 +148,11 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          user_id: authData.user.id,
           nombres,
           apellidos,
           email,
           celular,
-          password,
         }),
       });
 
