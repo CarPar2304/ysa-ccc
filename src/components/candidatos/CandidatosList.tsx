@@ -9,7 +9,6 @@ import { Search, Download, Eye, RefreshCw } from "lucide-react";
 import { CandidatoData } from "@/pages/Candidatos";
 import { CandidatoFullDetailModal } from "./CandidatoFullDetailModal";
 import { ExportOptionsModal } from "./ExportOptionsModal";
-import * as XLSX from "xlsx";
 
 interface CandidatosListProps {
   candidatos: CandidatoData[];
@@ -24,6 +23,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
   const [selectedCandidato, setSelectedCandidato] = useState<CandidatoData | null>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportCandidato, setExportCandidato] = useState<CandidatoData | null>(null);
+  const [massExportModalOpen, setMassExportModalOpen] = useState(false);
 
   const filteredCandidatos = candidatos.filter((candidato) => {
     const matchesSearch = 
@@ -43,36 +43,6 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
 
     return matchesSearch && matchesStatus && matchesNivel;
   });
-
-  const exportToExcel = () => {
-    const exportData = filteredCandidatos.map((c) => ({
-      Nombres: c.nombres,
-      Apellidos: c.apellidos,
-      Email: c.email,
-      Celular: c.celular,
-      Identificación: c.numero_identificacion,
-      Departamento: c.departamento,
-      Municipio: c.municipio,
-      Emprendimiento: c.emprendimiento?.nombre || "N/A",
-      Categoría: c.emprendimiento?.categoria || "N/A",
-      Etapa: c.emprendimiento?.etapa || "N/A",
-      "Nivel Definitivo": c.emprendimiento?.nivel_definitivo || "N/A",
-      "Estado Cupo": c.cupo?.estado || "Sin cupo",
-      Nivel: c.cupo?.nivel || "N/A",
-      Cohorte: c.cupo?.cohorte || "N/A",
-      "Equipo Total": c.equipo?.equipo_total || 0,
-      Fundadoras: c.equipo?.fundadoras || 0,
-      "Equipo Técnico": c.equipo?.equipo_tecnico ? "Sí" : "No",
-      "Busca Financiamiento": c.financiamiento?.busca_financiamiento || "N/A",
-      "Monto Buscado": c.financiamiento?.monto_buscado || "N/A",
-      Evaluaciones: c.evaluaciones || 0,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Candidatos");
-    XLSX.writeFile(wb, `candidatos_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
 
   const getStatusBadge = (candidato: CandidatoData) => {
     if (candidato.cupo?.estado === "aprobado") {
@@ -100,11 +70,11 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
               <Button
                 variant="outline"
                 size="sm"
-                onClick={exportToExcel}
+                onClick={() => setMassExportModalOpen(true)}
                 disabled={filteredCandidatos.length === 0}
               >
                 <Download className="h-4 w-4 mr-2" />
-                Exportar
+                Exportar ({filteredCandidatos.length})
               </Button>
             </div>
           </div>
@@ -231,6 +201,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         onClose={() => setSelectedCandidato(null)}
       />
 
+      {/* Individual export modal */}
       <ExportOptionsModal
         candidato={exportCandidato}
         open={exportModalOpen}
@@ -238,6 +209,13 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
           setExportModalOpen(false);
           setExportCandidato(null);
         }}
+      />
+
+      {/* Mass export modal */}
+      <ExportOptionsModal
+        candidatos={filteredCandidatos}
+        open={massExportModalOpen}
+        onClose={() => setMassExportModalOpen(false)}
       />
     </>
   );
