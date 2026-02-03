@@ -322,13 +322,20 @@ export const AsesoriasManager = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="activo"
-                checked={formData.activo}
-                onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
-              />
-              <Label htmlFor="activo">Perfil activo (visible para beneficiarios)</Label>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="activo"
+                  checked={formData.activo}
+                  onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
+                />
+                <Label htmlFor="activo">Visible para beneficiarios</Label>
+              </div>
+              <p className="text-xs text-muted-foreground ml-8">
+                {formData.activo 
+                  ? "Los beneficiarios podrán ver y agendar este perfil de asesoría" 
+                  : "Este perfil estará oculto para los beneficiarios hasta que lo actives"}
+              </p>
             </div>
 
             <div className="flex gap-2">
