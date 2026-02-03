@@ -100,8 +100,10 @@ const Lab = () => {
         .select("*")
         .order("orden", { ascending: true });
 
-      // Si no es admin, solo mostrar módulos activos y del nivel del usuario
-      if (!isAdmin) {
+      // Beneficiarios: solo ven módulos activos
+      // Mentores: ven todos (luego se filtran los inactivos que no pueden editar)
+      // Admins: ven todos
+      if (isBeneficiario) {
         query = query.eq("activo", true);
         
         // Filtrar por nivel si el usuario tiene un nivel asignado
@@ -393,6 +395,8 @@ const Lab = () => {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {modulos
                   .filter((modulo) => !editableModules.has(modulo.id))
+                  // Para mentores, filtrar módulos inactivos que no pueden editar
+                  .filter((modulo) => isAdmin || modulo.activo)
                   .map((modulo) => (
                     <Card
                       key={modulo.id}
