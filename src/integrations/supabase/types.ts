@@ -613,6 +613,60 @@ export type Database = {
           },
         ]
       }
+      entregas: {
+        Row: {
+          archivos_urls: Json | null
+          comentario: string | null
+          created_at: string
+          estado: string
+          fecha_entrega: string
+          feedback: string | null
+          id: string
+          tarea_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archivos_urls?: Json | null
+          comentario?: string | null
+          created_at?: string
+          estado?: string
+          fecha_entrega?: string
+          feedback?: string | null
+          id?: string
+          tarea_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archivos_urls?: Json | null
+          comentario?: string | null
+          created_at?: string
+          estado?: string
+          fecha_entrega?: string
+          feedback?: string | null
+          id?: string
+          tarea_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregas_tarea_id_fkey"
+            columns: ["tarea_id"]
+            isOneToOne: false
+            referencedRelation: "tareas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipos: {
         Row: {
           colaboradoras: number | null
@@ -1294,6 +1348,53 @@ export type Database = {
           },
         ]
       }
+      tareas: {
+        Row: {
+          activo: boolean
+          created_at: string
+          created_by: string
+          descripcion: string | null
+          fecha_limite: string
+          id: string
+          modulo_id: string
+          num_documentos: number
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          created_by: string
+          descripcion?: string | null
+          fecha_limite: string
+          id?: string
+          modulo_id: string
+          num_documentos?: number
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          created_by?: string
+          descripcion?: string | null
+          fecha_limite?: string
+          id?: string
+          modulo_id?: string
+          num_documentos?: number
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tareas_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1490,6 +1591,7 @@ export type Database = {
         | "Sostenibilidad"
         | "Población víctima del conflicto armado"
         | "Ninguno de los anteriores"
+        | "Poblaciones indígenas"
       impacto_proyeccion:
         | "Local"
         | "Regional"
@@ -1686,6 +1788,7 @@ export const Constants = {
         "Sostenibilidad",
         "Población víctima del conflicto armado",
         "Ninguno de los anteriores",
+        "Poblaciones indígenas",
       ],
       impacto_proyeccion: [
         "Local",

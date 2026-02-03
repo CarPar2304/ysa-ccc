@@ -1,14 +1,15 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Loader2, BookOpen, Pencil, Trash2, Lock, Edit } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Clock, Loader2, BookOpen, Pencil, Trash2, Lock, Edit, FileText } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
+import { usePendingTasks } from "@/hooks/usePendingTasks";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +43,10 @@ const Lab = () => {
   const { toast } = useToast();
   const { userId, isAdmin, isBeneficiario, isMentor } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
+
+  // Get module IDs for pending tasks
+  const moduleIds = useMemo(() => modulos.map((m) => m.id), [modulos]);
+  const { pendingTasks } = usePendingTasks(isBeneficiario ? userId : null, moduleIds);
 
   useEffect(() => {
     if (isBeneficiario && userId) {
@@ -347,7 +352,7 @@ const Lab = () => {
                         </CardHeader>
 
                         <CardContent className="pt-0">
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                             {modulo.duracion && (
                               <div className="flex items-center gap-1.5">
                                 <Clock className="h-4 w-4" />
@@ -358,6 +363,12 @@ const Lab = () => {
                               <BookOpen className="h-4 w-4" />
                               <span>Ver clases</span>
                             </div>
+                            {isBeneficiario && pendingTasks[modulo.id] > 0 && (
+                              <Badge variant="destructive" className="gap-1">
+                                <FileText className="h-3 w-3" />
+                                {pendingTasks[modulo.id]} tarea(s) pendiente(s)
+                              </Badge>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -468,7 +479,7 @@ const Lab = () => {
                       </CardHeader>
 
                       <CardContent className="pt-0">
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                           {modulo.duracion && (
                             <div className="flex items-center gap-1.5">
                               <Clock className="h-4 w-4" />
@@ -479,6 +490,12 @@ const Lab = () => {
                             <BookOpen className="h-4 w-4" />
                             <span>Ver clases</span>
                           </div>
+                          {isBeneficiario && pendingTasks[modulo.id] > 0 && (
+                            <Badge variant="destructive" className="gap-1">
+                              <FileText className="h-3 w-3" />
+                              {pendingTasks[modulo.id]} tarea(s) pendiente(s)
+                            </Badge>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

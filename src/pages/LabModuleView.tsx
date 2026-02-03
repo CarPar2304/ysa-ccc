@@ -2,7 +2,8 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Clock, Loader2, Pencil, Trash2, BookOpen, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ClassEditor } from "@/components/lab/ClassEditor";
+import { ModuleDeliverables } from "@/components/lab/ModuleDeliverables";
 
 interface Modulo {
   id: string;
@@ -210,114 +212,134 @@ const LabModuleView = () => {
           </div>
         </div>
 
-        {/* Lista de clases */}
-        {clases.length === 0 ? (
-          <Card className="shadow-soft border-border">
-            <CardContent className="p-12 text-center">
-              <p className="text-muted-foreground">
-                No hay clases disponibles en este módulo
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            <h2 className="text-2xl font-bold text-foreground mb-4">
-              Clases del curso
-            </h2>
-            {clases.map((clase, index) => (
-              <Card 
-                key={clase.id} 
-                className="border-border hover:shadow-md transition-all cursor-pointer group"
-                onClick={() => !canEdit && navigate(`/lab/${moduloId}/${clase.id}`)}
-              >
-                <CardContent className="p-0">
-                  <div className="flex items-center gap-4 p-4">
-                    {/* Número de clase */}
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      {index + 1}
-                    </div>
+        {/* Tabs for Classes and Deliverables */}
+        <Tabs defaultValue="clases" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="clases" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              Clases
+            </TabsTrigger>
+            <TabsTrigger value="entregables" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Entregables
+            </TabsTrigger>
+          </TabsList>
 
-                    {/* Miniatura de la clase */}
-                    <div className="relative w-24 h-16 shrink-0 rounded-md overflow-hidden bg-muted">
-                      {clase.imagen_url ? (
-                        <img 
-                          src={clase.imagen_url} 
-                          alt={clase.titulo}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : clase.video_url ? (
-                        <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/20 to-primary/5">
-                          <div className="w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                            <div className="w-0 h-0 border-t-4 border-t-transparent border-l-6 border-l-primary border-b-4 border-b-transparent ml-0.5" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-full bg-muted">
-                          <span className="text-xs text-muted-foreground">Sin imagen</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info de la clase */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                        {clase.titulo}
-                      </h3>
-                      {clase.descripcion && (
-                        <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
-                          {clase.descripcion}
-                        </p>
-                      )}
-                      {clase.duracion_minutos && (
-                        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          <span>{clase.duracion_minutos} minutos</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Botones de edición */}
-                    {canEdit && (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <ClassEditor
-                          clase={clase}
-                          moduloId={modulo.id}
-                          onSuccess={fetchClases}
-                          trigger={
-                            <Button variant="ghost" size="sm">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          }
-                        />
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar clase?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. La clase será eliminada permanentemente.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteClase(clase.id)}>
-                                Eliminar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    )}
-                  </div>
+          <TabsContent value="clases">
+            {/* Lista de clases */}
+            {clases.length === 0 ? (
+              <Card className="shadow-soft border-border">
+                <CardContent className="p-12 text-center">
+                  <p className="text-muted-foreground">
+                    No hay clases disponibles en este módulo
+                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold text-foreground mb-4">
+                  Clases del curso
+                </h2>
+                {clases.map((clase, index) => (
+                  <Card 
+                    key={clase.id} 
+                    className="border-border hover:shadow-md transition-all cursor-pointer group"
+                    onClick={() => !canEdit && navigate(`/lab/${moduloId}/${clase.id}`)}
+                  >
+                    <CardContent className="p-0">
+                      <div className="flex items-center gap-4 p-4">
+                        {/* Número de clase */}
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                          {index + 1}
+                        </div>
+
+                        {/* Miniatura de la clase */}
+                        <div className="relative w-24 h-16 shrink-0 rounded-md overflow-hidden bg-muted">
+                          {clase.imagen_url ? (
+                            <img 
+                              src={clase.imagen_url} 
+                              alt={clase.titulo}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : clase.video_url ? (
+                            <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/20 to-primary/5">
+                              <div className="w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                                <div className="w-0 h-0 border-t-4 border-t-transparent border-l-6 border-l-primary border-b-4 border-b-transparent ml-0.5" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center h-full bg-muted">
+                              <span className="text-xs text-muted-foreground">Sin imagen</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info de la clase */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                            {clase.titulo}
+                          </h3>
+                          {clase.descripcion && (
+                            <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
+                              {clase.descripcion}
+                            </p>
+                          )}
+                          {clase.duracion_minutos && (
+                            <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              <span>{clase.duracion_minutos} minutos</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Botones de edición */}
+                        {canEdit && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <ClassEditor
+                              clase={clase}
+                              moduloId={modulo.id}
+                              onSuccess={fetchClases}
+                              trigger={
+                                <Button variant="ghost" size="sm">
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Eliminar clase?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. La clase será eliminada permanentemente.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteClase(clase.id)}>
+                                    Eliminar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="entregables">
+            <ModuleDeliverables moduloId={modulo.id} canEdit={canEdit} />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
