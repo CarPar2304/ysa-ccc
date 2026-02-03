@@ -220,6 +220,36 @@ export type Database = {
           },
         ]
       }
+      autorizaciones_audit_log: {
+        Row: {
+          action: string
+          autorizacion_id: string
+          changed_at: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          autorizacion_id: string
+          changed_at?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          autorizacion_id?: string
+          changed_at?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       clases: {
         Row: {
           contenido: string | null

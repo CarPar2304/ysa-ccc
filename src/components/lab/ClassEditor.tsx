@@ -79,19 +79,26 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
 
     setUploading(true);
     try {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileExt = imageFile.name.split('.').pop()?.toLowerCase();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `clases/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('lab-images')
-        .upload(filePath, imageFile);
+        .upload(filePath, imageFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
         .from('lab-images')
         .getPublicUrl(filePath);
+
+      if (!data?.publicUrl) {
+        throw new Error('No se pudo obtener la URL pública de la imagen');
+      }
 
       return data.publicUrl;
     } catch (error: any) {
