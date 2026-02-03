@@ -406,13 +406,20 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="activo"
-              checked={formData.activo}
-              onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
-            />
-            <Label htmlFor="activo">Módulo activo</Label>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="activo"
+                checked={formData.activo}
+                onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
+              />
+              <Label htmlFor="activo">Visible para beneficiarios</Label>
+            </div>
+            <p className="text-xs text-muted-foreground ml-8">
+              {formData.activo 
+                ? "Los beneficiarios con cupo aprobado podrán ver este módulo" 
+                : "Este módulo estará oculto para los beneficiarios aunque tengan cupo aprobado"}
+            </p>
           </div>
 
           {/* Sección de Mentores Creadores */}
