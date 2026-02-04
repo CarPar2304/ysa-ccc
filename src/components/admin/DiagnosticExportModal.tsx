@@ -351,13 +351,19 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 min-h-0 flex-1">
+        <div className="flex flex-col gap-3 min-h-0 flex-1 overflow-hidden">
           <div className="flex items-center justify-between border-b pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <Checkbox
                 id="select-all"
                 checked={selectedIds.length === diagnosticos.length && diagnosticos.length > 0}
-                onCheckedChange={selectAll}
+                onCheckedChange={() => selectAll()}
+                ref={(el) => {
+                  if (el) {
+                    const isIndeterminate = selectedIds.length > 0 && selectedIds.length < diagnosticos.length;
+                    (el as HTMLButtonElement).dataset.state = isIndeterminate ? "indeterminate" : (selectedIds.length === diagnosticos.length && diagnosticos.length > 0 ? "checked" : "unchecked");
+                  }
+                }}
               />
               <Label htmlFor="select-all" className="font-medium cursor-pointer text-sm">
                 Todos ({diagnosticos.length})
@@ -368,8 +374,8 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             </span>
           </div>
 
-          <ScrollArea className="flex-1 min-h-0 w-full overflow-x-hidden">
-            <div className="flex flex-col gap-2 pr-2 sm:pr-3 w-full min-w-0">
+          <ScrollArea className="flex-1 h-[40vh] max-h-[300px] w-full">
+            <div className="flex flex-col gap-2 pr-3 w-full">
               {diagnosticos.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">
                   No hay diagnósticos disponibles
@@ -379,9 +385,9 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                   const empNombre = getEmprendimientoNombre(diag.emprendimiento_id);
                   const isSelected = selectedIds.includes(diag.id);
                   return (
-                      <div
+                    <div
                       key={diag.id}
-                        className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer w-full min-w-0 max-w-full overflow-hidden ${
+                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer w-full ${
                         isSelected 
                           ? "border-primary bg-primary/5" 
                           : "border-border hover:bg-muted/30"
@@ -393,6 +399,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                         checked={isSelected}
                         onCheckedChange={() => toggleSelection(diag.id)}
                         className="shrink-0"
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm truncate">
