@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileDown, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { marked } from "marked";
 import html2pdf from "html2pdf.js";
 
 interface Emprendimiento {
@@ -28,11 +27,29 @@ interface DiagnosticExportModalProps {
   emprendimientos: Emprendimiento[];
 }
 
+// Configure marked for GFM (GitHub Flavored Markdown)
+marked.setOptions({
+  gfm: true,
+  breaks: true
+});
+
+// Helper function to strip markdown for preview display
+const stripMarkdown = (text: string): string => {
+  if (!text) return "";
+  return text
+    .replace(/#{1,6}\s?/g, '')           // Remove headers
+    .replace(/\*\*(.+?)\*\*/g, '$1')     // Remove bold
+    .replace(/\*(.+?)\*/g, '$1')         // Remove italic
+    .replace(/\|/g, ' ')                 // Replace table pipes
+    .replace(/[-:]+\|[-:|\s]+/g, '')     // Remove table separators
+    .replace(/\n+/g, ' ')                // Collapse newlines
+    .trim();
+};
+
 export function DiagnosticExportModal({ diagnosticos, emprendimientos }: DiagnosticExportModalProps) {
   const [open, setOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const getEmprendimientoNombre = (empId: string) => {
@@ -75,7 +92,8 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
       container.style.position = "absolute";
       container.style.left = "-9999px";
       container.style.top = "0";
-      container.style.width = "210mm"; // A4 width
+      container.style.width = "210mm";
+      container.style.background = "#ffffff";
       document.body.appendChild(container);
 
       // Build HTML content with proper styling
@@ -84,10 +102,12 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           * {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
+            color: #1f2937;
           }
           .diagnostic-page {
             page-break-after: always;
             padding: 20px;
+            background: #ffffff;
           }
           .diagnostic-page:last-child {
             page-break-after: avoid;
@@ -191,13 +211,11 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             background: none;
             color: inherit;
           }
-          .separator {
-            height: 40px;
-          }
         </style>
       `;
 
-      selectedDiagnosticos.forEach((diag, index) => {
+      // Build content for each diagnostic using marked
+      for (const diag of selectedDiagnosticos) {
         const empNombre = getEmprendimientoNombre(diag.emprendimiento_id);
         const fechaCreacion = new Date(diag.created_at).toLocaleDateString("es-CO", {
           year: "numeric",
@@ -205,82 +223,25 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           day: "numeric"
         });
 
+        // Use marked to convert markdown to HTML
+        const renderedContent = diag.contenido 
+          ? marked.parse(diag.contenido) 
+          : "<p>Sin contenido</p>";
+
         htmlContent += `
           <div class="diagnostic-page">
             <div class="diagnostic-header">
               <h1 class="diagnostic-title">Diagnóstico: ${empNombre}</h1>
-              <p class="diagnostic-meta">
-                Fecha de creación: ${fechaCreacion}
-                ${index + 1 > 1 ? ` • Diagnóstico ${index + 1} de ${selectedDiagnosticos.length}` : ""}
-              </p>
+              <p class="diagnostic-meta">Fecha de creación: ${fechaCreacion}</p>
             </div>
-            <div class="diagnostic-content" id="content-${diag.id}">
+            <div class="diagnostic-content">
+              ${renderedContent}
             </div>
           </div>
         `;
-      });
+      }
 
       container.innerHTML = htmlContent;
-
-      // Render markdown content for each diagnostic
-      for (const diag of selectedDiagnosticos) {
-        const contentDiv = container.querySelector(`#content-${diag.id}`);
-        if (contentDiv && diag.contenido) {
-          // Create a temporary React root to render markdown
-          const tempDiv = document.createElement("div");
-          
-          // Manual markdown to HTML conversion for tables and basic formatting
-          let processedContent = diag.contenido
-            // Headers
-            .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-            .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-            .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-            // Bold
-            .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-            // Italic
-            .replace(/\*(.+?)\*/g, "<em>$1</em>")
-            // Line breaks
-            .replace(/\n\n/g, "</p><p>")
-            .replace(/\n/g, "<br>");
-
-          // Process tables
-          const tableRegex = /\|(.+)\|\n\|[-:| ]+\|\n((?:\|.+\|\n?)+)/g;
-          processedContent = processedContent.replace(tableRegex, (match, headerRow, bodyRows) => {
-            const headers = headerRow.split("|").filter((h: string) => h.trim());
-            const rows = bodyRows.trim().split("\n").map((row: string) => 
-              row.split("|").filter((cell: string) => cell.trim())
-            );
-
-            let tableHtml = "<table><thead><tr>";
-            headers.forEach((h: string) => {
-              tableHtml += `<th>${h.trim()}</th>`;
-            });
-            tableHtml += "</tr></thead><tbody>";
-            
-            rows.forEach((row: string[]) => {
-              tableHtml += "<tr>";
-              row.forEach((cell: string) => {
-                tableHtml += `<td>${cell.trim()}</td>`;
-              });
-              tableHtml += "</tr>";
-            });
-            tableHtml += "</tbody></table>";
-            
-            return tableHtml;
-          });
-
-          // Process lists
-          processedContent = processedContent.replace(/^- (.+)$/gm, "<li>$1</li>");
-          processedContent = processedContent.replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
-          
-          // Wrap in paragraph if needed
-          if (!processedContent.startsWith("<")) {
-            processedContent = `<p>${processedContent}</p>`;
-          }
-
-          contentDiv.innerHTML = processedContent;
-        }
-      }
 
       // Generate PDF
       const opt = {
@@ -292,7 +253,8 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
         html2canvas: { 
           scale: 2,
           useCORS: true,
-          letterRendering: true
+          letterRendering: true,
+          backgroundColor: "#ffffff"
         },
         jsPDF: { 
           unit: "mm", 
@@ -329,16 +291,16 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" size="sm">
           <FileDown className="h-4 w-4 mr-2" />
           Exportar PDF
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Exportar Diagnósticos a PDF</DialogTitle>
           <DialogDescription>
-            Selecciona los diagnósticos que deseas exportar. Se generará un único PDF con todos los seleccionados.
+            Selecciona los diagnósticos que deseas exportar.
           </DialogDescription>
         </DialogHeader>
 
@@ -350,19 +312,19 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                 checked={selectedIds.length === diagnosticos.length && diagnosticos.length > 0}
                 onCheckedChange={selectAll}
               />
-              <Label htmlFor="select-all" className="font-medium cursor-pointer">
+              <Label htmlFor="select-all" className="font-medium cursor-pointer text-sm">
                 Seleccionar todos ({diagnosticos.length})
               </Label>
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {selectedIds.length} seleccionados
             </span>
           </div>
 
-          <ScrollArea className="h-[300px] pr-4">
+          <ScrollArea className="h-[250px] pr-4">
             <div className="space-y-2">
               {diagnosticos.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
+                <p className="text-center text-muted-foreground py-8 text-sm">
                   No hay diagnósticos disponibles
                 </p>
               ) : (
@@ -371,26 +333,28 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                   return (
                     <div
                       key={diag.id}
-                      className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
+                      className={`flex items-start space-x-3 p-2.5 rounded-lg border transition-colors cursor-pointer ${
                         selectedIds.includes(diag.id) 
                           ? "border-primary bg-primary/5" 
                           : "border-border hover:bg-muted/50"
                       }`}
+                      onClick={() => toggleSelection(diag.id)}
                     >
                       <Checkbox
                         id={diag.id}
                         checked={selectedIds.includes(diag.id)}
                         onCheckedChange={() => toggleSelection(diag.id)}
+                        className="mt-0.5"
                       />
                       <div className="flex-1 min-w-0">
                         <Label 
                           htmlFor={diag.id} 
-                          className="font-medium cursor-pointer block truncate"
+                          className="font-medium cursor-pointer block truncate text-sm"
                         >
                           {empNombre}
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {diag.contenido?.substring(0, 100)}...
+                          {stripMarkdown(diag.contenido?.substring(0, 150) || "")}...
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {new Date(diag.created_at).toLocaleDateString()}
@@ -404,17 +368,18 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           </ScrollArea>
 
           <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
             <Button 
+              size="sm"
               onClick={handleExport} 
               disabled={exporting || selectedIds.length === 0}
             >
               {exporting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generando PDF...
+                  Generando...
                 </>
               ) : (
                 <>
