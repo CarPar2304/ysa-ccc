@@ -1,161 +1,51 @@
 
-# Plan: Fix Diagnostic Export Modal and Empty PDF Issue
+# Plan: Pulir modal de exportación y corregir PDF en blanco
 
-## Issues Identified
+## Objetivo
+1) Que el modal sea 100% responsive (sin overflow horizontal y con footer/botones siempre dentro).
+2) Que el PDF nunca salga en blanco (1 o múltiples diagnósticos).
 
-### Issue 1: Modal Shows Raw Markdown
-The preview text in the modal shows raw markdown syntax (##, **, etc.) which looks confusing. We need to display a cleaner preview without the markdown formatting.
+## Problemas identificados
 
-### Issue 2: Empty PDF Generation
-The PDF comes out blank because the manual markdown-to-HTML conversion has critical bugs:
-- Line break replacements (`\n` to `<br>`) happen BEFORE table processing
-- This corrupts the markdown structure so the table regex never matches
-- The content ends up malformed or empty after processing
+### Problema 1: Overflow/recorte en el modal (mobile)
+- Las filas pueden empujar el ancho por contenido largo/scrollbars.
+- El footer puede quedar “fuera” si el contenedor no permite que el área scrolleable se encoja (`min-h-0`).
 
----
+### Problema 2: PDF en blanco
+- `html2pdf` usa `html2canvas`. Si el nodo a renderizar está **transparente** (`opacity: 0`) o **no renderizable** (hidden/display none), `html2canvas` puede devolver un canvas blanco.
 
-## Solution
+## Solución
 
-### Part 1: Fix Modal Preview Display
+### Parte A: Modal realmente responsive
+**Archivo:** `src/components/admin/DiagnosticExportModal.tsx`
+- Asegurar layout en columna y altura máxima del modal.
+- `ScrollArea` con `overflow-x-hidden` y contenedores con `min-w-0` para evitar overflow.
+- Items con `max-w-full overflow-hidden` para que los bordes no “se salgan”.
+- Footer con layout responsive (stack en mobile).
 
-**File: `src/components/admin/DiagnosticExportModal.tsx`**
+### Parte B: Exportación PDF consistente (no blanco)
+**Archivo:** `src/components/admin/DiagnosticExportModal.tsx`
+- Generar el HTML en un contenedor **offscreen** pero **visible/renderizable** (NO usar `opacity: 0`, `display: none`, `visibility: hidden`).
+- Esperar layout/fonts antes de capturar (doble `requestAnimationFrame` + `document.fonts.ready`).
+- Mantener page breaks por CSS.
 
-- Clean the preview text by stripping markdown syntax for display purposes only
-- Remove `#`, `*`, `|`, and other markdown characters from the preview
-- Keep the actual content intact for PDF generation
+## Pruebas (obligatorias)
 
-### Part 2: Fix PDF Generation with Proper Markdown Parser
+### Pruebas funcionales PDF
+1. Exportar **1 diagnóstico** (contenido corto):
+   - Esperado: se descarga un PDF con título, fecha y contenido visible (no en blanco).
+2. Exportar **1 diagnóstico** con **tabla**:
+   - Esperado: tabla visible y sin salirse de márgenes.
+3. Exportar **2–3 diagnósticos**:
+   - Esperado: cada diagnóstico inicia en página nueva (page-break).
+4. Exportar diagnóstico con contenido largo (varios párrafos/listas):
+   - Esperado: no se corta; páginas adicionales se generan correctamente.
 
-**File: `src/components/admin/DiagnosticExportModal.tsx`**
+### Pruebas UI modal
+1. En viewport mobile (≈390px):
+   - Esperado: sin scroll horizontal; filas no se salen; botones visibles dentro del modal.
+2. Nombres de emprendimiento muy largos:
+   - Esperado: se truncan (no expanden el contenedor).
 
-Replace the fragile manual markdown parsing with the `marked` library:
-
-1. **Install `marked` package** - A robust, well-tested markdown parser
-2. **Use `marked.parse()` to convert markdown to HTML** - This properly handles:
-   - Headers (h1, h2, h3)
-   - Bold and italic text
-   - Tables with proper structure
-   - Lists (ordered and unordered)
-   - Blockquotes and code blocks
-
-3. **Fix the order of operations:**
-   - First convert markdown to HTML using `marked`
-   - Then inject the HTML into the container
-   - Then generate the PDF
-
-### Part 3: Improve PDF Styling
-
-**File: `src/components/admin/DiagnosticExportModal.tsx`**
-
-- Ensure tables render within margins with proper overflow handling
-- Add explicit background colors for light-mode PDF rendering
-- Ensure page breaks work correctly between diagnostics
-
----
-
-## Technical Implementation Details
-
-### Step 1: Add `marked` dependency
-```bash
-npm install marked @types/marked
-```
-
-### Step 2: Refactor `handleExport` function
-
-```typescript
-import { marked } from "marked";
-
-// Configure marked for GFM (GitHub Flavored Markdown)
-marked.setOptions({
-  gfm: true,
-  breaks: true
-});
-
-const handleExport = async () => {
-  // ... validation code ...
-  
-  const selectedDiagnosticos = diagnosticos.filter(d => selectedIds.includes(d.id));
-  
-  // Create hidden container
-  const container = document.createElement("div");
-  container.style.position = "absolute";
-  container.style.left = "-9999px";
-  container.style.width = "210mm";
-  container.style.background = "#ffffff"; // Force white background
-  document.body.appendChild(container);
-  
-  // Build content with proper markdown conversion
-  let htmlContent = `<style>/* ... styles ... */</style>`;
-  
-  for (const diag of selectedDiagnosticos) {
-    const empNombre = getEmprendimientoNombre(diag.emprendimiento_id);
-    const fechaCreacion = new Date(diag.created_at).toLocaleDateString("es-CO", {...});
-    
-    // Use marked to convert markdown to HTML
-    const renderedContent = diag.contenido 
-      ? marked.parse(diag.contenido) 
-      : "<p>Sin contenido</p>";
-    
-    htmlContent += `
-      <div class="diagnostic-page">
-        <div class="diagnostic-header">
-          <h1 class="diagnostic-title">Diagnóstico: ${empNombre}</h1>
-          <p class="diagnostic-meta">Fecha: ${fechaCreacion}</p>
-        </div>
-        <div class="diagnostic-content">
-          ${renderedContent}
-        </div>
-      </div>
-    `;
-  }
-  
-  container.innerHTML = htmlContent;
-  
-  // Generate PDF
-  await html2pdf().set(options).from(container).save();
-  
-  // Cleanup
-  document.body.removeChild(container);
-};
-```
-
-### Step 3: Fix Modal Preview
-
-```typescript
-// Helper function to strip markdown for preview
-const stripMarkdown = (text: string): string => {
-  return text
-    .replace(/#{1,6}\s?/g, '')      // Remove headers
-    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold
-    .replace(/\*(.+?)\*/g, '$1')     // Remove italic
-    .replace(/\|/g, ' ')             // Replace table pipes
-    .replace(/[-:]+\|[-:|\s]+/g, '') // Remove table separators
-    .replace(/\n+/g, ' ')            // Collapse newlines
-    .trim();
-};
-
-// In the render:
-<p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-  {stripMarkdown(diag.contenido?.substring(0, 150) || "")}...
-</p>
-```
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `package.json` | Add `marked` and `@types/marked` dependencies |
-| `src/components/admin/DiagnosticExportModal.tsx` | Refactor export logic with marked, add preview cleaning |
-
----
-
-## Expected Results
-
-1. **Modal appearance**: Clean preview text without raw markdown syntax
-2. **PDF generation**: Properly rendered content with:
-   - Formatted headers, bold, and italic text
-   - Correctly structured tables that fit within margins
-   - Proper page breaks between multiple diagnostics
-   - White background for print-friendly output
+### Observabilidad
+- Ver consola: logs `Export PDF: selectedDiagnosticos` y `Export PDF HTML length` deben aparecer y el HTML length debe ser > 0.
