@@ -92,14 +92,18 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
 
     try {
       const selectedDiagnosticos = diagnosticos.filter(d => selectedIds.includes(d.id));
+      console.log("Export PDF: selectedDiagnosticos", selectedDiagnosticos.length);
       
-      // Create hidden container for PDF generation
+      // Create container for PDF generation - keep in viewport but invisible
       const container = document.createElement("div");
-      container.style.position = "absolute";
-      container.style.left = "-9999px";
+      container.style.position = "fixed";
+      container.style.left = "0";
       container.style.top = "0";
       container.style.width = "210mm";
       container.style.background = "#ffffff";
+      container.style.opacity = "0";
+      container.style.pointerEvents = "none";
+      container.style.zIndex = "-1";
       document.body.appendChild(container);
 
       // Build HTML content with proper styling
@@ -172,17 +176,20 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           }
           .diagnostic-content table {
             width: 100%;
+            max-width: 100%;
             border-collapse: collapse;
             margin: 12px 0;
             font-size: 10px;
             table-layout: fixed;
+            word-break: break-word;
           }
           .diagnostic-content th, .diagnostic-content td {
             border: 1px solid #d1d5db;
-            padding: 6px 8px;
+            padding: 4px 6px;
             text-align: left;
             word-wrap: break-word;
             overflow-wrap: break-word;
+            max-width: 100%;
           }
           .diagnostic-content th {
             background-color: #f3f4f6;
@@ -248,6 +255,16 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
       }
 
       container.innerHTML = htmlContent;
+      console.log("Export PDF HTML length", container.innerHTML.length);
+
+      // Wait for layout to be ready
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      
+      // Wait for fonts if available
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
 
       // Generate PDF
       const opt = {
@@ -267,7 +284,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           format: "a4", 
           orientation: "portrait" 
         },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+        pagebreak: { mode: ["css", "legacy"] }
       };
 
       await html2pdf().set(opt).from(container).save();
@@ -302,16 +319,16 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           Exportar PDF
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-sm sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] max-w-sm sm:max-w-md flex flex-col max-h-[85vh] overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="text-base">Exportar Diagnósticos a PDF</DialogTitle>
           <DialogDescription className="text-sm">
             Selecciona los diagnósticos que deseas exportar.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex flex-col gap-3 min-h-0 flex-1">
+          <div className="flex items-center justify-between border-b pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <Checkbox
                 id="select-all"
@@ -327,8 +344,8 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             </span>
           </div>
 
-          <ScrollArea className="h-[200px] sm:h-[250px]">
-            <div className="flex flex-col gap-2 pr-3">
+          <ScrollArea className="flex-1 min-h-0 w-full">
+            <div className="flex flex-col gap-2 pr-3 w-full">
               {diagnosticos.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">
                   No hay diagnósticos disponibles
@@ -340,7 +357,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                   return (
                     <div
                       key={diag.id}
-                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer ${
+                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer w-full min-w-0 ${
                         isSelected 
                           ? "border-primary bg-primary/5" 
                           : "border-border hover:bg-muted/30"
@@ -368,12 +385,13 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             </div>
           </ScrollArea>
 
-          <div className="flex justify-end gap-2 pt-3 border-t">
-            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+          <div className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-3 border-t">
+            <Button variant="outline" size="sm" onClick={() => setOpen(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
             <Button 
               size="sm"
+              className="w-full sm:w-auto"
               onClick={handleExport} 
               disabled={exporting || selectedIds.length === 0}
             >
