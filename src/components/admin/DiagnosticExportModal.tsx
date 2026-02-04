@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileDown, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Marked } from "marked";
-import html2pdf from "html2pdf.js";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 // Create a synchronous marked instance
 const markedInstance = new Marked();
@@ -94,16 +95,19 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
       const selectedDiagnosticos = diagnosticos.filter(d => selectedIds.includes(d.id));
       console.log("Export PDF: selectedDiagnosticos", selectedDiagnosticos.length);
       
-      // Create container for PDF generation - keep in viewport but invisible
+      // Create container for PDF generation.
+      // IMPORTANT: Avoid `opacity: 0` / `visibility: hidden` / `display: none` because html2canvas may render it blank.
+      // Also avoid sending it extremely far offscreen (-9999px). We place it just outside the viewport.
       const container = document.createElement("div");
       container.style.position = "fixed";
-      container.style.left = "0";
+      container.style.left = "110vw";
       container.style.top = "0";
       container.style.width = "210mm";
+      container.style.height = "auto";
       container.style.background = "#ffffff";
-      container.style.opacity = "0";
       container.style.pointerEvents = "none";
-      container.style.zIndex = "-1";
+      container.style.zIndex = "2147483647";
+      container.setAttribute("aria-hidden", "true");
       document.body.appendChild(container);
 
       // Build HTML content with proper styling
@@ -266,28 +270,48 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
         await document.fonts.ready;
       }
 
-      // Generate PDF
-      const opt = {
-        margin: [15, 15, 15, 15],
-        filename: selectedDiagnosticos.length === 1 
-          ? `diagnostico-${getEmprendimientoNombre(selectedDiagnosticos[0].emprendimiento_id).replace(/\s+/g, "-").toLowerCase()}.pdf`
-          : `diagnosticos-${new Date().toISOString().split("T")[0]}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          backgroundColor: "#ffffff"
-        },
-        jsPDF: { 
-          unit: "mm", 
-          format: "a4", 
-          orientation: "portrait" 
-        },
-        pagebreak: { mode: ["css", "legacy"] }
-      };
+      // Generate PDF (robust): html2canvas -> jsPDF
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        windowWidth: container.scrollWidth,
+        windowHeight: container.scrollHeight,
+      });
 
-      await html2pdf().set(opt).from(container).save();
+      console.log("Export PDF canvas", { w: canvas.width, h: canvas.height });
+
+      const filename = selectedDiagnosticos.length === 1
+        ? `diagnostico-${getEmprendimientoNombre(selectedDiagnosticos[0].emprendimiento_id)
+            .replace(/\s+/g, "-")
+            .toLowerCase()}.pdf`
+        : `diagnosticos-${new Date().toISOString().split("T")[0]}.pdf`;
+
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 12;
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+
+      const imgHeight = (canvas.height * usableWidth) / canvas.width;
+      const imgData = canvas.toDataURL("image/png");
+
+      let heightLeft = imgHeight;
+      let positionY = margin;
+
+      pdf.addImage(imgData, "PNG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
+      heightLeft -= usableHeight;
+
+      while (heightLeft > 0) {
+        pdf.addPage();
+        positionY = margin - (imgHeight - heightLeft);
+        pdf.addImage(imgData, "PNG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
+        heightLeft -= usableHeight;
+      }
+
+      pdf.save(filename);
 
       // Cleanup
       document.body.removeChild(container);
@@ -319,7 +343,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           Exportar PDF
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-sm sm:max-w-md flex flex-col max-h-[85vh] overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-sm sm:max-w-md !flex !flex-col max-h-[85vh] overflow-hidden p-4 sm:p-6">
         <DialogHeader className="shrink-0">
           <DialogTitle className="text-base">Exportar Diagnósticos a PDF</DialogTitle>
           <DialogDescription className="text-sm">
@@ -344,8 +368,8 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             </span>
           </div>
 
-          <ScrollArea className="flex-1 min-h-0 w-full">
-            <div className="flex flex-col gap-2 pr-3 w-full">
+          <ScrollArea className="flex-1 min-h-0 w-full overflow-x-hidden">
+            <div className="flex flex-col gap-2 pr-2 sm:pr-3 w-full min-w-0">
               {diagnosticos.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">
                   No hay diagnósticos disponibles
@@ -355,9 +379,9 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                   const empNombre = getEmprendimientoNombre(diag.emprendimiento_id);
                   const isSelected = selectedIds.includes(diag.id);
                   return (
-                    <div
+                      <div
                       key={diag.id}
-                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer w-full min-w-0 ${
+                        className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer w-full min-w-0 max-w-full overflow-hidden ${
                         isSelected 
                           ? "border-primary bg-primary/5" 
                           : "border-border hover:bg-muted/30"
