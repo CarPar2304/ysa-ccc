@@ -95,27 +95,25 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
 
     setExporting(true);
 
+    let container: HTMLDivElement | null = null;
     try {
-      const selectedDiagnosticos = diagnosticos.filter(d => selectedIds.includes(d.id));
+      const selectedDiagnosticos = diagnosticos.filter((d) => selectedIds.includes(d.id));
       console.log("Export PDF: selectedDiagnosticos", selectedDiagnosticos.length);
-      
-      // Create container for PDF generation.
-      // IMPORTANT: Avoid `opacity: 0` / `visibility: hidden` / `display: none` because html2canvas may render it blank.
-      // Also avoid sending it extremely far offscreen (-9999px). We place it just outside the viewport.
-      const container = document.createElement("div");
+
+      // Create container for PDF generation (inside viewport, but behind everything)
+      container = document.createElement("div");
       container.style.position = "fixed";
-      container.style.left = "110vw";
+      container.style.left = "0";
       container.style.top = "0";
       container.style.width = "210mm";
       container.style.height = "auto";
       container.style.background = "#ffffff";
       container.style.pointerEvents = "none";
-      container.style.zIndex = "2147483647";
+      container.style.zIndex = "-1";
       container.setAttribute("aria-hidden", "true");
       document.body.appendChild(container);
 
-      // Build HTML content with proper styling
-      let htmlContent = `
+      const baseStyles = `
         <style>
           * {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -123,12 +121,8 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             color: #1f2937;
           }
           .diagnostic-page {
-            page-break-after: always;
             padding: 20px;
             background: #ffffff;
-          }
-          .diagnostic-page:last-child {
-            page-break-after: avoid;
           }
           .diagnostic-header {
             border-bottom: 2px solid #3b82f6;
@@ -235,76 +229,11 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
         </style>
       `;
 
-      // Build content for each diagnostic using marked
-      for (const diag of selectedDiagnosticos) {
-        const empNombre = getEmprendimientoNombre(diag.emprendimiento_id);
-        const fechaCreacion = new Date(diag.created_at).toLocaleDateString("es-CO", {
-          year: "numeric",
-          month: "long",
-          day: "numeric"
-        });
-
-        // Use marked to convert markdown to HTML
-        const renderedContent = diag.contenido 
-          ? markedInstance.parse(diag.contenido) as string
-          : "<p>Sin contenido</p>";
-
-        htmlContent += `
-          <div class="diagnostic-page">
-            <div class="diagnostic-header">
-              <h1 class="diagnostic-title">Diagnóstico: ${empNombre}</h1>
-              <p class="diagnostic-meta">Fecha de creación: ${fechaCreacion}</p>
-            </div>
-            <div class="diagnostic-content">
-              ${renderedContent}
-            </div>
-          </div>
-        `;
-      }
-
-      container.innerHTML = htmlContent;
-      console.log("Export PDF HTML length", container.innerHTML.length);
-
-      // Wait for layout to be ready
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      
-      // Wait for fonts if available
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
-
-      // Generate PDF (robust): html2canvas -> jsPDF
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        width: container.scrollWidth,
-        height: container.scrollHeight,
-      });
-
-      console.log("Export PDF canvas", { w: canvas.width, h: canvas.height });
-
-      // Validate canvas has content
-      if (canvas.width === 0 || canvas.height === 0) {
-        throw new Error("El canvas está vacío. No se pudo capturar el contenido.");
-      }
-
       const filename = selectedDiagnosticos.length === 1
         ? `diagnostico-${getEmprendimientoNombre(selectedDiagnosticos[0].emprendimiento_id)
             .replace(/\s+/g, "-")
             .toLowerCase()}.pdf`
         : `diagnosticos-${new Date().toISOString().split("T")[0]}.pdf`;
-
-      // Use JPEG format instead of PNG (more robust, avoids "wrong PNG signature" errors)
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      
-      // Validate the image data
-      if (!imgData || imgData === "data:," || imgData.length < 100) {
-        throw new Error("No se pudo generar la imagen del contenido.");
-      }
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -313,25 +242,87 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
       const usableWidth = pageWidth - margin * 2;
       const usableHeight = pageHeight - margin * 2;
 
-      const imgHeight = (canvas.height * usableWidth) / canvas.width;
+      // Render/capture ONE diagnostic at a time to avoid huge canvases and corrupted data URLs.
+      for (let idx = 0; idx < selectedDiagnosticos.length; idx++) {
+        const diag = selectedDiagnosticos[idx];
+        const empNombre = getEmprendimientoNombre(diag.emprendimiento_id);
+        const fechaCreacion = new Date(diag.created_at).toLocaleDateString("es-CO", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
 
-      let heightLeft = imgHeight;
-      let positionY = margin;
+        const renderedContent = diag.contenido
+          ? (markedInstance.parse(diag.contenido) as string)
+          : "<p>Sin contenido</p>";
 
-      pdf.addImage(imgData, "JPEG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
-      heightLeft -= usableHeight;
+        container.innerHTML = `${baseStyles}
+          <div class="diagnostic-page">
+            <div class="diagnostic-header">
+              <h1 class="diagnostic-title">Diagnóstico: ${empNombre}</h1>
+              <p class="diagnostic-meta">Fecha de creación: ${fechaCreacion}</p>
+            </div>
+            <div class="diagnostic-content">${renderedContent}</div>
+          </div>
+        `;
 
-      while (heightLeft > 0) {
-        pdf.addPage();
-        positionY = margin - (imgHeight - heightLeft);
+        // Wait for layout to be ready
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        if (document.fonts?.ready) {
+          await document.fonts.ready;
+        }
+
+        const pageEl = container.querySelector(".diagnostic-page") as HTMLElement | null;
+        if (!pageEl) throw new Error("No se pudo renderizar el diagnóstico para exportar.");
+
+        const canvas = await html2canvas(pageEl, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          logging: false,
+        });
+
+        if (canvas.width === 0 || canvas.height === 0) {
+          throw new Error("El canvas está vacío. No se pudo capturar el contenido.");
+        }
+
+        let imgData = "";
+        try {
+          imgData = canvas.toDataURL("image/jpeg", 0.95);
+        } catch (e: any) {
+          throw new Error(
+            e?.message?.includes("tainted")
+              ? "No se pudo generar la imagen por contenido externo (CORS)."
+              : "No se pudo convertir la captura a imagen."
+          );
+        }
+
+        if (!imgData || imgData === "data:," || imgData.length < 100) {
+          throw new Error("No se pudo generar la imagen del contenido.");
+        }
+
+        const imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+        // Start this diagnostic on a new PDF page (except the very first)
+        if (idx > 0) pdf.addPage();
+
+        let heightLeft = imgHeight;
+        let positionY = margin;
+
         pdf.addImage(imgData, "JPEG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
         heightLeft -= usableHeight;
+
+        while (heightLeft > 0) {
+          pdf.addPage();
+          positionY = margin - (imgHeight - heightLeft);
+          pdf.addImage(imgData, "JPEG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
+          heightLeft -= usableHeight;
+        }
       }
 
       pdf.save(filename);
-
-      // Cleanup
-      document.body.removeChild(container);
 
       toast({
         title: "PDF exportado",
@@ -348,6 +339,9 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
         variant: "destructive",
       });
     } finally {
+      if (container?.parentNode) {
+        container.parentNode.removeChild(container);
+      }
       setExporting(false);
     }
   };
