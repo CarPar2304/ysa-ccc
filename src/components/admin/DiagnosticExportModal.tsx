@@ -278,19 +278,33 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        windowWidth: container.scrollWidth,
-        windowHeight: container.scrollHeight,
+        width: container.scrollWidth,
+        height: container.scrollHeight,
       });
 
       console.log("Export PDF canvas", { w: canvas.width, h: canvas.height });
+
+      // Validate canvas has content
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error("El canvas está vacío. No se pudo capturar el contenido.");
+      }
 
       const filename = selectedDiagnosticos.length === 1
         ? `diagnostico-${getEmprendimientoNombre(selectedDiagnosticos[0].emprendimiento_id)
             .replace(/\s+/g, "-")
             .toLowerCase()}.pdf`
         : `diagnosticos-${new Date().toISOString().split("T")[0]}.pdf`;
+
+      // Use JPEG format instead of PNG (more robust, avoids "wrong PNG signature" errors)
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      
+      // Validate the image data
+      if (!imgData || imgData === "data:," || imgData.length < 100) {
+        throw new Error("No se pudo generar la imagen del contenido.");
+      }
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -300,18 +314,17 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
       const usableHeight = pageHeight - margin * 2;
 
       const imgHeight = (canvas.height * usableWidth) / canvas.width;
-      const imgData = canvas.toDataURL("image/png");
 
       let heightLeft = imgHeight;
       let positionY = margin;
 
-      pdf.addImage(imgData, "PNG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
+      pdf.addImage(imgData, "JPEG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
       heightLeft -= usableHeight;
 
       while (heightLeft > 0) {
         pdf.addPage();
         positionY = margin - (imgHeight - heightLeft);
-        pdf.addImage(imgData, "PNG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
+        pdf.addImage(imgData, "JPEG", margin, positionY, usableWidth, imgHeight, undefined, "FAST");
         heightLeft -= usableHeight;
       }
 
