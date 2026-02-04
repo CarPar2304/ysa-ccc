@@ -302,24 +302,24 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
           Exportar PDF
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[95vw] max-w-sm sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Exportar Diagnósticos a PDF</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-base">Exportar Diagnósticos a PDF</DialogTitle>
+          <DialogDescription className="text-sm">
             Selecciona los diagnósticos que deseas exportar.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between border-b pb-2">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <Checkbox
                 id="select-all"
                 checked={selectedIds.length === diagnosticos.length && diagnosticos.length > 0}
                 onCheckedChange={selectAll}
               />
               <Label htmlFor="select-all" className="font-medium cursor-pointer text-sm">
-                Seleccionar todos ({diagnosticos.length})
+                Todos ({diagnosticos.length})
               </Label>
             </div>
             <span className="text-xs text-muted-foreground">
@@ -327,8 +327,8 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             </span>
           </div>
 
-          <ScrollArea className="h-[250px] pr-4">
-            <div className="space-y-2">
+          <ScrollArea className="h-[200px] sm:h-[250px]">
+            <div className="flex flex-col gap-2 pr-3">
               {diagnosticos.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">
                   No hay diagnósticos disponibles
@@ -340,7 +340,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                   return (
                     <div
                       key={diag.id}
-                      className={`flex items-center gap-3 p-3 rounded-md border transition-colors cursor-pointer ${
+                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer ${
                         isSelected 
                           ? "border-primary bg-primary/5" 
                           : "border-border hover:bg-muted/30"
@@ -351,8 +351,9 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                         id={diag.id}
                         checked={isSelected}
                         onCheckedChange={() => toggleSelection(diag.id)}
+                        className="shrink-0"
                       />
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm truncate">
                           {empNombre}
                         </p>
@@ -367,7 +368,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             </div>
           </ScrollArea>
 
-          <div className="flex justify-end gap-2 pt-2 border-t">
+          <div className="flex justify-end gap-2 pt-3 border-t">
             <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
