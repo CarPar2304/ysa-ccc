@@ -46,7 +46,9 @@ const stripMarkdown = (text: string): string => {
     .replace(/\*(.+?)\*/g, '$1')         // Remove italic
     .replace(/\|/g, ' ')                 // Replace table pipes
     .replace(/[-:]+\|[-:|\s]+/g, '')     // Remove table separators
+    .replace(/[🌟📅🎯💡✅❌⚠️🔍📊📈📉💰🚀🔥⭐💪🎉👍👎📝🏆🌱]/g, '') // Remove common emojis
     .replace(/\n+/g, ' ')                // Collapse newlines
+    .replace(/\s+/g, ' ')                // Collapse multiple spaces
     .trim();
 };
 
@@ -334,34 +336,28 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
               ) : (
                 diagnosticos.map((diag) => {
                   const empNombre = getEmprendimientoNombre(diag.emprendimiento_id);
+                  const isSelected = selectedIds.includes(diag.id);
                   return (
                     <div
                       key={diag.id}
-                      className={`flex items-start space-x-3 p-2.5 rounded-lg border transition-colors cursor-pointer ${
-                        selectedIds.includes(diag.id) 
+                      className={`flex items-center gap-3 p-3 rounded-md border transition-colors cursor-pointer ${
+                        isSelected 
                           ? "border-primary bg-primary/5" 
-                          : "border-border hover:bg-muted/50"
+                          : "border-border hover:bg-muted/30"
                       }`}
                       onClick={() => toggleSelection(diag.id)}
                     >
                       <Checkbox
                         id={diag.id}
-                        checked={selectedIds.includes(diag.id)}
+                        checked={isSelected}
                         onCheckedChange={() => toggleSelection(diag.id)}
-                        className="mt-0.5"
                       />
                       <div className="flex-1 min-w-0">
-                        <Label 
-                          htmlFor={diag.id} 
-                          className="font-medium cursor-pointer block truncate text-sm"
-                        >
+                        <p className="font-medium text-sm truncate">
                           {empNombre}
-                        </Label>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {stripMarkdown(diag.contenido?.substring(0, 150) || "")}...
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(diag.created_at).toLocaleDateString()}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(diag.created_at).toLocaleDateString("es-CO")}
                         </p>
                       </div>
                     </div>
