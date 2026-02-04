@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileDown, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Marked } from "marked";
@@ -58,6 +57,11 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isDraggingRef = useRef(false);
+
+  const allSelected = diagnosticos.length > 0 && selectedIds.length === diagnosticos.length;
+  const someSelected = selectedIds.length > 0 && selectedIds.length < diagnosticos.length;
 
   const getEmprendimientoNombre = (empId: string) => {
     return emprendimientos.find(e => e.id === empId)?.nombre || "Sin nombre";
@@ -72,7 +76,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
   };
 
   const selectAll = () => {
-    if (selectedIds.length === diagnosticos.length) {
+    if (allSelected) {
       setSelectedIds([]);
     } else {
       setSelectedIds(diagnosticos.map(d => d.id));
@@ -356,14 +360,8 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             <div className="flex items-center gap-2">
               <Checkbox
                 id="select-all"
-                checked={selectedIds.length === diagnosticos.length && diagnosticos.length > 0}
-                onCheckedChange={() => selectAll()}
-                ref={(el) => {
-                  if (el) {
-                    const isIndeterminate = selectedIds.length > 0 && selectedIds.length < diagnosticos.length;
-                    (el as HTMLButtonElement).dataset.state = isIndeterminate ? "indeterminate" : (selectedIds.length === diagnosticos.length && diagnosticos.length > 0 ? "checked" : "unchecked");
-                  }
-                }}
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={selectAll}
               />
               <Label htmlFor="select-all" className="font-medium cursor-pointer text-sm">
                 Todos ({diagnosticos.length})
@@ -374,8 +372,13 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             </span>
           </div>
 
-          <ScrollArea className="flex-1 h-[40vh] max-h-[300px] w-full">
-            <div className="flex flex-col gap-2 pr-3 w-full">
+          {/* Scroll nativo (más confiable que Radix dentro de Dialog en algunos navegadores) */}
+          <div
+            className="flex-1 min-h-0 h-[40vh] max-h-[300px] w-full overflow-y-auto overflow-x-hidden pr-3 overscroll-contain touch-pan-y"
+            style={{ WebkitOverflowScrolling: "touch" }}
+            tabIndex={0}
+          >
+            <div className="flex flex-col gap-2 w-full">
               {diagnosticos.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">
                   No hay diagnósticos disponibles
@@ -387,12 +390,28 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                   return (
                     <div
                       key={diag.id}
-                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer w-full ${
-                        isSelected 
-                          ? "border-primary bg-primary/5" 
+                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors cursor-pointer w-full min-w-0 touch-pan-y ${
+                        isSelected
+                          ? "border-primary bg-primary/5"
                           : "border-border hover:bg-muted/30"
                       }`}
-                      onClick={() => toggleSelection(diag.id)}
+                      onPointerDown={(e) => {
+                        pointerStartRef.current = { x: e.clientX, y: e.clientY };
+                        isDraggingRef.current = false;
+                      }}
+                      onPointerMove={(e) => {
+                        const start = pointerStartRef.current;
+                        if (!start) return;
+                        if (Math.abs(start.y - e.clientY) > 8 || Math.abs(start.x - e.clientX) > 8) {
+                          isDraggingRef.current = true;
+                        }
+                      }}
+                      onClick={(e) => {
+                        pointerStartRef.current = null;
+                        // If the user dragged (scroll gesture), don't toggle selection.
+                        if (isDraggingRef.current) return;
+                        toggleSelection(diag.id);
+                      }}
                     >
                       <Checkbox
                         id={diag.id}
@@ -402,9 +421,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                         onClick={(e) => e.stopPropagation()}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">
-                          {empNombre}
-                        </p>
+                        <p className="font-medium text-sm truncate">{empNombre}</p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(diag.created_at).toLocaleDateString("es-CO")}
                         </p>
@@ -414,7 +431,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                 })
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="shrink-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-3 border-t">
             <Button variant="outline" size="sm" onClick={() => setOpen(false)} className="w-full sm:w-auto">
