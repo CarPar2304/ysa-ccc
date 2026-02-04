@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Loader2, Save, Plus, Pencil } from "lucide-react";
+import { DiagnosticExportModal } from "./DiagnosticExportModal";
 
 interface Emprendimiento {
   id: string;
@@ -234,10 +235,18 @@ export function DiagnosticEditor() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Diagnósticos Existentes</CardTitle>
-          <CardDescription>
-            Lista de todos los diagnósticos creados
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Diagnósticos Existentes</CardTitle>
+              <CardDescription>
+                Lista de todos los diagnósticos creados
+              </CardDescription>
+            </div>
+            <DiagnosticExportModal 
+              diagnosticos={diagnosticos} 
+              emprendimientos={emprendimientos} 
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
