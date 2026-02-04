@@ -13,6 +13,7 @@ import { Calendar as CalendarIcon, Search, BookMarked, Lock } from "lucide-react
 import { MisAsesorias } from "@/components/mentor/MisAsesorias";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
+import { Badge } from "@/components/ui/badge";
 
 interface PerfilAsesoria {
   id: string;
@@ -39,8 +40,11 @@ interface ReservaExistente {
 const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 const Mentorias = () => {
-  const { userId } = useUserRole();
+  const { userId, isAdmin, isMentor } = useUserRole();
   const { isApproved, loading: loadingQuota, quotaInfo } = useQuotaStatus(userId);
+  
+  // Admins y mentores siempre tienen acceso
+  const hasAccess = isAdmin || isMentor || isApproved;
   const [perfiles, setPerfiles] = useState<PerfilAsesoria[]>([]);
   const [filteredPerfiles, setFilteredPerfiles] = useState<PerfilAsesoria[]>([]);
   const [tematicas, setTematicas] = useState<string[]>([]);
@@ -240,7 +244,7 @@ const Mentorias = () => {
     );
   }
 
-  if (!isApproved) {
+  if (!hasAccess) {
     return (
       <Layout>
         <div className="mx-auto max-w-3xl p-6">
@@ -277,7 +281,10 @@ const Mentorias = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Mentorías YSA</h1>
           <p className="text-muted-foreground">Agenda sesiones con nuestros mentores expertos</p>
-          {quotaInfo && (
+          {isAdmin && (
+            <Badge variant="secondary" className="mt-1">Acceso Administrativo</Badge>
+          )}
+          {!isAdmin && quotaInfo && (
             <p className="text-sm text-muted-foreground mt-1">
               Nivel {quotaInfo.nivel} • Cohorte {quotaInfo.cohorte}
             </p>

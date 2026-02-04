@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Filter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface Mentor {
   id: string;
@@ -23,6 +24,7 @@ interface Emprendimiento {
     nombres: string;
     apellidos: string;
   };
+  tieneAprobacion?: boolean;
 }
 
 interface Assignment {
@@ -49,6 +51,7 @@ export const MentorAssignments = () => {
   const [selectedEmprendimientos, setSelectedEmprendimientos] = useState<string[]>([]);
   const [esJurado, setEsJurado] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [quotaFilter, setQuotaFilter] = useState<string>("sin_cupo");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -80,7 +83,8 @@ export const MentorAssignments = () => {
   };
 
   const fetchEmprendimientos = async () => {
-    const { data, error } = await supabase
+    // Obtener emprendimientos con información de cupos
+    const { data: empData, error } = await supabase
       .from("emprendimientos")
       .select("id, nombre, user_id, usuarios(nombres, apellidos)");
 
@@ -89,7 +93,20 @@ export const MentorAssignments = () => {
       return;
     }
 
-    setEmprendimientos(data as any);
+    // Obtener cupos aprobados
+    const { data: cuposData } = await supabase
+      .from("asignacion_cupos")
+      .select("emprendimiento_id")
+      .eq("estado", "aprobado");
+
+    const cuposAprobados = new Set(cuposData?.map(c => c.emprendimiento_id) || []);
+
+    const emprendimientosConCupo = empData?.map((emp: any) => ({
+      ...emp,
+      tieneAprobacion: cuposAprobados.has(emp.id)
+    })) || [];
+
+    setEmprendimientos(emprendimientosConCupo);
   };
 
   const fetchAssignments = async () => {
@@ -234,17 +251,42 @@ export const MentorAssignments = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>Emprendimientos ({selectedEmprendimientos.length} seleccionados)</Label>
+            <div className="flex items-center justify-between">
+              <Label>Emprendimientos ({selectedEmprendimientos.length} seleccionados)</Label>
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Select value={quotaFilter} onValueChange={setQuotaFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filtrar por cupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="sin_cupo">Sin cupo aprobado</SelectItem>
+                    <SelectItem value="con_cupo">Con cupo aprobado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
-              {emprendimientos.map((emp) => (
+              {emprendimientos
+                .filter((emp) => {
+                  if (quotaFilter === "todos") return true;
+                  if (quotaFilter === "sin_cupo") return !emp.tieneAprobacion;
+                  if (quotaFilter === "con_cupo") return emp.tieneAprobacion;
+                  return true;
+                })
+                .map((emp) => (
                 <div key={emp.id} className="flex items-center space-x-2">
                   <Checkbox
                     id={emp.id}
                     checked={selectedEmprendimientos.includes(emp.id)}
                     onCheckedChange={() => toggleEmprendimiento(emp.id)}
                   />
-                  <Label htmlFor={emp.id} className="cursor-pointer flex-1 text-sm">
+                  <Label htmlFor={emp.id} className="cursor-pointer flex-1 text-sm flex items-center gap-2">
                     {emp.nombre} ({emp.usuarios.nombres} {emp.usuarios.apellidos})
+                    {emp.tieneAprobacion && (
+                      <Badge variant="secondary" className="text-xs">Cupo Aprobado</Badge>
+                    )}
                   </Label>
                 </div>
               ))}
