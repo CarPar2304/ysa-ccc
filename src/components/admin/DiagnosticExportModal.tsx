@@ -6,8 +6,16 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileDown, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { marked } from "marked";
+import { Marked } from "marked";
 import html2pdf from "html2pdf.js";
+
+// Create a synchronous marked instance
+const markedInstance = new Marked();
+markedInstance.setOptions({
+  gfm: true,
+  breaks: true,
+  async: false
+});
 
 interface Emprendimiento {
   id: string;
@@ -27,11 +35,7 @@ interface DiagnosticExportModalProps {
   emprendimientos: Emprendimiento[];
 }
 
-// Configure marked for GFM (GitHub Flavored Markdown)
-marked.setOptions({
-  gfm: true,
-  breaks: true
-});
+// Configure marked for GFM (GitHub Flavored Markdown) - already done above with markedInstance
 
 // Helper function to strip markdown for preview display
 const stripMarkdown = (text: string): string => {
@@ -225,7 +229,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
 
         // Use marked to convert markdown to HTML
         const renderedContent = diag.contenido 
-          ? marked.parse(diag.contenido) 
+          ? markedInstance.parse(diag.contenido) as string
           : "<p>Sin contenido</p>";
 
         htmlContent += `
