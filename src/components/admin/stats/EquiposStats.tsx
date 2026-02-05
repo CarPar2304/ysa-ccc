@@ -2,7 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Award, Briefcase } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { FilterType, NivelFilter } from "../DashboardFilters";
+import { CHART_COLORS, getColorByIndex } from "@/lib/chartColors";
 
 interface ChartData {
   name: string;
@@ -10,14 +12,12 @@ interface ChartData {
   percentage?: number;
 }
 
-const COLORS = [
-  'hsl(var(--primary))',
-  'hsl(220, 60%, 65%)',
-  'hsl(220, 50%, 75%)',
-  'hsl(220, 40%, 85%)',
-];
+interface EquiposStatsProps {
+  filterType: FilterType;
+  nivelFilter: NivelFilter;
+}
 
-export const EquiposStats = () => {
+export const EquiposStats = ({ filterType, nivelFilter }: EquiposStatsProps) => {
   const [promedioTotal, setPromedioTotal] = useState(0);
   const [promedioFullTime, setPromedioFullTime] = useState(0);
   const [promedioColaboradoras, setPromedioColaboradoras] = useState(0);
@@ -30,11 +30,17 @@ export const EquiposStats = () => {
 
   useEffect(() => {
     fetchEquiposStats();
-  }, []);
+  }, [filterType, nivelFilter]);
+
+  const getNivelFromScore = (puntaje: number): string => {
+    if (puntaje >= 70) return "Scale";
+    if (puntaje >= 40) return "Growth";
+    return "Starter";
+  };
 
   const fetchEquiposStats = async () => {
+    setLoading(true);
     try {
-      // Solo equipos de beneficiarios
       const { data: beneficiariosIds } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -46,9 +52,51 @@ export const EquiposStats = () => {
         .from("emprendimientos")
         .select("id, user_id");
 
-      const emprendimientosBenefIds = emprendimientos
-        ?.filter(e => beneficiariosSet.has(e.user_id))
-        .map(e => e.id) || [];
+      const { data: asignaciones } = await supabase
+        .from("asignacion_cupos")
+        .select("emprendimiento_id, estado, nivel")
+        .eq("estado", "aprobado");
+
+      const aprobadosSet = new Set(asignaciones?.map(a => a.emprendimiento_id) || []);
+
+      const { data: evaluaciones } = await supabase
+        .from("evaluaciones")
+        .select("emprendimiento_id, puntaje");
+
+      const evaluacionesMap = new Map();
+      evaluaciones?.forEach(ev => {
+        if (!evaluacionesMap.has(ev.emprendimiento_id) || (ev.puntaje || 0) > (evaluacionesMap.get(ev.emprendimiento_id)?.puntaje || 0)) {
+          evaluacionesMap.set(ev.emprendimiento_id, ev);
+        }
+      });
+
+      let filteredEmprendimientos = emprendimientos || [];
+
+      if (filterType === "beneficiarios") {
+        filteredEmprendimientos = filteredEmprendimientos.filter(e => 
+          beneficiariosSet.has(e.user_id) && aprobadosSet.has(e.id)
+        );
+      } else if (filterType === "candidatos") {
+        filteredEmprendimientos = filteredEmprendimientos.filter(e => !aprobadosSet.has(e.id));
+      }
+
+      if (nivelFilter !== "todos") {
+        if (nivelFilter === "candidatos") {
+          filteredEmprendimientos = filteredEmprendimientos.filter(e => !aprobadosSet.has(e.id));
+        } else {
+          filteredEmprendimientos = filteredEmprendimientos.filter(e => {
+            const asignacion = asignaciones?.find(a => a.emprendimiento_id === e.id);
+            if (asignacion?.nivel === nivelFilter) return true;
+            const evaluacion = evaluacionesMap.get(e.id);
+            if (evaluacion?.puntaje) {
+              return getNivelFromScore(evaluacion.puntaje) === nivelFilter;
+            }
+            return false;
+          });
+        }
+      }
+
+      const emprendimientosBenefIds = filteredEmprendimientos.map(e => e.id);
 
       const { data: allEquipos } = await supabase
         .from("equipos")
@@ -63,7 +111,6 @@ export const EquiposStats = () => {
 
       const total = equipos.length;
 
-      // Promedios
       const sumTotal = equipos.reduce((sum, e) => sum + (e.equipo_total || 0), 0);
       setPromedioTotal(sumTotal / total);
 
@@ -79,7 +126,6 @@ export const EquiposStats = () => {
       const sumJovenes = equipos.reduce((sum, e) => sum + (e.colaboradores_jovenes || 0), 0);
       setPromedioJovenes(sumJovenes / total);
 
-      // Distribución equipo técnico
       const tecnicoCounts = equipos.reduce((acc: any, e) => {
         const tecnico = e.equipo_tecnico ? "Tiene equipo técnico" : "No tiene equipo técnico";
         acc[tecnico] = (acc[tecnico] || 0) + 1;
@@ -94,7 +140,6 @@ export const EquiposStats = () => {
         }))
       );
 
-      // Distribución organigrama
       const orgCounts = equipos.reduce((acc: any, e) => {
         const org = e.organigrama || "No especificado";
         acc[org] = (acc[org] || 0) + 1;
@@ -108,7 +153,6 @@ export const EquiposStats = () => {
         }))
       );
 
-      // Distribución tipo decisiones
       const decCounts = equipos.reduce((acc: any, e) => {
         const dec = e.tipo_decisiones || "No especificado";
         acc[dec] = (acc[dec] || 0) + 1;
@@ -136,60 +180,58 @@ export const EquiposStats = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Promedio Equipo Total</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{promedioTotal.toFixed(1)}</div>
+            <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{promedioTotal.toFixed(1)}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 border-green-200 dark:border-green-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Promedio Full Time</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <Briefcase className="h-4 w-4 text-green-600 dark:text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{promedioFullTime.toFixed(1)}</div>
+            <div className="text-2xl font-bold text-green-700 dark:text-green-300">{promedioFullTime.toFixed(1)}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/50 dark:to-pink-900/30 border-pink-200 dark:border-pink-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Promedio Colaboradoras</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-pink-600 dark:text-pink-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{promedioColaboradoras.toFixed(1)}</div>
+            <div className="text-2xl font-bold text-pink-700 dark:text-pink-300">{promedioColaboradoras.toFixed(1)}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/30 border-purple-200 dark:border-purple-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Promedio Fundadoras</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
+            <Award className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{promedioFundadoras.toFixed(1)}</div>
+            <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">{promedioFundadoras.toFixed(1)}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30 border-amber-200 dark:border-amber-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Promedio Jóvenes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{promedioJovenes.toFixed(1)}</div>
+            <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{promedioJovenes.toFixed(1)}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -203,20 +245,23 @@ export const EquiposStats = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry) => `${entry.name} (${entry.percentage?.toFixed(1)}%)`}
-                  outerRadius={80}
-                  fill="hsl(var(--primary))"
+                  label={(entry) => entry.percentage > 5 ? `${entry.name.split(' ')[0]} (${entry.percentage?.toFixed(1)}%)` : null}
+                  outerRadius={90}
+                  innerRadius={40}
                   dataKey="value"
+                  strokeWidth={2}
+                  stroke="hsl(var(--background))"
                 >
                   {equipoTecnicoData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={entry.name.includes("Tiene") ? CHART_COLORS.boolean.positive : CHART_COLORS.boolean.negative} />
                   ))}
                 </Pie>
+                <Legend verticalAlign="bottom" height={36} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    borderRadius: "8px",
                   }}
                 />
               </PieChart>
@@ -231,17 +276,21 @@ export const EquiposStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={organigramaData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    borderRadius: "8px",
                   }}
                 />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {organigramaData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -253,18 +302,22 @@ export const EquiposStats = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={tipoDecisionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+              <BarChart data={tipoDecisionData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={10} width={200} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    borderRadius: "8px",
                   }}
                 />
-                <Bar dataKey="value" fill="hsl(220, 60%, 65%)" />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                  {tipoDecisionData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
