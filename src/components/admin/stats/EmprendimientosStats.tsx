@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Briefcase, TrendingUp, Lightbulb } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Treemap } from "recharts";
 import { FilterType, NivelFilter } from "../DashboardFilters";
 import { CHART_COLORS, getColorByIndex } from "@/lib/chartColors";
 
@@ -21,6 +21,43 @@ const PRACTICE_COLORS = {
   "No está en planes": "#ef4444",
   "En planes": "#f59e0b",
   "Ya lo implementa": "#22c55e",
+};
+
+// Custom Treemap content component
+const CustomTreemapContent = (props: any) => {
+  const { x, y, width, height, name, fill } = props;
+  const displayName = width > 60 && height > 30 
+    ? (name?.length > 15 ? name.substring(0, 15) + '...' : name) 
+    : (width > 40 && height > 20 ? name?.substring(0, 8) + '..' : '');
+  
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+        stroke="hsl(var(--background))"
+        strokeWidth={2}
+        rx={4}
+      />
+      {displayName && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#fff"
+          fontSize={width > 80 ? 11 : 9}
+          fontWeight="500"
+          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+        >
+          {displayName}
+        </text>
+      )}
+    </g>
+  );
 };
 
 export const EmprendimientosStats = ({ filterType, nivelFilter }: EmprendimientosStatsProps) => {
@@ -374,23 +411,36 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Vertical (Industria)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={verticalData.sort((a, b) => b.value - a.value)} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal />
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={10} width={120} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
-                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                  {verticalData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
-                  ))}
-                </Bar>
-              </BarChart>
+            <ResponsiveContainer width="100%" height={300}>
+              <Treemap
+                data={verticalData.map((item, index) => ({
+                  ...item,
+                  fill: getColorByIndex(index),
+                }))}
+                dataKey="value"
+                stroke="hsl(var(--background))"
+                content={<CustomTreemapContent />}
+              >
+                <Tooltip 
+                  content={({ payload }: any) => {
+                    if (payload && payload.length > 0) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg">
+                          <p className="font-medium text-sm">{data.name}</p>
+                          <p className="text-muted-foreground text-xs">{data.value} emprendimientos</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+              </Treemap>
             </ResponsiveContainer>
           </CardContent>
         </Card>
