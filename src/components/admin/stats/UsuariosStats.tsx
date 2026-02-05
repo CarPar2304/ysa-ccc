@@ -5,6 +5,7 @@ import { Users, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { FilterType, NivelFilter } from "../DashboardFilters";
 import { CHART_COLORS, getColorByIndex, getGenderColor, getLevelColor } from "@/lib/chartColors";
+import { filterEmprendimientos, buildEvaluacionesMap, getNivelFromScore } from "@/hooks/useDashboardFilter";
 
 interface ChartData {
   name: string;
@@ -31,11 +32,6 @@ export const UsuariosStats = ({ filterType, nivelFilter }: UsuariosStatsProps) =
     fetchUsuariosStats();
   }, [filterType, nivelFilter]);
 
-  const getNivelFromScore = (puntaje: number): string => {
-    if (puntaje >= 70) return "Scale";
-    if (puntaje >= 40) return "Growth";
-    return "Starter";
-  };
 
   const fetchUsuariosStats = async () => {
     setLoading(true);
@@ -66,44 +62,18 @@ export const UsuariosStats = ({ filterType, nivelFilter }: UsuariosStatsProps) =
         .from("evaluaciones")
         .select("emprendimiento_id, puntaje, nivel");
 
-      const evaluacionesMap = new Map();
-      evaluaciones?.forEach(ev => {
-        if (!evaluacionesMap.has(ev.emprendimiento_id) || (ev.puntaje || 0) > (evaluacionesMap.get(ev.emprendimiento_id)?.puntaje || 0)) {
-          evaluacionesMap.set(ev.emprendimiento_id, ev);
-        }
-      });
+      const evaluacionesMap = buildEvaluacionesMap(evaluaciones || []);
 
-      // Filter emprendimientos based on filterType
-      let filteredEmprendimientos = allEmprendimientos || [];
-
-      if (filterType === "beneficiarios") {
-        filteredEmprendimientos = filteredEmprendimientos.filter(e => 
-          beneficiariosSet.has(e.user_id) && aprobadosSet.has(e.id)
-        );
-      } else if (filterType === "candidatos") {
-        filteredEmprendimientos = filteredEmprendimientos.filter(e => 
-          !aprobadosSet.has(e.id)
-        );
-      }
-
-      // Filter by nivel (including score-based for candidatos)
-      if (nivelFilter !== "todos") {
-        if (nivelFilter === "candidatos") {
-          filteredEmprendimientos = filteredEmprendimientos.filter(e => !aprobadosSet.has(e.id));
-        } else {
-          filteredEmprendimientos = filteredEmprendimientos.filter(e => {
-            const asignacion = asignaciones?.find(a => a.emprendimiento_id === e.id);
-            if (asignacion?.nivel === nivelFilter) return true;
-            
-            // Check score-based level for candidatos
-            const evaluacion = evaluacionesMap.get(e.id);
-            if (evaluacion?.puntaje) {
-              return getNivelFromScore(evaluacion.puntaje) === nivelFilter;
-            }
-            return false;
-          });
-        }
-      }
+      // Use shared filter function
+      const filteredEmprendimientos = filterEmprendimientos(
+        allEmprendimientos || [],
+        beneficiariosSet,
+        aprobadosSet,
+        asignaciones || [],
+        evaluacionesMap,
+        filterType,
+        nivelFilter
+      );
 
       const filteredUserIds = new Set(filteredEmprendimientos.map(e => e.user_id));
       setTotalBeneficiarios(filteredUserIds.size);
