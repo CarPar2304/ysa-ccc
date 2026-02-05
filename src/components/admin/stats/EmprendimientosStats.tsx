@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Briefcase, TrendingUp, Lightbulb } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Treemap } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { FilterType, NivelFilter } from "../DashboardFilters";
 import { CHART_COLORS, getColorByIndex } from "@/lib/chartColors";
 
@@ -380,14 +380,17 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <Treemap
-                data={verticalData}
-                dataKey="value"
-                stroke="hsl(var(--background))"
-                fill={CHART_COLORS.categorical[0]}
-              >
+              <BarChart data={verticalData.sort((a, b) => b.value - a.value)} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={10} width={120} />
                 <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
-              </Treemap>
+                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                  {verticalData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
