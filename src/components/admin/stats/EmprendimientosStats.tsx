@@ -5,6 +5,7 @@ import { Briefcase, TrendingUp, Lightbulb } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Treemap } from "recharts";
 import { FilterType, NivelFilter } from "../DashboardFilters";
 import { CHART_COLORS, getColorByIndex } from "@/lib/chartColors";
+import { filterEmprendimientos, buildEvaluacionesMap } from "@/hooks/useDashboardFilter";
 
 interface ChartData {
   name: string;
@@ -85,12 +86,6 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
     fetchEmprendimientosStats();
   }, [filterType, nivelFilter]);
 
-  const getNivelFromScore = (puntaje: number): string => {
-    if (puntaje >= 70) return "Scale";
-    if (puntaje >= 40) return "Growth";
-    return "Starter";
-  };
-
   const fetchEmprendimientosStats = async () => {
     setLoading(true);
     try {
@@ -116,38 +111,17 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
         .from("evaluaciones")
         .select("emprendimiento_id, puntaje");
 
-      const evaluacionesMap = new Map();
-      evaluaciones?.forEach(ev => {
-        if (!evaluacionesMap.has(ev.emprendimiento_id) || (ev.puntaje || 0) > (evaluacionesMap.get(ev.emprendimiento_id)?.puntaje || 0)) {
-          evaluacionesMap.set(ev.emprendimiento_id, ev);
-        }
-      });
+      const evaluacionesMap = buildEvaluacionesMap(evaluaciones || []);
 
-      let emprendimientos = allEmprendimientos || [];
-
-      if (filterType === "beneficiarios") {
-        emprendimientos = emprendimientos.filter(e => 
-          beneficiariosSet.has(e.user_id) && aprobadosSet.has(e.id)
-        );
-      } else if (filterType === "candidatos") {
-        emprendimientos = emprendimientos.filter(e => !aprobadosSet.has(e.id));
-      }
-
-      if (nivelFilter !== "todos") {
-        if (nivelFilter === "candidatos") {
-          emprendimientos = emprendimientos.filter(e => !aprobadosSet.has(e.id));
-        } else {
-          emprendimientos = emprendimientos.filter(e => {
-            const asignacion = asignaciones?.find(a => a.emprendimiento_id === e.id);
-            if (asignacion?.nivel === nivelFilter) return true;
-            const evaluacion = evaluacionesMap.get(e.id);
-            if (evaluacion?.puntaje) {
-              return getNivelFromScore(evaluacion.puntaje) === nivelFilter;
-            }
-            return false;
-          });
-        }
-      }
+      const emprendimientos = filterEmprendimientos(
+        allEmprendimientos || [],
+        beneficiariosSet,
+        aprobadosSet,
+        asignaciones || [],
+        evaluacionesMap,
+        filterType,
+        nivelFilter
+      );
 
       if (!emprendimientos || emprendimientos.length === 0) {
         setLoading(false);
