@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Eye, RefreshCw } from "lucide-react";
+import { Search, Download, Eye, RefreshCw, ArrowUpDown } from "lucide-react";
 import { CandidatoData } from "@/pages/Candidatos";
 import { CandidatoFullDetailModal } from "./CandidatoFullDetailModal";
 import { ExportOptionsModal } from "./ExportOptionsModal";
@@ -20,12 +20,14 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
+  const [sortOrder, setSortOrder] = useState<string>("desc");
   const [selectedCandidato, setSelectedCandidato] = useState<CandidatoData | null>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportCandidato, setExportCandidato] = useState<CandidatoData | null>(null);
   const [massExportModalOpen, setMassExportModalOpen] = useState(false);
 
-  const filteredCandidatos = candidatos.filter((candidato) => {
+  const filteredCandidatos = useMemo(() => {
+    const filtered = candidatos.filter((candidato) => {
     const matchesSearch = 
       candidato.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
       candidato.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,12 +39,20 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
       (statusFilter === "candidato" && (!candidato.cupo || candidato.cupo.estado !== "aprobado")) ||
       (statusFilter === "beneficiario" && candidato.cupo?.estado === "aprobado");
 
-    const matchesNivel = 
-      nivelFilter === "todos" ||
-      candidato.cupo?.nivel === nivelFilter;
+      const matchesNivel = 
+        nivelFilter === "todos" ||
+        candidato.cupo?.nivel === nivelFilter;
 
-    return matchesSearch && matchesStatus && matchesNivel;
-  });
+      return matchesSearch && matchesStatus && matchesNivel;
+    });
+
+    // Sort by user creation date
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+  }, [candidatos, searchTerm, statusFilter, nivelFilter, sortOrder]);
 
   const getStatusBadge = (candidato: CandidatoData) => {
     if (candidato.cupo?.estado === "aprobado") {
@@ -111,6 +121,16 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
                   <SelectItem value="Starter">Starter</SelectItem>
                   <SelectItem value="Growth">Growth</SelectItem>
                   <SelectItem value="Scale">Scale</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger className="w-[180px]">
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">Más recientes primero</SelectItem>
+                  <SelectItem value="asc">Más antiguos primero</SelectItem>
                 </SelectContent>
               </Select>
             </div>

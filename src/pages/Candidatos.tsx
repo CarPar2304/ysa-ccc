@@ -13,6 +13,7 @@ export interface CandidatoData {
   nombres: string;
   apellidos: string;
   email: string;
+  created_at: string;
   celular: string;
   numero_identificacion: string;
   departamento: string;
@@ -215,6 +216,7 @@ const Candidatos = () => {
           nombres: usuario.nombres || "",
           apellidos: usuario.apellidos || "",
           email: usuario.email || "",
+          created_at: usuario.created_at,
           celular: usuario.celular || "",
           numero_identificacion: usuario.numero_identificacion || "",
           departamento: usuario.departamento || "",
