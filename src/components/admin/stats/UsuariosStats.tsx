@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { FilterType, NivelFilter } from "../DashboardFilters";
+import { CHART_COLORS, getColorByIndex, getGenderColor, getLevelColor } from "@/lib/chartColors";
 
 interface ChartData {
   name: string;
@@ -10,15 +12,12 @@ interface ChartData {
   percentage?: number;
 }
 
-const COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--secondary))',
-  'hsl(220, 60%, 65%)',
-  'hsl(220, 50%, 75%)',
-  'hsl(220, 40%, 85%)',
-];
+interface UsuariosStatsProps {
+  filterType: FilterType;
+  nivelFilter: NivelFilter;
+}
 
-export const UsuariosStats = () => {
+export const UsuariosStats = ({ filterType, nivelFilter }: UsuariosStatsProps) => {
   const [totalBeneficiarios, setTotalBeneficiarios] = useState(0);
   const [nivelData, setNivelData] = useState<ChartData[]>([]);
   const [generoData, setGeneroData] = useState<ChartData[]>([]);
@@ -30,18 +29,18 @@ export const UsuariosStats = () => {
 
   useEffect(() => {
     fetchUsuariosStats();
-  }, []);
+  }, [filterType, nivelFilter]);
+
+  const getNivelFromScore = (puntaje: number): string => {
+    if (puntaje >= 70) return "Scale";
+    if (puntaje >= 40) return "Growth";
+    return "Starter";
+  };
 
   const fetchUsuariosStats = async () => {
+    setLoading(true);
     try {
-      // Total beneficiarios
-      const { count: totalBenef } = await supabase
-        .from("user_roles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "beneficiario");
-      setTotalBeneficiarios(totalBenef || 0);
-
-      // Distribución por nivel (de evaluaciones de beneficiarios solamente)
+      // Get beneficiarios
       const { data: beneficiariosIds } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -49,37 +48,95 @@ export const UsuariosStats = () => {
 
       const beneficiariosSet = new Set(beneficiariosIds?.map(b => b.user_id) || []);
 
-      const { data: emprendimientosBenef } = await supabase
+      // Get all emprendimientos
+      const { data: allEmprendimientos } = await supabase
         .from("emprendimientos")
         .select("id, user_id");
 
-      const emprendimientosBenefIds = emprendimientosBenef
-        ?.filter(e => beneficiariosSet.has(e.user_id))
-        .map(e => e.id) || [];
+      // Get approved cupos
+      const { data: asignaciones } = await supabase
+        .from("asignacion_cupos")
+        .select("emprendimiento_id, estado, nivel")
+        .eq("estado", "aprobado");
 
+      const aprobadosSet = new Set(asignaciones?.map(a => a.emprendimiento_id) || []);
+
+      // Get evaluaciones for score-based level filtering
       const { data: evaluaciones } = await supabase
         .from("evaluaciones")
-        .select("nivel, emprendimiento_id")
-        .in("emprendimiento_id", emprendimientosBenefIds.length > 0 ? emprendimientosBenefIds : ["none"]);
+        .select("emprendimiento_id, puntaje, nivel");
 
-      const nivelCounts = evaluaciones?.reduce((acc: any, ev) => {
-        const nivel = ev.nivel || "Sin nivel";
-        acc[nivel] = (acc[nivel] || 0) + 1;
-        return acc;
-      }, {});
+      const evaluacionesMap = new Map();
+      evaluaciones?.forEach(ev => {
+        if (!evaluacionesMap.has(ev.emprendimiento_id) || (ev.puntaje || 0) > (evaluacionesMap.get(ev.emprendimiento_id)?.puntaje || 0)) {
+          evaluacionesMap.set(ev.emprendimiento_id, ev);
+        }
+      });
+
+      // Filter emprendimientos based on filterType
+      let filteredEmprendimientos = allEmprendimientos || [];
+
+      if (filterType === "beneficiarios") {
+        filteredEmprendimientos = filteredEmprendimientos.filter(e => 
+          beneficiariosSet.has(e.user_id) && aprobadosSet.has(e.id)
+        );
+      } else if (filterType === "candidatos") {
+        filteredEmprendimientos = filteredEmprendimientos.filter(e => 
+          !aprobadosSet.has(e.id)
+        );
+      }
+
+      // Filter by nivel (including score-based for candidatos)
+      if (nivelFilter !== "todos") {
+        if (nivelFilter === "candidatos") {
+          filteredEmprendimientos = filteredEmprendimientos.filter(e => !aprobadosSet.has(e.id));
+        } else {
+          filteredEmprendimientos = filteredEmprendimientos.filter(e => {
+            const asignacion = asignaciones?.find(a => a.emprendimiento_id === e.id);
+            if (asignacion?.nivel === nivelFilter) return true;
+            
+            // Check score-based level for candidatos
+            const evaluacion = evaluacionesMap.get(e.id);
+            if (evaluacion?.puntaje) {
+              return getNivelFromScore(evaluacion.puntaje) === nivelFilter;
+            }
+            return false;
+          });
+        }
+      }
+
+      const filteredUserIds = new Set(filteredEmprendimientos.map(e => e.user_id));
+      setTotalBeneficiarios(filteredUserIds.size);
+
+      // Distribución por nivel
+      const nivelCounts: Record<string, number> = {};
+      filteredEmprendimientos.forEach(e => {
+        const asignacion = asignaciones?.find(a => a.emprendimiento_id === e.id);
+        let nivel: string | null = asignacion?.nivel || null;
+        
+        if (!nivel) {
+          const evaluacion = evaluacionesMap.get(e.id);
+          if (evaluacion?.puntaje) {
+            nivel = getNivelFromScore(evaluacion.puntaje);
+          }
+        }
+        
+        const nivelLabel = nivel || "Sin nivel";
+        nivelCounts[nivelLabel] = (nivelCounts[nivelLabel] || 0) + 1;
+      });
 
       setNivelData(
-        Object.entries(nivelCounts || {}).map(([name, value]) => ({
+        Object.entries(nivelCounts).map(([name, value]) => ({
           name,
           value: value as number,
         }))
       );
 
-      // Distribución de género (solo beneficiarios)
+      // Get user data for filtered users
       const { data: usuariosBenef } = await supabase
         .from("usuarios")
         .select("genero, ano_nacimiento, departamento, municipio, identificacion_etnica, id")
-        .in("id", Array.from(beneficiariosSet));
+        .in("id", Array.from(filteredUserIds));
 
       const usuarios = usuariosBenef || [];
       const total = usuarios?.length || 1;
@@ -98,7 +155,6 @@ export const UsuariosStats = () => {
         }))
       );
 
-      // Identificación étnica
       const etnicaCounts = usuarios?.reduce((acc: any, user) => {
         const etnica = user.identificacion_etnica || "No especificado";
         acc[etnica] = (acc[etnica] || 0) + 1;
@@ -113,8 +169,7 @@ export const UsuariosStats = () => {
         }))
       );
 
-      // Edad promedio (año actual 2025)
-      const currentYear = 2025;
+      const currentYear = new Date().getFullYear();
       const edades = usuarios
         ?.filter(u => u.ano_nacimiento && !isNaN(parseInt(u.ano_nacimiento)))
         .map(u => currentYear - parseInt(u.ano_nacimiento || "0"));
@@ -125,7 +180,6 @@ export const UsuariosStats = () => {
 
       setEdadPromedio(promedioEdad);
 
-      // Distribución por departamento
       const deptoCounts = usuarios?.reduce((acc: any, user) => {
         const depto = user.departamento || "No especificado";
         acc[depto] = (acc[depto] || 0) + 1;
@@ -141,7 +195,6 @@ export const UsuariosStats = () => {
           .sort((a, b) => b.value - a.value)
       );
 
-      // Distribución por municipio (top 10)
       const municCounts = usuarios?.reduce((acc: any, user) => {
         const munic = user.municipio || "No especificado";
         acc[munic] = (acc[munic] || 0) + 1;
@@ -170,32 +223,35 @@ export const UsuariosStats = () => {
     </div>;
   }
 
+  const renderCustomLabel = ({ name, percentage }: any) => {
+    if (percentage < 5) return null;
+    return `${name} (${percentage?.toFixed(1)}%)`;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Beneficiarios</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+            <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalBeneficiarios}</div>
+            <div className="text-3xl font-bold text-blue-700 dark:text-blue-300">{totalBeneficiarios}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30 border-amber-200 dark:border-amber-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Edad Promedio</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
+            <Award className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{edadPromedio.toFixed(1)} años</div>
+            <div className="text-3xl font-bold text-amber-700 dark:text-amber-300">{edadPromedio.toFixed(1)} años</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -204,17 +260,22 @@ export const UsuariosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={nivelData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                   }}
                 />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {nivelData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getLevelColor(entry.name)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -232,21 +293,29 @@ export const UsuariosStats = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry) => `${entry.name} (${entry.percentage?.toFixed(1)}%)`}
-                  outerRadius={80}
-                  fill="hsl(var(--primary))"
+                  label={renderCustomLabel}
+                  outerRadius={90}
+                  innerRadius={40}
                   dataKey="value"
+                  strokeWidth={2}
+                  stroke="hsl(var(--background))"
                 >
                   {generoData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={getGenderColor(entry.name)} />
                   ))}
                 </Pie>
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  formatter={(value) => <span className="text-xs">{value}</span>}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    borderRadius: "8px",
                   }}
+                  formatter={(value: number) => [value, "Cantidad"]}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -265,20 +334,27 @@ export const UsuariosStats = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry) => `${entry.name} (${entry.percentage?.toFixed(1)}%)`}
-                  outerRadius={80}
-                  fill="hsl(var(--primary))"
+                  label={renderCustomLabel}
+                  outerRadius={90}
+                  innerRadius={40}
                   dataKey="value"
+                  strokeWidth={2}
+                  stroke="hsl(var(--background))"
                 >
                   {etnicaData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
                   ))}
                 </Pie>
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  formatter={(value) => <span className="text-xs">{value}</span>}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    borderRadius: "8px",
                   }}
                 />
               </PieChart>
@@ -292,18 +368,22 @@ export const UsuariosStats = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={departamentoData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={100} />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+              <BarChart data={departamentoData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={10} width={100} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    borderRadius: "8px",
                   }}
                 />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                  {departamentoData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -316,17 +396,21 @@ export const UsuariosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={municipioData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={100} />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={100} fontSize={10} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    borderRadius: "8px",
                   }}
                 />
-                <Bar dataKey="value" fill="hsl(220, 60%, 65%)" />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {municipioData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS.sequential[index % CHART_COLORS.sequential.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

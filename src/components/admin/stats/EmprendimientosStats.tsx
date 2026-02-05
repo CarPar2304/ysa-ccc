@@ -2,7 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Briefcase, TrendingUp, Lightbulb } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Treemap } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Treemap } from "recharts";
+import { FilterType, NivelFilter } from "../DashboardFilters";
+import { CHART_COLORS, getColorByIndex } from "@/lib/chartColors";
 
 interface ChartData {
   name: string;
@@ -10,21 +12,18 @@ interface ChartData {
   percentage?: number;
 }
 
-const COLORS = [
-  'hsl(var(--primary))',
-  'hsl(220, 60%, 65%)',
-  'hsl(220, 50%, 75%)',
-  'hsl(220, 40%, 85%)',
-  'hsl(var(--secondary))',
-];
+interface EmprendimientosStatsProps {
+  filterType: FilterType;
+  nivelFilter: NivelFilter;
+}
 
 const PRACTICE_COLORS = {
   "No está en planes": "#ef4444",
   "En planes": "#f59e0b",
-  "Ya lo implementa": "#10b981",
+  "Ya lo implementa": "#22c55e",
 };
 
-export const EmprendimientosStats = () => {
+export const EmprendimientosStats = ({ filterType, nivelFilter }: EmprendimientosStatsProps) => {
   const [estadoUnidad, setEstadoUnidad] = useState<ChartData[]>([]);
   const [verticalData, setVerticalData] = useState<ChartData[]>([]);
   const [formalizacionData, setFormalizacionData] = useState<ChartData[]>([]);
@@ -38,7 +37,6 @@ export const EmprendimientosStats = () => {
   const [practicasAmbientales, setPracticasAmbientales] = useState<ChartData[]>([]);
   const [practicasPorTipo, setPracticasPorTipo] = useState<any[]>([]);
   const [participacionesPrevias, setParticipacionesPrevias] = useState(0);
-  const [culturaData, setCulturaData] = useState<any[]>([]);
   const [impactoOferta, setImpactoOferta] = useState<ChartData[]>([]);
   const [tecnologiaData, setTecnologiaData] = useState<ChartData[]>([]);
   const [actividadesID, setActividadesID] = useState(0);
@@ -48,11 +46,17 @@ export const EmprendimientosStats = () => {
 
   useEffect(() => {
     fetchEmprendimientosStats();
-  }, []);
+  }, [filterType, nivelFilter]);
+
+  const getNivelFromScore = (puntaje: number): string => {
+    if (puntaje >= 70) return "Scale";
+    if (puntaje >= 40) return "Growth";
+    return "Starter";
+  };
 
   const fetchEmprendimientosStats = async () => {
+    setLoading(true);
     try {
-      // Solo emprendimientos de beneficiarios
       const { data: beneficiariosIds } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -64,8 +68,54 @@ export const EmprendimientosStats = () => {
         .from("emprendimientos")
         .select("*");
 
-      const emprendimientos = allEmprendimientos?.filter(e => beneficiariosSet.has(e.user_id)) || [];
-      if (!emprendimientos || emprendimientos.length === 0) return;
+      const { data: asignaciones } = await supabase
+        .from("asignacion_cupos")
+        .select("emprendimiento_id, estado, nivel")
+        .eq("estado", "aprobado");
+
+      const aprobadosSet = new Set(asignaciones?.map(a => a.emprendimiento_id) || []);
+
+      const { data: evaluaciones } = await supabase
+        .from("evaluaciones")
+        .select("emprendimiento_id, puntaje");
+
+      const evaluacionesMap = new Map();
+      evaluaciones?.forEach(ev => {
+        if (!evaluacionesMap.has(ev.emprendimiento_id) || (ev.puntaje || 0) > (evaluacionesMap.get(ev.emprendimiento_id)?.puntaje || 0)) {
+          evaluacionesMap.set(ev.emprendimiento_id, ev);
+        }
+      });
+
+      let emprendimientos = allEmprendimientos || [];
+
+      if (filterType === "beneficiarios") {
+        emprendimientos = emprendimientos.filter(e => 
+          beneficiariosSet.has(e.user_id) && aprobadosSet.has(e.id)
+        );
+      } else if (filterType === "candidatos") {
+        emprendimientos = emprendimientos.filter(e => !aprobadosSet.has(e.id));
+      }
+
+      if (nivelFilter !== "todos") {
+        if (nivelFilter === "candidatos") {
+          emprendimientos = emprendimientos.filter(e => !aprobadosSet.has(e.id));
+        } else {
+          emprendimientos = emprendimientos.filter(e => {
+            const asignacion = asignaciones?.find(a => a.emprendimiento_id === e.id);
+            if (asignacion?.nivel === nivelFilter) return true;
+            const evaluacion = evaluacionesMap.get(e.id);
+            if (evaluacion?.puntaje) {
+              return getNivelFromScore(evaluacion.puntaje) === nivelFilter;
+            }
+            return false;
+          });
+        }
+      }
+
+      if (!emprendimientos || emprendimientos.length === 0) {
+        setLoading(false);
+        return;
+      }
 
       const total = emprendimientos.length || 1;
 
@@ -99,7 +149,7 @@ export const EmprendimientosStats = () => {
         }))
       );
 
-      // Registro (treemap)
+      // Registro
       const registroCounts = emprendimientos.reduce((acc: any, e) => {
         const registro = e.registro || "Sin registro";
         acc[registro] = (acc[registro] || 0) + 1;
@@ -188,26 +238,6 @@ export const EmprendimientosStats = () => {
       const previas = emprendimientos.filter(e => Boolean(e.participaciones_previas)).length;
       setParticipacionesPrevias((previas / total) * 100);
 
-      // Cultura (promedio de cada item)
-      const culturaItems = ["dialogo", "estrategia", "valor_diferencial", "conocimiento_ancestral"];
-      const culturaStats = culturaItems.map(item => {
-        const campo = `cultura_${item}` as keyof typeof emprendimientos[0];
-        const valores = emprendimientos
-          .filter(e => e[campo])
-          .map(e => {
-            const val = e[campo];
-            return typeof val === "string" ? parseFloat(val) : 0;
-          });
-
-        const promedio = valores.length ? valores.reduce((sum, v) => sum + v, 0) / valores.length : 0;
-
-        return {
-          item: item.charAt(0).toUpperCase() + item.slice(1).replace(/_/g, " "),
-          promedio: promedio,
-        };
-      });
-      setCulturaData(culturaStats);
-
       // Impacto oferta
       const impactoCounts = emprendimientos.reduce((acc: any, e) => {
         const impacto = e.impacto_oferta || "No especificado";
@@ -260,33 +290,33 @@ export const EmprendimientosStats = () => {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Con Plan de Negocio</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{conPlanNegocio}</div>
+            <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">{conPlanNegocio}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30 border-amber-200 dark:border-amber-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">% Participaciones Previas</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{participacionesPrevias.toFixed(1)}%</div>
+            <div className="text-2xl font-bold text-amber-700 dark:text-amber-300">{participacionesPrevias.toFixed(1)}%</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/30 border-purple-200 dark:border-purple-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">% Actividades I+D</CardTitle>
-            <Lightbulb className="h-4 w-4 text-muted-foreground" />
+            <Lightbulb className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{actividadesID.toFixed(1)}%</div>
+            <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">{actividadesID.toFixed(1)}%</div>
           </CardContent>
         </Card>
       </div>
@@ -300,11 +330,15 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={estadoUnidad}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {estadoUnidad.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -322,16 +356,19 @@ export const EmprendimientosStats = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry) => `${entry.name} (${entry.percentage?.toFixed(1)}%)`}
+                  label={(entry) => entry.percentage > 5 ? `${entry.name} (${entry.percentage?.toFixed(1)}%)` : null}
                   outerRadius={80}
-                  fill="hsl(var(--primary))"
+                  innerRadius={35}
                   dataKey="value"
+                  strokeWidth={2}
+                  stroke="hsl(var(--background))"
                 >
                   {formalizacionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={entry.name === "Formalizado" ? CHART_COLORS.boolean.positive : CHART_COLORS.boolean.negative} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                <Legend verticalAlign="bottom" height={36} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -347,27 +384,9 @@ export const EmprendimientosStats = () => {
                 data={verticalData}
                 dataKey="value"
                 stroke="hsl(var(--background))"
-                fill="hsl(var(--primary))"
+                fill={CHART_COLORS.categorical[0]}
               >
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-              </Treemap>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Registro</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <Treemap
-                data={registroData}
-                dataKey="value"
-                stroke="hsl(var(--background))"
-                fill="hsl(220, 60%, 65%)"
-              >
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
               </Treemap>
             </ResponsiveContainer>
           </CardContent>
@@ -380,11 +399,15 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={categoriaData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {categoriaData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -397,11 +420,15 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={alcanceData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(220, 60%, 65%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {alcanceData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index + 1)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -414,11 +441,15 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={tipoClienteData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(var(--secondary))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {tipoClienteData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index + 2)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -431,11 +462,36 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={etapaData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(220, 60%, 65%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {etapaData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index + 3)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Nivel de Innovación</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={innovacionData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {innovacionData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index + 4)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -453,34 +509,20 @@ export const EmprendimientosStats = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={(entry) => `${entry.name} (${entry.percentage?.toFixed(1)}%)`}
+                  label={(entry) => entry.percentage > 5 ? `${entry.name} (${entry.percentage?.toFixed(1)}%)` : null}
                   outerRadius={80}
-                  fill="hsl(var(--primary))"
+                  innerRadius={35}
                   dataKey="value"
+                  strokeWidth={2}
+                  stroke="hsl(var(--background))"
                 >
                   {practicasAmbientales.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                <Legend verticalAlign="bottom" height={36} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
               </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Nivel de Innovación</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={innovacionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
-              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -492,30 +534,14 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={practicasPorTipo}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="tipo" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="No está en planes" fill={PRACTICE_COLORS["No está en planes"]} />
-                <Bar dataKey="En planes" fill={PRACTICE_COLORS["En planes"]} />
-                <Bar dataKey="Ya lo implementa" fill={PRACTICE_COLORS["Ya lo implementa"]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Cultura (Promedio 1-5)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={culturaData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="item" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 5]} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="promedio" fill="hsl(var(--primary))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="tipo" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Legend />
+                <Bar dataKey="No está en planes" fill={PRACTICE_COLORS["No está en planes"]} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="En planes" fill={PRACTICE_COLORS["En planes"]} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Ya lo implementa" fill={PRACTICE_COLORS["Ya lo implementa"]} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -527,12 +553,16 @@ export const EmprendimientosStats = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={impactoOferta}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={100} />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
+              <BarChart data={impactoOferta} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} horizontal />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={9} width={120} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                  {impactoOferta.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -545,11 +575,15 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={tecnologiaData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(220, 60%, 65%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {tecnologiaData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index + 5)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -562,11 +596,15 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={ubicacionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(var(--secondary))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {ubicacionData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index + 6)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -579,11 +617,15 @@ export const EmprendimientosStats = () => {
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={ventasData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={100} />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="value" fill="hsl(220, 50%, 75%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} angle={-30} textAnchor="end" height={80} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {ventasData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index + 7)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
