@@ -25,5 +25,9 @@ export const RoleRedirect = () => {
     return <Navigate to="/" replace />;
   }
 
+  if (role === "stakeholder") {
+    return <Navigate to="/" replace />;
+  }
+
   return <Navigate to="/login" replace />;
 };

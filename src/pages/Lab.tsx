@@ -41,8 +41,12 @@ const Lab = () => {
   const [editableModules, setEditableModules] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userId, isAdmin, isBeneficiario, isMentor } = useUserRole();
+  const { userId, isAdmin, isBeneficiario, isMentor, isStakeholder } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
+
+  // Stakeholders can view all modules (all levels), but cannot edit/create anything
+  const canEditModules = isAdmin;
+  const isViewOnly = isStakeholder;
 
   // Get module IDs for pending tasks
   const moduleIds = useMemo(() => modulos.map((m) => m.id), [modulos]);
@@ -100,9 +104,10 @@ const Lab = () => {
         .select("*")
         .order("orden", { ascending: true });
 
-      // Beneficiarios: solo ven módulos activos
-      // Mentores: ven todos (luego se filtran los inactivos que no pueden editar)
-      // Admins: ven todos
+      // Stakeholders: see all active modules (all levels)
+      // Beneficiarios: only see active modules for their level
+      // Mentores: see all (filter inactive they can't edit later)
+      // Admins: see all
       if (isBeneficiario) {
         query = query.eq("activo", true);
         
@@ -110,6 +115,9 @@ const Lab = () => {
         if (userNivel) {
           query = query.or(`nivel.eq.${userNivel},nivel.is.null`);
         }
+      } else if (isStakeholder) {
+        // Stakeholders see all active modules regardless of level
+        query = query.eq("activo", true);
       }
 
       const { data, error } = await query;
@@ -184,7 +192,7 @@ const Lab = () => {
     }
   };
 
-  if (loading || quotaLoading) {
+  if (loading || (isBeneficiario && quotaLoading)) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -194,7 +202,7 @@ const Lab = () => {
     );
   }
 
-  // Verificar cupo aprobado solo para beneficiarios
+  // Stakeholders always have access, beneficiaries need quota approval
   if (isBeneficiario && !isApproved) {
     return (
       <Layout>
@@ -226,9 +234,14 @@ const Lab = () => {
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl sm:text-4xl font-bold text-foreground">YSA Lab</h1>
-              {userNivel && (
+              {userNivel && !isStakeholder && (
                 <Badge variant="secondary" className="text-sm">
                   Nivel {userNivel}
+                </Badge>
+              )}
+              {isStakeholder && (
+                <Badge variant="outline" className="text-sm">
+                  Modo Visualización
                 </Badge>
               )}
             </div>
@@ -236,7 +249,7 @@ const Lab = () => {
               Descubre los módulos del programa de incubación y desarrolla tu emprendimiento
             </p>
           </div>
-          {isAdmin && (
+          {canEditModules && (
             <ModuleEditor onSuccess={fetchModulos} />
           )}
         </div>

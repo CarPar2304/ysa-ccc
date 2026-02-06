@@ -40,11 +40,12 @@ interface ReservaExistente {
 const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 const Mentorias = () => {
-  const { userId, isAdmin, isMentor } = useUserRole();
+  const { userId, isAdmin, isMentor, isStakeholder } = useUserRole();
   const { isApproved, loading: loadingQuota, quotaInfo } = useQuotaStatus(userId);
   
-  // Admins y mentores siempre tienen acceso
-  const hasAccess = isAdmin || isMentor || isApproved;
+  // Stakeholders have access but cannot schedule
+  const hasAccess = isAdmin || isMentor || isStakeholder || isApproved;
+  const canSchedule = !isStakeholder; // Stakeholders cannot schedule
   const [perfiles, setPerfiles] = useState<PerfilAsesoria[]>([]);
   const [filteredPerfiles, setFilteredPerfiles] = useState<PerfilAsesoria[]>([]);
   const [tematicas, setTematicas] = useState<string[]>([]);
@@ -148,6 +149,16 @@ const Mentorias = () => {
   };
 
   const handleReservar = async () => {
+    // Stakeholders cannot schedule
+    if (isStakeholder) {
+      toast({
+        title: "Acceso restringido",
+        description: "Tu perfil no cumple con los criterios para agendar mentorías. Solo puedes visualizar perfiles y disponibilidades.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!selectedPerfil || !selectedDate || !selectedSlot) return;
 
     setIsReserving(true);
@@ -284,7 +295,10 @@ const Mentorias = () => {
           {isAdmin && (
             <Badge variant="secondary" className="mt-1">Acceso Administrativo</Badge>
           )}
-          {!isAdmin && quotaInfo && (
+          {isStakeholder && (
+            <Badge variant="outline" className="mt-1">Solo Visualización</Badge>
+          )}
+          {!isAdmin && !isStakeholder && quotaInfo && (
             <p className="text-sm text-muted-foreground mt-1">
               Nivel {quotaInfo.nivel} • Cohorte {quotaInfo.cohorte}
             </p>
@@ -440,13 +454,21 @@ const Mentorias = () => {
                     </div>
                   </div>
 
-                  <Button
-                    className="w-full mt-4"
-                    disabled={!selectedDate || !selectedSlot || isReserving}
-                    onClick={handleReservar}
-                  >
-                    {isReserving ? "Agendando..." : "Agendar Mentoría"}
-                  </Button>
+                  {isStakeholder ? (
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Tu perfil no cumple con los criterios para agendar mentorías. Solo puedes visualizar perfiles y disponibilidades.
+                      </p>
+                    </div>
+                  ) : (
+                    <Button
+                      className="w-full mt-4"
+                      disabled={!selectedDate || !selectedSlot || isReserving}
+                      onClick={handleReservar}
+                    >
+                      {isReserving ? "Agendando..." : "Agendar Mentoría"}
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

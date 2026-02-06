@@ -1572,6 +1572,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_beneficiario: { Args: { _user_id: string }; Returns: boolean }
       is_mentor: { Args: { _user_id: string }; Returns: boolean }
+      is_stakeholder: { Args: { _user_id: string }; Returns: boolean }
       match_documents: {
         Args: { filter?: Json; match_count?: number; query_embedding: string }
         Returns: {
@@ -1597,7 +1598,7 @@ export type Database = {
     }
     Enums: {
       alcance_mercado: "Local" | "Regional" | "Nacional" | "Internacional"
-      app_role: "admin" | "mentor" | "beneficiario"
+      app_role: "admin" | "mentor" | "beneficiario" | "stakeholder"
       busca_financiamiento: "Sí" | "No" | "Aún no lo sé"
       categoria_emprendimiento:
         | "Base científica"
@@ -1791,7 +1792,7 @@ export const Constants = {
   public: {
     Enums: {
       alcance_mercado: ["Local", "Regional", "Nacional", "Internacional"],
-      app_role: ["admin", "mentor", "beneficiario"],
+      app_role: ["admin", "mentor", "beneficiario", "stakeholder"],
       busca_financiamiento: ["Sí", "No", "Aún no lo sé"],
       categoria_emprendimiento: [
         "Base científica",

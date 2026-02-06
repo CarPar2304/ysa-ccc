@@ -51,12 +51,14 @@ const RegisterMentor = () => {
         body: validatedData,
       });
 
-      if (error) throw new Error(error.message || 'Error al registrar mentor');
+      if (error) throw new Error(error.message || 'Error al registrar usuario');
       if (data?.error) throw new Error(data.error);
 
+      const roleLabel = data?.role === "stakeholder" ? "stakeholder" : "mentor";
+
       toast({
-        title: "Mentor registrado exitosamente",
-        description: data?.message || `Se ha creado el mentor ${validatedData.nombres} ${validatedData.apellidos}. Puede iniciar sesión con su email y contraseña.`,
+        title: `${roleLabel.charAt(0).toUpperCase() + roleLabel.slice(1)} registrado exitosamente`,
+        description: data?.message || `Se ha creado el ${roleLabel} ${validatedData.nombres} ${validatedData.apellidos}. Puede iniciar sesión con su email y contraseña.`,
       });
 
       // Redirigir al login
@@ -73,7 +75,7 @@ const RegisterMentor = () => {
         });
       } else {
         toast({
-          title: "Error al registrar mentor",
+          title: "Error al registrar",
           description: error?.message || 'Error desconocido al invocar la función',
           variant: "destructive",
         });
@@ -89,9 +91,9 @@ const RegisterMentor = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-6 w-6" />
-            Registrar Nuevo Mentor
+            Registro de Usuarios YSA
           </CardTitle>
-          <CardDescription>Completa la información para crear una nueva cuenta de mentor</CardDescription>
+          <CardDescription>Completa la información para crear una nueva cuenta</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -111,7 +113,7 @@ const RegisterMentor = () => {
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                Este código es requerido para registrar un nuevo mentor
+                Este código determina el tipo de cuenta que se creará
               </p>
             </div>
 
@@ -185,7 +187,7 @@ const RegisterMentor = () => {
             ) : (
               <>
                 <UserPlus className="mr-2 h-4 w-4" />
-                Registrar Mentor
+                Registrar Usuario
               </>
             )}
           </Button>

@@ -7,7 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ACCESS_CODE = "YSA-MENTOR-ACCESS";
+const ACCESS_CODE_MENTOR = "YSA-MENTOR-ACCESS";
+const ACCESS_CODE_STAKEHOLDER = "ITC-YSA-2026";
 
 // Server-side validation schema (mirrors client-side for security)
 const mentorSchema = z.object({
@@ -49,8 +50,12 @@ serve(async (req) => {
     
     console.log('[register-mentor] Payload validated for:', email);
 
+    // Determine role based on access code
+    const isMentorCode = accessCode === ACCESS_CODE_MENTOR;
+    const isStakeholderCode = accessCode === ACCESS_CODE_STAKEHOLDER;
+
     // Validate access code
-    if (accessCode !== ACCESS_CODE) {
+    if (!isMentorCode && !isStakeholderCode) {
       console.warn('[register-mentor] Invalid access code');
       return new Response(
         JSON.stringify({ error: "Código de acceso inválido" }),
@@ -60,6 +65,8 @@ serve(async (req) => {
         }
       );
     }
+
+    const roleToAssign = isStakeholderCode ? "stakeholder" : "mentor";
 
     // Create Supabase admin client with service role key
     const supabaseAdmin = createClient(
@@ -118,18 +125,18 @@ serve(async (req) => {
       // Don't fail if this doesn't work, the trigger should have created the basic record
     }
 
-    // 3. Assign mentor role
+    // 3. Assign role (mentor or stakeholder based on access code)
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .insert({
         user_id: authData.user.id,
-        role: "mentor",
+        role: roleToAssign,
       });
 
     if (roleError) {
       console.error("Role assignment error:", roleError);
       return new Response(
-        JSON.stringify({ error: "Error al asignar rol de mentor: " + roleError.message }),
+        JSON.stringify({ error: `Error al asignar rol de ${roleToAssign}: ` + roleError.message }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -137,39 +144,46 @@ serve(async (req) => {
       );
     }
 
-    console.log('[register-mentor] Mentor created:', authData.user.id);
+    console.log(`[register-mentor] ${roleToAssign} created:`, authData.user.id);
 
-    // Notify webhook (password intentionally excluded for security)
-    try {
-      const webhookUrl = 'https://n8n-n8n.yajjj6.easypanel.host/webhook/registro-mentores';
-      const webhookResponse = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: authData.user.id,
-          nombres,
-          apellidos,
-          email,
-          celular,
-        }),
-      });
+    // Notify webhook ONLY for mentors (not stakeholders)
+    if (isMentorCode) {
+      try {
+        const webhookUrl = 'https://n8n-n8n.yajjj6.easypanel.host/webhook/registro-mentores';
+        const webhookResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: authData.user.id,
+            nombres,
+            apellidos,
+            email,
+            celular,
+          }),
+        });
 
-      if (!webhookResponse.ok) {
-        console.warn('[register-mentor] Webhook notification failed:', webhookResponse.status);
-      } else {
-        console.log('[register-mentor] Webhook notification sent successfully');
+        if (!webhookResponse.ok) {
+          console.warn('[register-mentor] Webhook notification failed:', webhookResponse.status);
+        } else {
+          console.log('[register-mentor] Webhook notification sent successfully');
+        }
+      } catch (webhookError) {
+        // Log but don't fail the registration if webhook fails
+        console.error('[register-mentor] Webhook error:', webhookError);
       }
-    } catch (webhookError) {
-      // Log but don't fail the registration if webhook fails
-      console.error('[register-mentor] Webhook error:', webhookError);
+    } else {
+      console.log('[register-mentor] Skipping webhook for stakeholder registration');
     }
+
+    const roleLabel = roleToAssign === "stakeholder" ? "stakeholder" : "mentor";
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: `Se ha creado el mentor ${nombres} ${apellidos}. Puede iniciar sesión con su email y contraseña.`
+        role: roleToAssign,
+        message: `Se ha creado el ${roleLabel} ${nombres} ${apellidos}. Puede iniciar sesión con su email y contraseña.`
       }),
       { 
         status: 200, 
