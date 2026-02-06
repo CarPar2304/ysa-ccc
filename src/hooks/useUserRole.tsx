@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type UserRole = "admin" | "mentor" | "beneficiario" | null;
+export type UserRole = "admin" | "mentor" | "beneficiario" | "stakeholder" | null;
 
 export const useUserRole = () => {
   const [role, setRole] = useState<UserRole>(null);
@@ -46,5 +46,13 @@ export const useUserRole = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  return { role, loading, userId, isAdmin: role === "admin", isMentor: role === "mentor", isBeneficiario: role === "beneficiario" };
+  return { 
+    role, 
+    loading, 
+    userId, 
+    isAdmin: role === "admin", 
+    isMentor: role === "mentor", 
+    isBeneficiario: role === "beneficiario",
+    isStakeholder: role === "stakeholder"
+  };
 };

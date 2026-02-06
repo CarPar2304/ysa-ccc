@@ -26,7 +26,7 @@ const navigation = [
 ];
 
 export const Sidebar = () => {
-  const { isAdmin, isMentor } = useUserRole();
+  const { isAdmin, isMentor, isStakeholder } = useUserRole();
   const { open } = useSidebar();
   const theme = useThemePreference();
   const navigate = useNavigate();
@@ -73,26 +73,31 @@ export const Sidebar = () => {
                 </SidebarMenuItem>
               ))}
 
+              {/* Admin Panel - accessible by admin and stakeholder */}
+              {(isAdmin || isStakeholder) && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/admin"
+                      className={({ isActive }) =>
+                        cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-accent text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+                        )
+                      }
+                    >
+                      <Settings className="h-5 w-5" />
+                      <span>Admin Panel</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {/* Candidatos and Estudiantes - only for admin */}
               {isAdmin && (
                 <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/admin"
-                        className={({ isActive }) =>
-                          cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                            isActive
-                              ? "bg-accent text-accent-foreground"
-                              : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
-                          )
-                        }
-                      >
-                        <Settings className="h-5 w-5" />
-                        <span>Admin Panel</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink

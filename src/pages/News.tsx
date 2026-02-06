@@ -38,12 +38,17 @@ const News = () => {
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { isAdmin, isBeneficiario, userId } = useUserRole();
+  const { isAdmin, isBeneficiario, isStakeholder, userId } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
+
+  // Stakeholders have full view access without quota check
+  const canViewNews = isAdmin || isStakeholder || (isBeneficiario && isApproved);
+  // Only admins can create/edit news
+  const canEditNews = isAdmin;
 
   useEffect(() => {
     fetchNoticias();
-  }, [isAdmin]);
+  }, [isAdmin, isStakeholder]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -76,7 +81,8 @@ const News = () => {
         .select("*")
         .order("created_at", { ascending: false });
 
-      // Si no es admin, solo mostrar publicadas
+      // Admins and stakeholders can see all (including drafts for admins)
+      // Stakeholders see only published like beneficiaries
       if (!isAdmin) {
         query = query.eq("publicado", true);
       }
@@ -97,7 +103,7 @@ const News = () => {
     }
   };
 
-  if (loading || quotaLoading) {
+  if (loading || (isBeneficiario && quotaLoading)) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -107,7 +113,7 @@ const News = () => {
     );
   }
 
-  // Verificar cupo aprobado solo para beneficiarios
+  // Stakeholders always have access, beneficiaries need quota approval
   if (isBeneficiario && !isApproved) {
     return (
       <Layout>
@@ -139,7 +145,7 @@ const News = () => {
             <h1 className="text-3xl font-bold text-foreground mb-2">YSA Now</h1>
             <p className="text-muted-foreground">Mantente al día con las últimas noticias del programa</p>
           </div>
-          {isAdmin && (
+          {canEditNews && (
             <NewsEditor onSuccess={fetchNoticias} />
           )}
         </div>
@@ -175,7 +181,7 @@ const News = () => {
                         {format(new Date(noticia.created_at), "d 'de' MMMM, yyyy", { locale: es })}
                       </CardDescription>
                     </div>
-                    {isAdmin && (
+                    {canEditNews && (
                       <div className="flex items-center gap-2">
                         <Badge variant={noticia.publicado ? "default" : "secondary"}>
                           {noticia.publicado ? "Publicado" : "Borrador"}

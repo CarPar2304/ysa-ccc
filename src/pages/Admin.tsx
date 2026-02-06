@@ -11,7 +11,10 @@ import { DiagnosticEditor } from "@/components/admin/DiagnosticEditor";
 import { QuotaAssignment } from "@/components/admin/QuotaAssignment";
 
 const Admin = () => {
-  const { isAdmin, loading } = useUserRole();
+  const { isAdmin, isStakeholder, loading } = useUserRole();
+
+  // Both admin and stakeholder can access this page
+  const hasAccess = isAdmin || isStakeholder;
 
   if (loading) {
     return (
@@ -23,7 +26,7 @@ const Admin = () => {
     );
   }
 
-  if (!isAdmin) {
+  if (!hasAccess) {
     return <RoleRedirect />;
   }
 
@@ -36,51 +39,57 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className={isStakeholder ? "grid w-full grid-cols-2" : "grid w-full grid-cols-5"}>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="evaluations">Evaluaciones</TabsTrigger>
+            {isAdmin && <TabsTrigger value="evaluations">Evaluaciones</TabsTrigger>}
             <TabsTrigger value="diagnostics">Diagnósticos</TabsTrigger>
-            <TabsTrigger value="mentors">Mentores</TabsTrigger>
-            <TabsTrigger value="cupos">Cupos</TabsTrigger>
+            {isAdmin && <TabsTrigger value="mentors">Mentores</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="cupos">Cupos</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
             <AdminDashboard />
           </TabsContent>
 
-          <TabsContent value="evaluations" className="space-y-4">
-            <Tabs defaultValue="gestion" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="gestion">Gestión</TabsTrigger>
-                <TabsTrigger value="progreso">Progreso</TabsTrigger>
-                <TabsTrigger value="rankings">Top 100</TabsTrigger>
-              </TabsList>
+          {isAdmin && (
+            <TabsContent value="evaluations" className="space-y-4">
+              <Tabs defaultValue="gestion" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="gestion">Gestión</TabsTrigger>
+                  <TabsTrigger value="progreso">Progreso</TabsTrigger>
+                  <TabsTrigger value="rankings">Top 100</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="gestion">
-                <AdminEvaluations />
-              </TabsContent>
+                <TabsContent value="gestion">
+                  <AdminEvaluations />
+                </TabsContent>
 
-              <TabsContent value="progreso">
-                <EvaluationProgress />
-              </TabsContent>
+                <TabsContent value="progreso">
+                  <EvaluationProgress />
+                </TabsContent>
 
-              <TabsContent value="rankings">
-                <Top100Rankings />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
+                <TabsContent value="rankings">
+                  <Top100Rankings />
+                </TabsContent>
+              </Tabs>
+            </TabsContent>
+          )}
 
           <TabsContent value="diagnostics" className="space-y-4">
             <DiagnosticEditor />
           </TabsContent>
 
-          <TabsContent value="mentors" className="space-y-4">
-            <MentorAssignments />
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="mentors" className="space-y-4">
+              <MentorAssignments />
+            </TabsContent>
+          )}
 
-          <TabsContent value="cupos" className="space-y-4">
-            <QuotaAssignment />
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="cupos" className="space-y-4">
+              <QuotaAssignment />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </Layout>
