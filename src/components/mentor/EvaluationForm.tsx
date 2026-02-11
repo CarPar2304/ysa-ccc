@@ -141,6 +141,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
   const [existingEvaluation, setExistingEvaluation] = useState<any>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showCccReference, setShowCccReference] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
 
   // Crear schema dinámico con validaciones condicionales
@@ -266,12 +267,23 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
         puede_editar: estado === 'borrador',
       };
 
-      console.log("Guardando evaluación (siempre inserta nueva fila):", { evaluationData });
-
-      const result = await supabase
-        .from("evaluaciones")
-        .insert(evaluationData)
-        .select();
+      let result;
+      if (isEditing && existingEvaluation?.id) {
+        // Actualizar evaluación existente
+        console.log("Actualizando evaluación existente:", existingEvaluation.id);
+        const { emprendimiento_id, mentor_id, tipo_evaluacion, ...updateData } = evaluationData;
+        result = await supabase
+          .from("evaluaciones")
+          .update(updateData)
+          .eq("id", existingEvaluation.id)
+          .select();
+      } else {
+        console.log("Guardando nueva evaluación");
+        result = await supabase
+          .from("evaluaciones")
+          .insert(evaluationData)
+          .select();
+      }
 
       const { data, error } = result;
 
@@ -290,6 +302,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
       });
 
       // Refrescar datos para actualizar la UI
+      setIsEditing(false);
       await fetchData();
 
       if (onSuccess) onSuccess();
@@ -333,7 +346,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
     );
   }
 
-  const canEdit = !existingEvaluation || existingEvaluation.puede_editar;
+  const canEdit = !existingEvaluation || existingEvaluation.puede_editar || isEditing;
   const isReadOnly = !canEdit;
 
   const watchedValues = form.watch();
@@ -356,11 +369,19 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {isReadOnly && (
-          <div className="bg-muted p-4 rounded-lg">
+        {existingEvaluation?.estado === 'enviada' && !isEditing && (
+          <div className="bg-muted p-4 rounded-lg flex items-center justify-between gap-4">
             <p className="text-sm font-medium text-muted-foreground">
-              Esta evaluación ya fue enviada y no puede ser editada. Contacta al administrador si necesitas hacer cambios.
+              Esta evaluación ya fue enviada.
             </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+            >
+              Editar Evaluación
+            </Button>
           </div>
         )}
 
