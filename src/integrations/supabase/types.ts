@@ -1587,6 +1587,10 @@ export type Database = {
           tipo_evaluacion: Database["public"]["Enums"]["tipo_evaluacion"]
         }[]
       }
+      get_operador_emprendimiento_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
       get_operador_niveles: { Args: { _user_id: string }; Returns: string[] }
       get_public_user_profiles: {
         Args: { user_ids?: string[] }
