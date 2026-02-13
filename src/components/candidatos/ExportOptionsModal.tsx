@@ -15,9 +15,10 @@ import * as XLSX from "xlsx";
 
 interface ExportOptionsModalProps {
   candidato?: CandidatoData | null;
-  candidatos?: CandidatoData[];
+  candidatos?: (CandidatoData & { _progreso_promedio?: number })[];
   open: boolean;
   onClose: () => void;
+  includeProgress?: boolean;
 }
 
 interface ExportSection {
@@ -26,8 +27,8 @@ interface ExportSection {
   checked: boolean;
 }
 
-export const ExportOptionsModal = ({ candidato, candidatos, open, onClose }: ExportOptionsModalProps) => {
-  const [sections, setSections] = useState<ExportSection[]>([
+export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, includeProgress }: ExportOptionsModalProps) => {
+  const baseSections: ExportSection[] = [
     { key: "personal", label: "Información Personal", checked: true },
     { key: "contacto", label: "Contacto y Ubicación", checked: true },
     { key: "autorizaciones", label: "Autorizaciones", checked: true },
@@ -39,7 +40,13 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose }: Exp
     { key: "diagnostico", label: "Diagnóstico", checked: true },
     { key: "evaluaciones", label: "Evaluaciones", checked: true },
     { key: "cupo", label: "Estado del Cupo", checked: true },
-  ]);
+  ];
+
+  if (includeProgress) {
+    baseSections.push({ key: "progreso", label: "Progreso Académico", checked: true });
+  }
+
+  const [sections, setSections] = useState<ExportSection[]>(baseSections);
 
   const isMassExport = !candidato && candidatos && candidatos.length > 0;
   const dataToExport = isMassExport ? candidatos : (candidato ? [candidato] : []);
@@ -195,6 +202,13 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose }: Exp
         "Nivel Última Evaluación": evalCount > 0 
           ? c.evaluaciones_detalle![evalCount - 1].nivel || "N/A" 
           : "N/A",
+      });
+    }
+
+    if (selectedSections.includes("progreso")) {
+      const withProgress = c as CandidatoData & { _progreso_promedio?: number };
+      Object.assign(row, {
+        "Progreso Promedio (%)": withProgress._progreso_promedio ?? "N/A",
       });
     }
 

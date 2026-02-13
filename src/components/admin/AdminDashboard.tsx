@@ -11,9 +11,17 @@ import { DashboardFilters, FilterType, NivelFilter } from "./DashboardFilters";
 import { useDashboardExport } from "@/hooks/useDashboardExport";
 import { toast } from "sonner";
 
-export const AdminDashboard = () => {
-  const [filterType, setFilterType] = useState<FilterType>("todos");
-  const [nivelFilter, setNivelFilter] = useState<NivelFilter>("todos");
+interface AdminDashboardProps {
+  operadorNiveles?: string[];
+}
+
+export const AdminDashboard = ({ operadorNiveles }: AdminDashboardProps) => {
+  const isOperador = !!operadorNiveles;
+  // For operators, force filter to beneficiarios and lock nivel to their assigned levels
+  const [filterType, setFilterType] = useState<FilterType>(isOperador ? "beneficiarios" : "todos");
+  const [nivelFilter, setNivelFilter] = useState<NivelFilter>(
+    isOperador && operadorNiveles.length === 1 ? operadorNiveles[0] as NivelFilter : "todos"
+  );
   const [exporting, setExporting] = useState(false);
   const { exportDashboard } = useDashboardExport();
 
@@ -33,12 +41,25 @@ export const AdminDashboard = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <DashboardFilters
-          filterType={filterType}
-          nivelFilter={nivelFilter}
-          onFilterTypeChange={setFilterType}
-          onNivelFilterChange={setNivelFilter}
-        />
+        {isOperador ? (
+          <DashboardFilters
+            filterType={filterType}
+            nivelFilter={nivelFilter}
+            onFilterTypeChange={() => {}}
+            onNivelFilterChange={(v) => {
+              if (operadorNiveles.includes(v) || v === "todos") setNivelFilter(v);
+            }}
+            restrictNiveles={operadorNiveles}
+            hideTypeFilter
+          />
+        ) : (
+          <DashboardFilters
+            filterType={filterType}
+            nivelFilter={nivelFilter}
+            onFilterTypeChange={setFilterType}
+            onNivelFilterChange={setNivelFilter}
+          />
+        )}
         <Button 
           onClick={handleExport} 
           disabled={exporting}

@@ -1011,6 +1011,41 @@ export type Database = {
           },
         ]
       }
+      mentor_operadores: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          mentor_id: string
+          nivel: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          mentor_id: string
+          nivel: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          mentor_id?: string
+          nivel?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_operadores_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modulos: {
         Row: {
           activo: boolean
@@ -1552,6 +1587,7 @@ export type Database = {
           tipo_evaluacion: Database["public"]["Enums"]["tipo_evaluacion"]
         }[]
       }
+      get_operador_niveles: { Args: { _user_id: string }; Returns: string[] }
       get_public_user_profiles: {
         Args: { user_ids?: string[] }
         Returns: {
@@ -1572,6 +1608,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_beneficiario: { Args: { _user_id: string }; Returns: boolean }
       is_mentor: { Args: { _user_id: string }; Returns: boolean }
+      is_operador: { Args: { _user_id: string }; Returns: boolean }
       is_stakeholder: { Args: { _user_id: string }; Returns: boolean }
       match_documents: {
         Args: { filter?: Json; match_count?: number; query_embedding: string }

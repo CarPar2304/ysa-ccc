@@ -3,7 +3,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 
 export const RoleRedirect = () => {
-  const { role, loading } = useUserRole();
+  const { role, loading, isOperador } = useUserRole();
 
   if (loading) {
     return (
@@ -14,6 +14,10 @@ export const RoleRedirect = () => {
   }
 
   if (role === "admin") {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (role === "mentor" && isOperador) {
     return <Navigate to="/admin" replace />;
   }
 

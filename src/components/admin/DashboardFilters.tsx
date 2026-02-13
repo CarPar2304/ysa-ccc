@@ -11,6 +11,8 @@ interface DashboardFiltersProps {
   nivelFilter: NivelFilter;
   onFilterTypeChange: (value: FilterType) => void;
   onNivelFilterChange: (value: NivelFilter) => void;
+  restrictNiveles?: string[];
+  hideTypeFilter?: boolean;
 }
 
 export const DashboardFilters = ({
@@ -18,7 +20,12 @@ export const DashboardFilters = ({
   nivelFilter,
   onFilterTypeChange,
   onNivelFilterChange,
+  restrictNiveles,
+  hideTypeFilter,
 }: DashboardFiltersProps) => {
+  const allNiveles = ["Starter", "Growth", "Scale"];
+  const availableNiveles = restrictNiveles || allNiveles;
+
   return (
     <Card className="border-dashed flex-1">
       <CardContent className="py-4">
@@ -29,21 +36,23 @@ export const DashboardFilters = ({
           </div>
           
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="filter-type" className="text-sm whitespace-nowrap">
-                Tipo:
-              </Label>
-              <Select value={filterType} onValueChange={(v) => onFilterTypeChange(v as FilterType)}>
-                <SelectTrigger id="filter-type" className="w-[160px]">
-                  <SelectValue placeholder="Seleccionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="beneficiarios">Beneficiarios</SelectItem>
-                  <SelectItem value="candidatos">Candidatos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {!hideTypeFilter && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="filter-type" className="text-sm whitespace-nowrap">
+                  Tipo:
+                </Label>
+                <Select value={filterType} onValueChange={(v) => onFilterTypeChange(v as FilterType)}>
+                  <SelectTrigger id="filter-type" className="w-[160px]">
+                    <SelectValue placeholder="Seleccionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="beneficiarios">Beneficiarios</SelectItem>
+                    <SelectItem value="candidatos">Candidatos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               <Label htmlFor="nivel-filter" className="text-sm whitespace-nowrap">
@@ -55,10 +64,12 @@ export const DashboardFilters = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="Starter">Starter</SelectItem>
-                  <SelectItem value="Growth">Growth</SelectItem>
-                  <SelectItem value="Scale">Scale</SelectItem>
-                  <SelectItem value="candidatos">Candidatos (por puntaje)</SelectItem>
+                  {availableNiveles.map((nivel) => (
+                    <SelectItem key={nivel} value={nivel}>{nivel}</SelectItem>
+                  ))}
+                  {!restrictNiveles && (
+                    <SelectItem value="candidatos">Candidatos (por puntaje)</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
