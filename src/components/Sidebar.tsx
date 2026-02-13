@@ -26,7 +26,7 @@ const navigation = [
 ];
 
 export const Sidebar = () => {
-  const { isAdmin, isMentor, isStakeholder } = useUserRole();
+  const { isAdmin, isMentor, isStakeholder, isOperador } = useUserRole();
   const { open } = useSidebar();
   const theme = useThemePreference();
   const navigate = useNavigate();
@@ -73,8 +73,8 @@ export const Sidebar = () => {
                 </SidebarMenuItem>
               ))}
 
-              {/* Admin Panel - accessible by admin and stakeholder */}
-              {(isAdmin || isStakeholder) && (
+              {/* Admin Panel - accessible by admin, stakeholder, and operators */}
+              {(isAdmin || isStakeholder || isOperador) && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -95,46 +95,48 @@ export const Sidebar = () => {
                 </SidebarMenuItem>
               )}
 
-              {/* Candidatos and Estudiantes - only for admin */}
+              {/* Candidatos - only for admin */}
               {isAdmin && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/candidatos"
-                        className={({ isActive }) =>
-                          cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                            isActive
-                              ? "bg-accent text-accent-foreground"
-                              : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
-                          )
-                        }
-                      >
-                        <Users className="h-5 w-5" />
-                        <span>Candidatos</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/estudiantes"
-                        className={({ isActive }) =>
-                          cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                            isActive
-                              ? "bg-accent text-accent-foreground"
-                              : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
-                          )
-                        }
-                      >
-                        <GraduationCap className="h-5 w-5" />
-                        <span>Estudiantes</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/candidatos"
+                      className={({ isActive }) =>
+                        cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-accent text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+                        )
+                      }
+                    >
+                      <Users className="h-5 w-5" />
+                      <span>Candidatos</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {/* Estudiantes - for admin and operators */}
+              {(isAdmin || isOperador) && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/estudiantes"
+                      className={({ isActive }) =>
+                        cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-accent text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+                        )
+                      }
+                    >
+                      <GraduationCap className="h-5 w-5" />
+                      <span>Estudiantes</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               )}
 
               {isMentor && (

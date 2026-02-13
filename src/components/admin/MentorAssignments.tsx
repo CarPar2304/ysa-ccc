@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Trash2, Plus, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { OperatorAssignment } from "./OperatorAssignment";
 
 interface Mentor {
   id: string;
@@ -350,6 +351,8 @@ export const MentorAssignments = () => {
           )}
         </CardContent>
       </Card>
+
+      <OperatorAssignment />
     </div>
   );
 };

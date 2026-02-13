@@ -7,6 +7,7 @@ export const useUserRole = () => {
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isOperador, setIsOperador] = useState(false);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -16,6 +17,7 @@ export const useUserRole = () => {
         if (!user) {
           setRole(null);
           setUserId(null);
+          setIsOperador(false);
           setLoading(false);
           return;
         }
@@ -29,6 +31,20 @@ export const useUserRole = () => {
           .maybeSingle();
 
         setRole(roles?.role as UserRole || null);
+
+        // Check if mentor is an operator
+        if (roles?.role === "mentor") {
+          const { data: opData } = await supabase
+            .from("mentor_operadores")
+            .select("id")
+            .eq("mentor_id", user.id)
+            .eq("activo", true)
+            .limit(1);
+          
+          setIsOperador((opData?.length || 0) > 0);
+        } else {
+          setIsOperador(false);
+        }
       } catch (error) {
         console.error("Error fetching user role:", error);
         setRole(null);
@@ -53,6 +69,7 @@ export const useUserRole = () => {
     isAdmin: role === "admin", 
     isMentor: role === "mentor", 
     isBeneficiario: role === "beneficiario",
-    isStakeholder: role === "stakeholder"
+    isStakeholder: role === "stakeholder",
+    isOperador
   };
 };
