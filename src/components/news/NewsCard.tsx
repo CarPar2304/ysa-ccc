@@ -37,10 +37,10 @@ export const NewsCard = ({ noticia, isAdmin, onClick }: NewsCardProps) => {
   return (
     <article
       onClick={onClick}
-      className="group cursor-pointer rounded-lg border border-border bg-card overflow-hidden shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-medium)] transition-all duration-300 hover:-translate-y-0.5"
+      className="group cursor-pointer rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
     >
       {/* Image — compact aspect ratio */}
-      <div className="aspect-[2/1] overflow-hidden bg-muted relative">
+      <div className="aspect-[16/10] overflow-hidden bg-muted relative">
         {noticia.imagen_url ? (
           <img
             src={noticia.imagen_url}
@@ -62,7 +62,7 @@ export const NewsCard = ({ noticia, isAdmin, onClick }: NewsCardProps) => {
       </div>
 
       {/* Content — tighter padding */}
-      <div className="p-3 space-y-1.5">
+      <div className="p-2.5 space-y-1">
         <div className="flex items-center gap-1.5">
           {noticia.categoria && (
             <Badge variant="outline" className="text-[9px] font-medium uppercase tracking-wider text-primary border-primary/30 px-1.5 py-0">
@@ -75,7 +75,7 @@ export const NewsCard = ({ noticia, isAdmin, onClick }: NewsCardProps) => {
           </span>
         </div>
 
-        <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+        <h3 className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
           {noticia.titulo}
         </h3>
 

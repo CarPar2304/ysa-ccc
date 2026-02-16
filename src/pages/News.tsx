@@ -92,13 +92,9 @@ const News = () => {
     );
   }
 
-  // Separate featured (latest) from rest
-  const featured = noticias[0] || null;
-  const rest = noticias.slice(1);
-
   return (
     <Layout>
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 space-y-8">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -115,69 +111,15 @@ const News = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            {/* Featured article (hero) */}
-            {featured && (
-              <article
-                onClick={() => navigate(`/news/${featured.id}`)}
-                className="group cursor-pointer rounded-xl border border-border bg-card overflow-hidden shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-medium)] transition-all duration-300"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2">
-                  <div className="aspect-[16/10] md:aspect-auto overflow-hidden bg-muted relative">
-                    {featured.imagen_url ? (
-                      <img
-                        src={featured.imagen_url}
-                        alt={featured.titulo}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full min-h-[240px] flex items-center justify-center bg-accent/30">
-                        <span className="text-5xl font-bold text-muted-foreground/20 select-none">
-                          {featured.titulo.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    {isAdmin && !featured.publicado && (
-                      <Badge variant="secondary" className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm">
-                        Borrador
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="p-6 sm:p-8 flex flex-col justify-center space-y-3">
-                    {featured.categoria && (
-                      <Badge variant="outline" className="self-start text-xs uppercase tracking-wider text-primary border-primary/30">
-                        {featured.categoria}
-                      </Badge>
-                    )}
-                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight group-hover:text-primary transition-colors">
-                      {featured.titulo}
-                    </h2>
-                    {featured.descripcion && (
-                      <p className="text-muted-foreground leading-relaxed line-clamp-3">
-                        {featured.descripcion}
-                      </p>
-                    )}
-                    <span className="text-xs text-muted-foreground mt-auto pt-2">
-                      {new Date(featured.created_at).toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" })}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            )}
-
-            {/* Grid of remaining articles */}
-            {rest.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {rest.map((noticia) => (
-                  <NewsCard
-                    key={noticia.id}
-                    noticia={noticia}
-                    isAdmin={isAdmin}
-                    onClick={() => navigate(`/news/${noticia.id}`)}
-                  />
-                ))}
-              </div>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {noticias.map((noticia) => (
+              <NewsCard
+                key={noticia.id}
+                noticia={noticia}
+                isAdmin={isAdmin}
+                onClick={() => navigate(`/news/${noticia.id}`)}
+              />
+            ))}
           </div>
         )}
       </div>
