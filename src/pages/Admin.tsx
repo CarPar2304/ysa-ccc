@@ -93,7 +93,7 @@ const Admin = () => {
           )}
 
           <TabsContent value="diagnostics" className="space-y-4">
-            <DiagnosticEditor />
+            <DiagnosticEditor readOnly={isStakeholder && !isAdmin} />
           </TabsContent>
 
           {showMentors && (

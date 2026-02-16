@@ -7,8 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, Plus, Pencil } from "lucide-react";
+import { Loader2, Save, Plus, Pencil, Eye } from "lucide-react";
 import { DiagnosticExportModal } from "./DiagnosticExportModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 
 interface Emprendimiento {
   id: string;
@@ -25,7 +27,11 @@ interface Diagnostico {
   updated_at: string;
 }
 
-export function DiagnosticEditor() {
+interface DiagnosticEditorProps {
+  readOnly?: boolean;
+}
+
+export function DiagnosticEditor({ readOnly = false }: DiagnosticEditorProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [emprendimientos, setEmprendimientos] = useState<Emprendimiento[]>([]);
@@ -34,6 +40,7 @@ export function DiagnosticEditor() {
   const [contenido, setContenido] = useState("");
   const [visibleParaUsuario, setVisibleParaUsuario] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingDiag, setViewingDiag] = useState<Diagnostico | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,7 +51,6 @@ export function DiagnosticEditor() {
     try {
       setLoading(true);
 
-      // Fetch emprendimientos
       const { data: empData, error: empError } = await supabase
         .from("emprendimientos")
         .select("id, nombre, user_id")
@@ -53,7 +59,6 @@ export function DiagnosticEditor() {
       if (empError) throw empError;
       setEmprendimientos(empData || []);
 
-      // Fetch diagnosticos
       const { data: diagData, error: diagError } = await supabase
         .from("diagnosticos")
         .select("*")
@@ -86,7 +91,6 @@ export function DiagnosticEditor() {
       setSaving(true);
 
       if (editingId) {
-        // Update existing
         const { error } = await supabase
           .from("diagnosticos")
           .update({
@@ -102,7 +106,6 @@ export function DiagnosticEditor() {
           description: "Diagnóstico actualizado correctamente",
         });
       } else {
-        // Insert new
         const { error } = await supabase.from("diagnosticos").insert({
           emprendimiento_id: selectedEmprendimiento,
           contenido,
@@ -117,13 +120,10 @@ export function DiagnosticEditor() {
         });
       }
 
-      // Reset form
       setSelectedEmprendimiento("");
       setContenido("");
       setVisibleParaUsuario(true);
       setEditingId(null);
-
-      // Refresh data
       fetchData();
     } catch (error: any) {
       toast({
@@ -160,78 +160,81 @@ export function DiagnosticEditor() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {editingId ? "Editar Diagnóstico" : "Crear Nuevo Diagnóstico"}
-          </CardTitle>
-          <CardDescription>
-            {editingId
-              ? "Modifica el diagnóstico del emprendimiento"
-              : "Crea un diagnóstico para un emprendimiento"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="emprendimiento">Emprendimiento</Label>
-            <Select
-              value={selectedEmprendimiento}
-              onValueChange={setSelectedEmprendimiento}
-              disabled={editingId !== null}
-            >
-              <SelectTrigger id="emprendimiento">
-                <SelectValue placeholder="Selecciona un emprendimiento" />
-              </SelectTrigger>
-              <SelectContent>
-                {emprendimientos.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Editor form - only for non-readOnly */}
+      {!readOnly && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {editingId ? "Editar Diagnóstico" : "Crear Nuevo Diagnóstico"}
+            </CardTitle>
+            <CardDescription>
+              {editingId
+                ? "Modifica el diagnóstico del emprendimiento"
+                : "Crea un diagnóstico para un emprendimiento"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="emprendimiento">Emprendimiento</Label>
+              <Select
+                value={selectedEmprendimiento}
+                onValueChange={setSelectedEmprendimiento}
+                disabled={editingId !== null}
+              >
+                <SelectTrigger id="emprendimiento">
+                  <SelectValue placeholder="Selecciona un emprendimiento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {emprendimientos.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contenido">Diagnóstico</Label>
-            <Textarea
-              id="contenido"
-              value={contenido}
-              onChange={(e) => setContenido(e.target.value)}
-              placeholder="Escribe el diagnóstico del emprendimiento..."
-              rows={10}
-              className="resize-none"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="contenido">Diagnóstico</Label>
+              <Textarea
+                id="contenido"
+                value={contenido}
+                onChange={(e) => setContenido(e.target.value)}
+                placeholder="Escribe el diagnóstico del emprendimiento..."
+                rows={10}
+                className="resize-none"
+              />
+            </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="visible"
-              checked={visibleParaUsuario}
-              onCheckedChange={setVisibleParaUsuario}
-            />
-            <Label htmlFor="visible">Visible para el usuario</Label>
-          </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="visible"
+                checked={visibleParaUsuario}
+                onCheckedChange={setVisibleParaUsuario}
+              />
+              <Label htmlFor="visible">Visible para el usuario</Label>
+            </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : editingId ? (
-                <Save className="h-4 w-4 mr-2" />
-              ) : (
-                <Plus className="h-4 w-4 mr-2" />
-              )}
-              {editingId ? "Actualizar" : "Crear"} Diagnóstico
-            </Button>
-            {editingId && (
-              <Button variant="outline" onClick={handleCancel}>
-                Cancelar
+            <div className="flex gap-2">
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : editingId ? (
+                  <Save className="h-4 w-4 mr-2" />
+                ) : (
+                  <Plus className="h-4 w-4 mr-2" />
+                )}
+                {editingId ? "Actualizar" : "Crear"} Diagnóstico
               </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              {editingId && (
+                <Button variant="outline" onClick={handleCancel}>
+                  Cancelar
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -242,10 +245,12 @@ export function DiagnosticEditor() {
                 Lista de todos los diagnósticos creados
               </CardDescription>
             </div>
-            <DiagnosticExportModal 
-              diagnosticos={diagnosticos} 
-              emprendimientos={emprendimientos} 
-            />
+            {!readOnly && (
+              <DiagnosticExportModal 
+                diagnosticos={diagnosticos} 
+                emprendimientos={emprendimientos} 
+              />
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -280,13 +285,23 @@ export function DiagnosticEditor() {
                             </span>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(diag)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        {readOnly ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingDiag(diag)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(diag)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -296,6 +311,26 @@ export function DiagnosticEditor() {
           </div>
         </CardContent>
       </Card>
+
+      {/* View Modal for readOnly */}
+      <Dialog open={!!viewingDiag} onOpenChange={(open) => !open && setViewingDiag(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {emprendimientos.find(e => e.id === viewingDiag?.emprendimiento_id)?.nombre ?? "Diagnóstico"}
+            </DialogTitle>
+          </DialogHeader>
+          {viewingDiag && (
+            <div className="space-y-4">
+              <div className="text-xs text-muted-foreground flex gap-4">
+                <span>Creado: {new Date(viewingDiag.created_at).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</span>
+                <span>Actualizado: {new Date(viewingDiag.updated_at).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}</span>
+              </div>
+              <MarkdownRenderer content={viewingDiag.contenido} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
