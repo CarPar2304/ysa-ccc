@@ -38,6 +38,8 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
     categoria: "",
     imagen_url: "",
     publicado: false,
+    boton_texto: "",
+    boton_url: "",
   });
 
   useEffect(() => {
@@ -49,6 +51,8 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
         categoria: noticia.categoria || "",
         imagen_url: noticia.imagen_url || "",
         publicado: noticia.publicado,
+        boton_texto: (noticia as any).boton_texto || "",
+        boton_url: (noticia as any).boton_url || "",
       });
       setImagePreview(noticia.imagen_url || null);
     }
@@ -111,7 +115,7 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
       setOpen(false);
       onSuccess();
       if (!noticia) {
-        setFormData({ titulo: "", descripcion: "", contenido: "", categoria: "", imagen_url: "", publicado: false });
+        setFormData({ titulo: "", descripcion: "", contenido: "", categoria: "", imagen_url: "", publicado: false, boton_texto: "", boton_url: "" });
         setImagePreview(null);
       }
     } catch (error: any) {
@@ -209,6 +213,31 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
               </label>
             )}
+          </div>
+
+          {/* Button CTA fields */}
+          <div className="space-y-2 rounded-md border border-border p-3">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Botón de acción (opcional)</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="boton_texto" className="text-xs">Texto del botón</Label>
+                <Input
+                  id="boton_texto"
+                  value={formData.boton_texto}
+                  onChange={(e) => setFormData({ ...formData, boton_texto: e.target.value })}
+                  placeholder="Ej: Ver más"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="boton_url" className="text-xs">URL del botón</Label>
+                <Input
+                  id="boton_url"
+                  value={formData.boton_url}
+                  onChange={(e) => setFormData({ ...formData, boton_url: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
