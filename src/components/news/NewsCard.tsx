@@ -37,10 +37,10 @@ export const NewsCard = ({ noticia, isAdmin, onClick }: NewsCardProps) => {
   return (
     <article
       onClick={onClick}
-      className="group cursor-pointer rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+      className="group cursor-pointer rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 flex flex-row h-28"
     >
-      {/* Image — compact aspect ratio */}
-      <div className="aspect-[16/10] overflow-hidden bg-muted relative">
+      {/* Image — left side */}
+      <div className="w-28 min-w-[7rem] overflow-hidden bg-muted relative shrink-0">
         {noticia.imagen_url ? (
           <img
             src={noticia.imagen_url}
@@ -55,21 +55,21 @@ export const NewsCard = ({ noticia, isAdmin, onClick }: NewsCardProps) => {
           </div>
         )}
         {isAdmin && !noticia.publicado && (
-          <Badge variant="secondary" className="absolute top-1.5 right-1.5 bg-background/80 backdrop-blur-sm text-[10px]">
+          <Badge variant="secondary" className="absolute top-1 left-1 bg-background/80 backdrop-blur-sm text-[9px] px-1 py-0">
             Borrador
           </Badge>
         )}
       </div>
 
-      {/* Content — tighter padding */}
-      <div className="p-2.5 space-y-1">
+      {/* Content — right side */}
+      <div className="p-2.5 space-y-1 flex flex-col justify-center min-w-0">
         <div className="flex items-center gap-1.5">
           {noticia.categoria && (
             <Badge variant="outline" className="text-[9px] font-medium uppercase tracking-wider text-primary border-primary/30 px-1.5 py-0">
               {noticia.categoria}
             </Badge>
           )}
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1 ml-auto">
+          <span className="text-[10px] text-muted-foreground flex items-center gap-1 ml-auto shrink-0">
             <Calendar className="h-2.5 w-2.5" />
             {format(new Date(noticia.created_at), "d MMM yyyy", { locale: es })}
           </span>
