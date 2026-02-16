@@ -18,8 +18,8 @@ interface Evaluacion {
 }
 
 export const getNivelFromScore = (puntaje: number): string => {
-  if (puntaje >= 70) return "Scale";
-  if (puntaje >= 40) return "Growth";
+  if (puntaje > 80) return "Scale";
+  if (puntaje > 50) return "Growth";
   return "Starter";
 };
 
