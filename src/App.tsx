@@ -6,6 +6,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import News from "./pages/News";
+import NewsDetail from "./pages/NewsDetail";
 import Lab from "./pages/Lab";
 import LabModuleView from "./pages/LabModuleView";
 import LabClassView from "./pages/LabClassView";
@@ -30,6 +31,7 @@ const App = () => (
         <Route path="/register-mentor" element={<RegisterMentor />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+        <Route path="/news/:id" element={<ProtectedRoute><NewsDetail /></ProtectedRoute>} />
         <Route path="/lab" element={<ProtectedRoute><Lab /></ProtectedRoute>} />
         <Route path="/lab/:moduloId" element={<ProtectedRoute><LabModuleView /></ProtectedRoute>} />
         <Route path="/lab/:moduloId/:claseId" element={<ProtectedRoute><LabClassView /></ProtectedRoute>} />
