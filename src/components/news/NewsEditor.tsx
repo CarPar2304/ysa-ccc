@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Upload, X, Loader2 as LoaderIcon } from "lucide-react";
 
 interface NewsEditorProps {
   noticia?: {
@@ -26,6 +26,8 @@ interface NewsEditorProps {
 export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -47,8 +49,49 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
         imagen_url: noticia.imagen_url || "",
         publicado: noticia.publicado,
       });
+      setImagePreview(noticia.imagen_url || null);
     }
   }, [noticia]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Error", description: "Solo se permiten archivos de imagen", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `noticias/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("lab-images")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("lab-images")
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, imagen_url: publicUrl }));
+      setImagePreview(publicUrl);
+      toast({ title: "Imagen subida", description: "La imagen se cargó correctamente" });
+    } catch (error: any) {
+      toast({ title: "Error al subir imagen", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, imagen_url: "" }));
+    setImagePreview(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,14 +225,33 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="imagen_url">URL de Imagen</Label>
-            <Input
-              id="imagen_url"
-              type="url"
-              value={formData.imagen_url}
-              onChange={(e) => setFormData({ ...formData, imagen_url: e.target.value })}
-              placeholder="https://ejemplo.com/imagen.jpg"
-            />
+            <Label>Imagen</Label>
+            {imagePreview ? (
+              <div className="relative">
+                <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg border border-border" />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 h-7 w-7"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                {uploading ? (
+                  <LoaderIcon className="h-6 w-6 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                    <span className="text-sm text-muted-foreground">Haz clic para subir una imagen</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+              </label>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">

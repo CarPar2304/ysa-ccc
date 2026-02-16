@@ -219,7 +219,7 @@ export const FinanciamientosStats = ({ filterType, nivelFilter }: Financiamiento
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle>Distribución por Etapa</CardTitle>
             </CardHeader>
