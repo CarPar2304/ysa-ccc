@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DollarSign, TrendingUp } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { FilterType, NivelFilter } from "../DashboardFilters";
 import { getColorByIndex } from "@/lib/chartColors";
 import { filterEmprendimientos, buildEvaluacionesMap } from "@/hooks/useDashboardFilter";
@@ -198,10 +198,28 @@ export const FinanciamientosStats = ({ filterType, nivelFilter }: Financiamiento
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={tipoActorData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <PieChart>
+                  <Pie
+                    data={tipoActorData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => {
+                      const total = tipoActorData.reduce((s, d) => s + d.value, 0);
+                      const pct = ((entry.value / total) * 100).toFixed(1);
+                      return `${entry.name} (${pct}%)`;
+                    }}
+                    outerRadius={80}
+                    innerRadius={35}
+                    dataKey="value"
+                    strokeWidth={2}
+                    stroke="hsl(var(--background))"
+                  >
+                    {tipoActorData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                    ))}
+                  </Pie>
+                  <Legend verticalAlign="bottom" height={36} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
@@ -209,12 +227,7 @@ export const FinanciamientosStats = ({ filterType, nivelFilter }: Financiamiento
                       borderRadius: "8px",
                     }}
                   />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                    {tipoActorData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -225,10 +238,10 @@ export const FinanciamientosStats = ({ filterType, nivelFilter }: Financiamiento
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={etapaData}>
+                <BarChart data={etapaData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={120} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
@@ -236,7 +249,7 @@ export const FinanciamientosStats = ({ filterType, nivelFilter }: Financiamiento
                       borderRadius: "8px",
                     }}
                   />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]}>
                     {etapaData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={getColorByIndex(index + 2)} />
                     ))}

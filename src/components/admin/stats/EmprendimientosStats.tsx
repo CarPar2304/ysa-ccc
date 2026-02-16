@@ -313,7 +313,7 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
 
         <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/30 border-amber-200 dark:border-amber-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">% Participaciones Previas</CardTitle>
+            <CardTitle className="text-sm font-medium">% Han participado en programas de emprendimiento previamente</CardTitle>
             <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
