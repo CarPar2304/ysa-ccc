@@ -142,7 +142,7 @@ const News = () => {
       <div className="mx-auto max-w-4xl p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-foreground mb-2">YSA Now</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Noticias</h1>
             <p className="text-muted-foreground">Mantente al día con las últimas noticias del programa</p>
           </div>
           {canEditNews && (

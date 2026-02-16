@@ -233,7 +233,7 @@ const Lab = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">YSA Lab</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Classroom</h1>
               {userNivel && !isStakeholder && (
                 <Badge variant="secondary" className="text-sm">
                   Nivel {userNivel}
