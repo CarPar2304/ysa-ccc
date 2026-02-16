@@ -1088,6 +1088,8 @@ export type Database = {
       noticias: {
         Row: {
           autor_id: string
+          boton_texto: string | null
+          boton_url: string | null
           categoria: string | null
           contenido: string | null
           created_at: string
@@ -1100,6 +1102,8 @@ export type Database = {
         }
         Insert: {
           autor_id: string
+          boton_texto?: string | null
+          boton_url?: string | null
           categoria?: string | null
           contenido?: string | null
           created_at?: string
@@ -1112,6 +1116,8 @@ export type Database = {
         }
         Update: {
           autor_id?: string
+          boton_texto?: string | null
+          boton_url?: string | null
           categoria?: string | null
           contenido?: string | null
           created_at?: string
