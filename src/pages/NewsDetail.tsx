@@ -2,7 +2,7 @@ import { Layout } from "@/components/Layout";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, Calendar, Pencil, Trash2 } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ interface Noticia {
   created_at: string;
   imagen_url: string | null;
   publicado: boolean;
+  boton_texto: string | null;
+  boton_url: string | null;
 }
 
 const NewsDetail = () => {
@@ -159,6 +161,16 @@ const NewsDetail = () => {
                 <MarkdownRenderer content={noticia.contenido} className="text-base" />
               ) : (
                 <p className="text-muted-foreground italic">Esta noticia no tiene contenido adicional.</p>
+              )}
+              {noticia.boton_texto && noticia.boton_url && (
+                <div className="mt-6">
+                  <Button asChild>
+                    <a href={noticia.boton_url} target="_blank" rel="noopener noreferrer" className="gap-2">
+                      {noticia.boton_texto}
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </div>
               )}
             </div>
           </div>
