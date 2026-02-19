@@ -260,7 +260,7 @@ const Profile = () => {
               </TabsList>
 
               <TabsContent value="info">
-                <ProfileEntrepreneurship readOnly />
+                <ProfileEntrepreneurship />
               </TabsContent>
 
               <TabsContent value="equipo">
