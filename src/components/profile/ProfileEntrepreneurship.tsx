@@ -2,7 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Briefcase, FileText, TrendingUp, Target, Globe, Calendar } from "lucide-react";
+import { Loader2, Briefcase, FileText, TrendingUp, Target, Globe, Calendar, Building2, Pencil, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ProfileEntrepreneurshipProps {
   readOnly?: boolean;
@@ -20,7 +22,12 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
     tipo_cliente: "",
     pagina_web: "",
     ano_fundacion: "",
+    afiliacion_comfandi: "",
   });
+  const [editingComfandi, setEditingComfandi] = useState(false);
+  const [comfandiValue, setComfandiValue] = useState("");
+  const [savingComfandi, setSavingComfandi] = useState(false);
+  const [emprendimientoId, setEmprendimientoId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -41,6 +48,7 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
+        setEmprendimientoId(data.id);
         setFormData({
           nombre: data.nombre || "",
           descripcion: data.descripcion || "",
@@ -51,7 +59,9 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
           tipo_cliente: data.tipo_cliente || "",
           pagina_web: data.pagina_web || "",
           ano_fundacion: data.ano_fundacion ? String(data.ano_fundacion) : "",
+          afiliacion_comfandi: data.afiliacion_comfandi || "",
         });
+        setComfandiValue(data.afiliacion_comfandi || "");
       }
     } catch (error) {
       console.error("Error fetching entrepreneurship:", error);
@@ -72,6 +82,42 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
       </div>
     );
   }
+
+  const COMFANDI_OPTIONS = [
+    "Afiliada como empresa",
+    "En proceso o con interés",
+    "Afiliado a otra caja",
+    "Afiliado como independiente",
+  ];
+
+  const COMFANDI_LABELS: Record<string, string> = {
+    "Afiliada como empresa": "Si, Mi empresa está registrada como afiliada a la caja de compensación",
+    "En proceso o con interés": "No, pero estoy en proceso o tengo interés en afiliarme",
+    "Afiliado a otra caja": "No, me encuentro afiliado a otra caja de compensación",
+    "Afiliado como independiente": "Sí, me encuentro afiliado, pero como independiente",
+  };
+
+  const handleSaveComfandi = async () => {
+    if (!emprendimientoId) return;
+    setSavingComfandi(true);
+    try {
+      const { error } = await supabase
+        .from("emprendimientos")
+        .update({ afiliacion_comfandi: comfandiValue as any })
+        .eq("id", emprendimientoId);
+
+      if (error) throw error;
+
+      setFormData(prev => ({ ...prev, afiliacion_comfandi: comfandiValue }));
+      setEditingComfandi(false);
+      toast({ title: "Actualizado", description: "Afiliación Comfandi actualizada correctamente" });
+    } catch (error) {
+      console.error("Error updating comfandi:", error);
+      toast({ title: "Error", description: "No se pudo actualizar", variant: "destructive" });
+    } finally {
+      setSavingComfandi(false);
+    }
+  };
 
   const InfoItem = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
     <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg hover:bg-accent/50 transition-colors">
@@ -101,6 +147,47 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
           <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             <InfoItem icon={Globe} label="Página Web" value={formData.pagina_web} />
             <InfoItem icon={Calendar} label="Año de Fundación" value={formData.ano_fundacion} />
+          </div>
+
+          {/* Afiliación Comfandi */}
+          <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg hover:bg-accent/50 transition-colors">
+            <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground">Afiliación Comfandi</p>
+              {editingComfandi ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <Select value={comfandiValue} onValueChange={setComfandiValue}>
+                    <SelectTrigger className="w-full max-w-md">
+                      <SelectValue placeholder="Seleccionar..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMFANDI_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {COMFANDI_LABELS[opt]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="icon" variant="ghost" onClick={handleSaveComfandi} disabled={savingComfandi}>
+                    <Check className="h-4 w-4 text-green-600" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => { setEditingComfandi(false); setComfandiValue(formData.afiliacion_comfandi); }}>
+                    <X className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm sm:text-base text-foreground break-words">
+                    {formData.afiliacion_comfandi ? COMFANDI_LABELS[formData.afiliacion_comfandi] || formData.afiliacion_comfandi : "No especificado"}
+                  </p>
+                  {!readOnly && (
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setEditingComfandi(true); setComfandiValue(formData.afiliacion_comfandi); }}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

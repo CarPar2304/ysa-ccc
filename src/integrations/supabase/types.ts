@@ -436,6 +436,9 @@ export type Database = {
       emprendimientos: {
         Row: {
           actividades_id: boolean | null
+          afiliacion_comfandi:
+            | Database["public"]["Enums"]["afiliacion_comfandi"]
+            | null
           alcance_mercado: Database["public"]["Enums"]["alcance_mercado"] | null
           ano_fundacion: number | null
           categoria:
@@ -501,6 +504,9 @@ export type Database = {
         }
         Insert: {
           actividades_id?: boolean | null
+          afiliacion_comfandi?:
+            | Database["public"]["Enums"]["afiliacion_comfandi"]
+            | null
           alcance_mercado?:
             | Database["public"]["Enums"]["alcance_mercado"]
             | null
@@ -568,6 +574,9 @@ export type Database = {
         }
         Update: {
           actividades_id?: boolean | null
+          afiliacion_comfandi?:
+            | Database["public"]["Enums"]["afiliacion_comfandi"]
+            | null
           alcance_mercado?:
             | Database["public"]["Enums"]["alcance_mercado"]
             | null
@@ -1644,6 +1653,11 @@ export type Database = {
       }
     }
     Enums: {
+      afiliacion_comfandi:
+        | "Afiliada como empresa"
+        | "En proceso o con interés"
+        | "Afiliado a otra caja"
+        | "Afiliado como independiente"
       alcance_mercado: "Local" | "Regional" | "Nacional" | "Internacional"
       app_role: "admin" | "mentor" | "beneficiario" | "stakeholder"
       busca_financiamiento: "Sí" | "No" | "Aún no lo sé"
@@ -1838,6 +1852,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      afiliacion_comfandi: [
+        "Afiliada como empresa",
+        "En proceso o con interés",
+        "Afiliado a otra caja",
+        "Afiliado como independiente",
+      ],
       alcance_mercado: ["Local", "Regional", "Nacional", "Internacional"],
       app_role: ["admin", "mentor", "beneficiario", "stakeholder"],
       busca_financiamiento: ["Sí", "No", "Aún no lo sé"],
