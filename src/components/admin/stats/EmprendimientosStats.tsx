@@ -80,6 +80,7 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
   const [actividadesID, setActividadesID] = useState(0);
   const [ubicacionData, setUbicacionData] = useState<ChartData[]>([]);
   const [ventasData, setVentasData] = useState<ChartData[]>([]);
+  const [comfandiData, setComfandiData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -284,6 +285,20 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
         return acc;
       }, {});
       setVentasData(Object.entries(ventasCounts).map(([name, value]) => ({ name, value: value as number })));
+
+      // Afiliación Comfandi
+      const comfandiCounts = emprendimientos.reduce((acc: any, e) => {
+        const val = e.afiliacion_comfandi || "No especificado";
+        acc[val] = (acc[val] || 0) + 1;
+        return acc;
+      }, {});
+      setComfandiData(
+        Object.entries(comfandiCounts).map(([name, value]) => ({
+          name,
+          value: value as number,
+          percentage: ((value as number) / total) * 100,
+        }))
+      );
     } catch (error) {
       console.error("Error fetching emprendimientos stats:", error);
     } finally {
@@ -633,6 +648,36 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
                   ))}
                 </Bar>
               </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Afiliación Comfandi</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={comfandiData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => entry.percentage > 5 ? `${entry.percentage?.toFixed(1)}%` : null}
+                  outerRadius={90}
+                  innerRadius={40}
+                  dataKey="value"
+                  strokeWidth={2}
+                  stroke="hsl(var(--background))"
+                >
+                  {comfandiData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                  ))}
+                </Pie>
+                <Legend verticalAlign="bottom" />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+              </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
