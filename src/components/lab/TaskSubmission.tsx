@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, Loader2, FileText, X, CheckCircle } from "lucide-react";
+import { Upload, Loader2, FileText, X, CheckCircle, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Tarea {
@@ -30,6 +30,7 @@ interface Entrega {
   archivos_urls: { name: string; url: string }[];
   estado: string;
   feedback: string | null;
+  nota: number | null;
   fecha_entrega: string;
 }
 
@@ -222,9 +223,18 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
               <span className="text-sm text-muted-foreground">Estado:</span>
               {getStatusBadge(entregaExistente.estado)}
             </div>
+            {entregaExistente.nota !== null && entregaExistente.nota !== undefined && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Nota:</span>
+                <Badge variant="outline" className="gap-1">
+                  <Star className="h-3 w-3" />
+                  {entregaExistente.nota} / 5
+                </Badge>
+              </div>
+            )}
             {entregaExistente.feedback && (
               <div className="space-y-1">
-                <span className="text-sm font-medium">Feedback:</span>
+                <span className="text-sm font-medium">Feedback del mentor:</span>
                 <p className="text-sm text-muted-foreground">{entregaExistente.feedback}</p>
               </div>
             )}

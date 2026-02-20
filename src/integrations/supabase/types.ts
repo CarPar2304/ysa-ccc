@@ -661,6 +661,7 @@ export type Database = {
           fecha_entrega: string
           feedback: string | null
           id: string
+          nota: number | null
           tarea_id: string
           updated_at: string
           user_id: string
@@ -673,6 +674,7 @@ export type Database = {
           fecha_entrega?: string
           feedback?: string | null
           id?: string
+          nota?: number | null
           tarea_id: string
           updated_at?: string
           user_id: string
@@ -685,6 +687,7 @@ export type Database = {
           fecha_entrega?: string
           feedback?: string | null
           id?: string
+          nota?: number | null
           tarea_id?: string
           updated_at?: string
           user_id?: string
