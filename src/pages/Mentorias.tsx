@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Search, BookMarked, Lock } from "lucide-react";
+import { Calendar as CalendarIcon, Search, BookMarked, Lock, ExternalLink, CheckCircle, XCircle, Link2 } from "lucide-react";
 import { MisAsesorias } from "@/components/mentor/MisAsesorias";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
@@ -24,6 +24,8 @@ interface PerfilAsesoria {
   foto_url: string;
   banner_url: string;
   perfil_mentor: string;
+  tipo_disponibilidad?: string;
+  link_calendario_externo?: string;
 }
 
 interface Disponibilidad {
@@ -39,13 +41,15 @@ interface ReservaExistente {
 
 const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
+// Paso del flujo de calendario externo
+type ExternalCalendarStep = "link" | "confirm" | "done";
+
 const Mentorias = () => {
   const { userId, isAdmin, isMentor, isStakeholder } = useUserRole();
   const { isApproved, loading: loadingQuota, quotaInfo } = useQuotaStatus(userId);
   
-  // Stakeholders have access but cannot schedule
   const hasAccess = isAdmin || isMentor || isStakeholder || isApproved;
-  const canSchedule = !isStakeholder; // Stakeholders cannot schedule
+  const canSchedule = !isStakeholder;
   const [perfiles, setPerfiles] = useState<PerfilAsesoria[]>([]);
   const [filteredPerfiles, setFilteredPerfiles] = useState<PerfilAsesoria[]>([]);
   const [tematicas, setTematicas] = useState<string[]>([]);
@@ -57,6 +61,10 @@ const Mentorias = () => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedSlot, setSelectedSlot] = useState<string>("");
   const [isReserving, setIsReserving] = useState(false);
+
+  // Estado para flujo de calendario externo
+  const [externalStep, setExternalStep] = useState<ExternalCalendarStep>("link");
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -106,27 +114,30 @@ const Mentorias = () => {
     setSelectedPerfil(perfil);
     setSelectedDate(undefined);
     setSelectedSlot("");
+    setExternalStep("link");
     
-    try {
-      const { data: disp, error: dispError } = await supabase
-        .from("disponibilidades_mentor")
-        .select("*")
-        .eq("perfil_asesoria_id", perfil.id)
-        .order("dia_semana", { ascending: true });
+    if (perfil.tipo_disponibilidad !== "calendario_externo") {
+      try {
+        const { data: disp, error: dispError } = await supabase
+          .from("disponibilidades_mentor")
+          .select("*")
+          .eq("perfil_asesoria_id", perfil.id)
+          .order("dia_semana", { ascending: true });
 
-      if (dispError) throw dispError;
-      setDisponibilidades(disp || []);
+        if (dispError) throw dispError;
+        setDisponibilidades(disp || []);
 
-      const { data: reservas, error: reservasError } = await supabase
-        .from("reservas_asesoria")
-        .select("fecha_reserva")
-        .eq("perfil_asesoria_id", perfil.id)
-        .neq("estado", "cancelada");
+        const { data: reservas, error: reservasError } = await supabase
+          .from("reservas_asesoria")
+          .select("fecha_reserva")
+          .eq("perfil_asesoria_id", perfil.id)
+          .neq("estado", "cancelada");
 
-      if (reservasError) throw reservasError;
-      setReservasExistentes(reservas || []);
-    } catch (error) {
-      console.error("Error fetching disponibilidades:", error);
+        if (reservasError) throw reservasError;
+        setReservasExistentes(reservas || []);
+      } catch (error) {
+        console.error("Error fetching disponibilidades:", error);
+      }
     }
   };
 
@@ -148,12 +159,12 @@ const Mentorias = () => {
     return slotsForDay.filter(slot => !reserved.includes(slot.hora_inicio));
   };
 
+  // ---- Reserva normal ----
   const handleReservar = async () => {
-    // Stakeholders cannot schedule
     if (isStakeholder) {
       toast({
         title: "Acceso restringido",
-        description: "Tu perfil no cumple con los criterios para agendar mentorías. Solo puedes visualizar perfiles y disponibilidades.",
+        description: "Tu perfil no cumple con los criterios para agendar mentorías.",
         variant: "destructive",
       });
       return;
@@ -170,7 +181,6 @@ const Mentorias = () => {
       const fechaReserva = new Date(selectedDate);
       fechaReserva.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-      // Encontrar el slot completo para obtener hora_fin
       const slotCompleto = availableSlots.find(s => s.hora_inicio === selectedSlot);
       const [hoursEnd, minutesEnd] = slotCompleto!.hora_fin.split(':');
       const fechaFin = new Date(selectedDate);
@@ -184,13 +194,13 @@ const Mentorias = () => {
           mentor_id: selectedPerfil.mentor_id,
           fecha_reserva: fechaReserva.toISOString(),
           estado: "pendiente",
+          tipo_reserva: "normal",
         }])
         .select()
         .single();
 
       if (error) throw error;
 
-      // Enviar webhook con formato de fecha correcto
       try {
         const formatDate = (date: Date) => {
           const year = date.getFullYear();
@@ -216,9 +226,7 @@ const Mentorias = () => {
 
         await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/mentorias-ysa-pacifico", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: webhookData.toString(),
         });
       } catch (webhookError) {
@@ -230,17 +238,54 @@ const Mentorias = () => {
       setSelectedDate(undefined);
       setSelectedSlot("");
     } catch (error: any) {
-      toast({
-        title: "Error al agendar",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error al agendar", description: error.message, variant: "destructive" });
+    } finally {
+      setIsReserving(false);
+    }
+  };
+
+  // ---- Flujo calendario externo ----
+  const handleOpenExternalCalendar = () => {
+    if (selectedPerfil?.link_calendario_externo) {
+      window.open(selectedPerfil.link_calendario_externo, "_blank");
+      setExternalStep("confirm");
+    }
+  };
+
+  const handleConfirmExternalBooking = async (agendo: boolean) => {
+    if (!agendo) {
+      setSelectedPerfil(null);
+      return;
+    }
+
+    setIsReserving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuario no autenticado");
+
+      const { error } = await supabase
+        .from("reservas_asesoria")
+        .insert([{
+          perfil_asesoria_id: selectedPerfil!.id,
+          beneficiario_id: user.id,
+          mentor_id: selectedPerfil!.mentor_id,
+          fecha_reserva: new Date().toISOString(),
+          estado: "pendiente",
+          tipo_reserva: "calendario_externo",
+        }]);
+
+      if (error) throw error;
+
+      setExternalStep("done");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsReserving(false);
     }
   };
 
   const availableSlots = getAvailableSlots();
+  const isExternalCalendar = selectedPerfil?.tipo_disponibilidad === "calendario_externo";
 
   if (loadingQuota) {
     return (
@@ -275,9 +320,7 @@ const Mentorias = () => {
                 Por favor, espera a que tu solicitud sea evaluada y aprobada por el equipo administrativo.
               </p>
               <div className="pt-4">
-                <Button variant="outline" onClick={() => window.history.back()}>
-                  Volver
-                </Button>
+                <Button variant="outline" onClick={() => window.history.back()}>Volver</Button>
               </div>
             </CardContent>
           </Card>
@@ -292,12 +335,8 @@ const Mentorias = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Mentorías YSA</h1>
           <p className="text-muted-foreground">Agenda sesiones con nuestros mentores expertos</p>
-          {isAdmin && (
-            <Badge variant="secondary" className="mt-1">Acceso Administrativo</Badge>
-          )}
-          {isStakeholder && (
-            <Badge variant="outline" className="mt-1">Solo Visualización</Badge>
-          )}
+          {isAdmin && <Badge variant="secondary" className="mt-1">Acceso Administrativo</Badge>}
+          {isStakeholder && <Badge variant="outline" className="mt-1">Solo Visualización</Badge>}
           {!isAdmin && !isStakeholder && quotaInfo && (
             <p className="text-sm text-muted-foreground mt-1">
               Nivel {quotaInfo.nivel} • Cohorte {quotaInfo.cohorte}
@@ -318,55 +357,64 @@ const Mentorias = () => {
           </TabsList>
 
           <TabsContent value="explorar" className="space-y-6 mt-6">
-
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Buscar mentorías..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          <Select value={selectedTematica} onValueChange={setSelectedTematica}>
-            <SelectTrigger className="w-full md:w-64">
-              <SelectValue placeholder="Filtrar por temática" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas las temáticas</SelectItem>
-              {tematicas.map((tem) => (
-                <SelectItem key={tem} value={tem}>{tem}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPerfiles.map((perfil) => (
-            <Card key={perfil.id} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleOpenPerfil(perfil)}>
-              {perfil.banner_url && (
-                <div className="h-32 bg-cover bg-center" style={{ backgroundImage: `url(${perfil.banner_url})` }} />
-              )}
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  {perfil.foto_url && (
-                    <img src={perfil.foto_url} alt={perfil.titulo} className="w-12 h-12 rounded-full object-cover" />
-                  )}
-                  <div>
-                    <CardTitle className="text-lg">{perfil.titulo}</CardTitle>
-                    <CardDescription className="text-xs">{perfil.tematica}</CardDescription>
-                  </div>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Buscar mentorías..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-3">{perfil.descripcion}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+              <Select value={selectedTematica} onValueChange={setSelectedTematica}>
+                <SelectTrigger className="w-full md:w-64">
+                  <SelectValue placeholder="Filtrar por temática" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas las temáticas</SelectItem>
+                  {tematicas.map((tem) => (
+                    <SelectItem key={tem} value={tem}>{tem}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPerfiles.map((perfil) => (
+                <Card
+                  key={perfil.id}
+                  className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => handleOpenPerfil(perfil)}
+                >
+                  {perfil.banner_url && (
+                    <div className="h-32 bg-cover bg-center" style={{ backgroundImage: `url(${perfil.banner_url})` }} />
+                  )}
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-3">
+                      {perfil.foto_url && (
+                        <img src={perfil.foto_url} alt={perfil.titulo} className="w-12 h-12 rounded-full object-cover" />
+                      )}
+                      <div>
+                        <CardTitle className="text-lg">{perfil.titulo}</CardTitle>
+                        <CardDescription className="text-xs">{perfil.tematica}</CardDescription>
+                      </div>
+                    </div>
+                    {perfil.tipo_disponibilidad === "calendario_externo" && (
+                      <Badge variant="outline" className="w-fit text-xs mt-1">
+                        <Link2 className="w-3 h-3 mr-1" />
+                        Calendario externo
+                      </Badge>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-3">{perfil.descripcion}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="mis-asesorias" className="mt-6">
@@ -374,6 +422,7 @@ const Mentorias = () => {
           </TabsContent>
         </Tabs>
 
+        {/* Dialog principal */}
         <Dialog open={!!selectedPerfil} onOpenChange={() => setSelectedPerfil(null)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -415,59 +464,144 @@ const Mentorias = () => {
                     <CalendarIcon className="w-4 h-4" />
                     Agendar Sesión
                   </h4>
-                  
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium mb-2">Selecciona una fecha:</p>
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        disabled={(date) => {
-                          const dayOfWeek = date.getDay();
-                          return !disponibilidades.some(d => d.dia_semana === dayOfWeek) || date < new Date();
-                        }}
-                        className="rounded-md border pointer-events-auto"
-                      />
-                    </div>
 
-                    <div>
-                      <p className="text-sm font-medium mb-2">Horarios disponibles:</p>
-                      {!selectedDate ? (
-                        <p className="text-sm text-muted-foreground">Selecciona una fecha primero</p>
-                      ) : availableSlots.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No hay horarios disponibles para esta fecha</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {availableSlots.map((slot) => (
-                            <Button
-                              key={slot.id}
-                              variant={selectedSlot === slot.hora_inicio ? "default" : "outline"}
-                              className="w-full justify-start"
-                              onClick={() => setSelectedSlot(slot.hora_inicio)}
-                            >
-                              {slot.hora_inicio} - {slot.hora_fin}
+                  {/* ---- FLUJO CALENDARIO EXTERNO ---- */}
+                  {isExternalCalendar ? (
+                    <div className="space-y-4">
+                      {externalStep === "link" && (
+                        <div className="rounded-lg border bg-muted/30 p-6 text-center space-y-4">
+                          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                            <Link2 className="w-7 h-7 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-base">Este mentor usa calendario externo</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Al hacer clic se abrirá el calendario del mentor en una nueva ventana. Agenda tu cita allí y luego confirma aquí.
+                            </p>
+                          </div>
+                          {isStakeholder ? (
+                            <div className="mt-4 p-4 bg-muted rounded-lg">
+                              <p className="text-sm text-muted-foreground text-center">
+                                Tu perfil no cumple con los criterios para agendar mentorías.
+                              </p>
+                            </div>
+                          ) : (
+                            <Button className="w-full sm:w-auto" onClick={handleOpenExternalCalendar}>
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Abrir calendario y agendar
                             </Button>
-                          ))}
+                          )}
+                        </div>
+                      )}
+
+                      {externalStep === "confirm" && (
+                        <div className="rounded-lg border bg-muted/30 p-6 text-center space-y-4">
+                          <p className="font-semibold text-base">¿Pudiste agendar tu cita en el calendario externo?</p>
+                          <p className="text-sm text-muted-foreground">
+                            Si ya agendaste, confirma aquí para que quede registrado en "Mis Asesorías".
+                          </p>
+                          <div className="flex gap-3 justify-center flex-wrap">
+                            <Button
+                              onClick={() => handleConfirmExternalBooking(true)}
+                              disabled={isReserving}
+                              className="gap-2"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              {isReserving ? "Guardando..." : "Sí, agendé mi cita"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => handleConfirmExternalBooking(false)}
+                              disabled={isReserving}
+                              className="gap-2"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              No pude agendar, cerrar
+                            </Button>
+                          </div>
+                          <button
+                            className="text-xs text-primary underline"
+                            onClick={handleOpenExternalCalendar}
+                          >
+                            Volver a abrir el calendario →
+                          </button>
+                        </div>
+                      )}
+
+                      {externalStep === "done" && (
+                        <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 text-center space-y-4">
+                          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                            <CheckCircle className="w-7 h-7 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-base">¡Reserva registrada!</p>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Tu asesoría fue agendada a través del calendario externo. Busca en tu correo electrónico la confirmación de la cita — allí encontrarás el <strong>link de acceso a la sesión</strong>.
+                            </p>
+                          </div>
+                          <Button variant="outline" onClick={() => setSelectedPerfil(null)}>
+                            Cerrar
+                          </Button>
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  {isStakeholder ? (
-                    <div className="mt-4 p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground text-center">
-                        Tu perfil no cumple con los criterios para agendar mentorías. Solo puedes visualizar perfiles y disponibilidades.
-                      </p>
-                    </div>
                   ) : (
-                    <Button
-                      className="w-full mt-4"
-                      disabled={!selectedDate || !selectedSlot || isReserving}
-                      onClick={handleReservar}
-                    >
-                      {isReserving ? "Agendando..." : "Agendar Mentoría"}
-                    </Button>
+                    /* ---- FLUJO SLOTS NORMALES ---- */
+                    <div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium mb-2">Selecciona una fecha:</p>
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            disabled={(date) => {
+                              const dayOfWeek = date.getDay();
+                              return !disponibilidades.some(d => d.dia_semana === dayOfWeek) || date < new Date();
+                            }}
+                            className="rounded-md border pointer-events-auto"
+                          />
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-medium mb-2">Horarios disponibles:</p>
+                          {!selectedDate ? (
+                            <p className="text-sm text-muted-foreground">Selecciona una fecha primero</p>
+                          ) : availableSlots.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No hay horarios disponibles para esta fecha</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {availableSlots.map((slot) => (
+                                <Button
+                                  key={slot.id}
+                                  variant={selectedSlot === slot.hora_inicio ? "default" : "outline"}
+                                  className="w-full justify-start"
+                                  onClick={() => setSelectedSlot(slot.hora_inicio)}
+                                >
+                                  {slot.hora_inicio} - {slot.hora_fin}
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {isStakeholder ? (
+                        <div className="mt-4 p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground text-center">
+                            Tu perfil no cumple con los criterios para agendar mentorías.
+                          </p>
+                        </div>
+                      ) : (
+                        <Button
+                          className="w-full mt-4"
+                          disabled={!selectedDate || !selectedSlot || isReserving}
+                          onClick={handleReservar}
+                        >
+                          {isReserving ? "Agendando..." : "Agendar Mentoría"}
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

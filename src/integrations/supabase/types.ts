@@ -1158,9 +1158,11 @@ export type Database = {
           descripcion: string | null
           foto_url: string | null
           id: string
+          link_calendario_externo: string | null
           mentor_id: string
           perfil_mentor: string | null
           tematica: string
+          tipo_disponibilidad: string
           titulo: string
           updated_at: string
         }
@@ -1171,9 +1173,11 @@ export type Database = {
           descripcion?: string | null
           foto_url?: string | null
           id?: string
+          link_calendario_externo?: string | null
           mentor_id: string
           perfil_mentor?: string | null
           tematica: string
+          tipo_disponibilidad?: string
           titulo: string
           updated_at?: string
         }
@@ -1184,9 +1188,11 @@ export type Database = {
           descripcion?: string | null
           foto_url?: string | null
           id?: string
+          link_calendario_externo?: string | null
           mentor_id?: string
           perfil_mentor?: string | null
           tematica?: string
+          tipo_disponibilidad?: string
           titulo?: string
           updated_at?: string
         }
@@ -1394,6 +1400,7 @@ export type Database = {
           id_reunion_outlook: string | null
           mentor_id: string
           perfil_asesoria_id: string
+          tipo_reserva: string
           updated_at: string
           url_asesoria: string | null
         }
@@ -1406,6 +1413,7 @@ export type Database = {
           id_reunion_outlook?: string | null
           mentor_id: string
           perfil_asesoria_id: string
+          tipo_reserva?: string
           updated_at?: string
           url_asesoria?: string | null
         }
@@ -1418,6 +1426,7 @@ export type Database = {
           id_reunion_outlook?: string | null
           mentor_id?: string
           perfil_asesoria_id?: string
+          tipo_reserva?: string
           updated_at?: string
           url_asesoria?: string | null
         }
