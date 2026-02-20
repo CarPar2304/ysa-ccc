@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Edit, X, ExternalLink } from "lucide-react";
+import { Calendar, Edit, X, ExternalLink, Mail, Link2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -17,6 +17,7 @@ interface Reserva {
   url_asesoria: string | null;
   mentor_id: string;
   perfil_asesoria_id: string;
+  tipo_reserva?: string;
   perfiles_asesoria: {
     titulo: string;
     tematica: string;
@@ -247,7 +248,10 @@ export const MisAsesorias = () => {
 
       if (error) throw error;
 
-      await handleWebhook("cancelar", reserva);
+      // Solo enviar webhook si NO es calendario externo
+      if (reserva.tipo_reserva !== "calendario_externo") {
+        await handleWebhook("cancelar", reserva);
+      }
       
       toast({
         title: "Asesoría cancelada",
@@ -256,11 +260,7 @@ export const MisAsesorias = () => {
       
       fetchReservas();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setIsCancelling(null);
     }
@@ -300,7 +300,9 @@ export const MisAsesorias = () => {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Mis Asesorías Agendadas</h2>
       <div className="grid gap-4 md:grid-cols-2">
-        {reservas.map((reserva) => (
+        {reservas.map((reserva) => {
+          const esCalendarioExterno = reserva.tipo_reserva === "calendario_externo";
+          return (
           <Card key={reserva.id}>
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -311,45 +313,70 @@ export const MisAsesorias = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     {reserva.perfiles_asesoria.tematica}
                   </p>
+                  {esCalendarioExterno && (
+                    <Badge variant="outline" className="w-fit text-xs mt-1">
+                      <Link2 className="w-3 h-3 mr-1" />
+                      Calendario externo
+                    </Badge>
+                  )}
                 </div>
                 {getEstadoBadge(reserva.estado)}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4" />
-                <span>
-                  {format(new Date(reserva.fecha_reserva), "PPPp", { locale: es })}
-                </span>
-              </div>
+              {esCalendarioExterno ? (
+                /* Tarjeta especial para calendario externo */
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Reserva agendada por calendario externo</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Busca en tu correo electrónico la confirmación de la cita — allí encontrarás el link de acceso a tu sesión.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      {format(new Date(reserva.fecha_reserva), "PPPp", { locale: es })}
+                    </span>
+                  </div>
 
-              {reserva.url_asesoria && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => window.open(reserva.url_asesoria!, "_blank")}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Unirse a la reunión
-                </Button>
+                  {reserva.url_asesoria && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => window.open(reserva.url_asesoria!, "_blank")}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Unirse a la reunión
+                    </Button>
+                  )}
+                </>
               )}
 
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => handleOpenEditar(reserva)}
-                  disabled={reserva.estado === "cancelada" || reserva.estado === "completada"}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
+                {!esCalendarioExterno && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleOpenEditar(reserva)}
+                    disabled={reserva.estado === "cancelada" || reserva.estado === "completada"}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                )}
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="flex-1"
+                  className={esCalendarioExterno ? "w-full" : "flex-1"}
                   onClick={() => handleCancelar(reserva)}
                   disabled={reserva.estado === "cancelada" || reserva.estado === "completada" || isCancelling === reserva.id}
                 >
@@ -359,7 +386,8 @@ export const MisAsesorias = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       <Dialog open={!!editingReserva} onOpenChange={() => setEditingReserva(null)}>

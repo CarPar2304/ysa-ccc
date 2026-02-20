@@ -20,6 +20,8 @@ interface PerfilAsesoria {
   banner_url: string;
   perfil_mentor: string;
   activo: boolean;
+  tipo_disponibilidad?: string;
+  link_calendario_externo?: string;
 }
 
 export const AsesoriasManager = () => {
@@ -389,7 +391,12 @@ export const AsesoriasManager = () => {
                       <DialogHeader>
                         <DialogTitle>Gestionar Disponibilidad - {perfil.titulo}</DialogTitle>
                       </DialogHeader>
-                      <DisponibilidadManager perfilAsesoriaId={perfil.id} />
+                      <DisponibilidadManager
+                        perfilAsesoriaId={perfil.id}
+                        tipoDisponibilidad={perfil.tipo_disponibilidad}
+                        linkCalendarioExterno={perfil.link_calendario_externo ?? undefined}
+                        onTipoChange={() => fetchPerfiles()}
+                      />
                     </DialogContent>
                   </Dialog>
                   <Button variant="outline" size="sm" onClick={() => handleEdit(perfil)}>
