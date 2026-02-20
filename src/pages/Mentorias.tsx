@@ -68,8 +68,10 @@ const Mentorias = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchPerfiles();
-  }, []);
+    if (!loadingQuota) {
+      fetchPerfiles();
+    }
+  }, [loadingQuota, isAdmin, isMentor, isStakeholder, quotaInfo?.nivel, quotaInfo?.cohorte]);
 
   useEffect(() => {
     filterPerfiles();
@@ -84,9 +86,22 @@ const Mentorias = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setPerfiles(data || []);
-      
-      const uniqueTematicas = [...new Set(data?.map(p => p.tematica) || [])];
+
+      // Filtrar por nivel y cohorte del beneficiario (solo aplica a beneficiarios con cupo aprobado)
+      // Admins, mentores y stakeholders ven todos
+      let filtered = data || [];
+      if (!isAdmin && !isMentor && !isStakeholder && quotaInfo) {
+        filtered = filtered.filter((p: any) => {
+          const sinNivel = !p.niveles_acceso || p.niveles_acceso.length === 0;
+          const sinCohorte = !p.cohortes_acceso || p.cohortes_acceso.length === 0;
+          const nivelOk = sinNivel || (quotaInfo.nivel && p.niveles_acceso.includes(quotaInfo.nivel));
+          const cohorteOk = sinCohorte || (quotaInfo.cohorte && p.cohortes_acceso.includes(quotaInfo.cohorte));
+          return nivelOk && cohorteOk;
+        });
+      }
+
+      setPerfiles(filtered);
+      const uniqueTematicas = [...new Set(filtered.map((p: any) => p.tematica))];
       setTematicas(uniqueTematicas);
     } catch (error) {
       console.error("Error fetching perfiles:", error);

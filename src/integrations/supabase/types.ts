@@ -1154,12 +1154,14 @@ export type Database = {
         Row: {
           activo: boolean
           banner_url: string | null
+          cohortes_acceso: number[] | null
           created_at: string
           descripcion: string | null
           foto_url: string | null
           id: string
           link_calendario_externo: string | null
           mentor_id: string
+          niveles_acceso: string[] | null
           perfil_mentor: string | null
           tematica: string
           tipo_disponibilidad: string
@@ -1169,12 +1171,14 @@ export type Database = {
         Insert: {
           activo?: boolean
           banner_url?: string | null
+          cohortes_acceso?: number[] | null
           created_at?: string
           descripcion?: string | null
           foto_url?: string | null
           id?: string
           link_calendario_externo?: string | null
           mentor_id: string
+          niveles_acceso?: string[] | null
           perfil_mentor?: string | null
           tematica: string
           tipo_disponibilidad?: string
@@ -1184,12 +1188,14 @@ export type Database = {
         Update: {
           activo?: boolean
           banner_url?: string | null
+          cohortes_acceso?: number[] | null
           created_at?: string
           descripcion?: string | null
           foto_url?: string | null
           id?: string
           link_calendario_externo?: string | null
           mentor_id?: string
+          niveles_acceso?: string[] | null
           perfil_mentor?: string | null
           tematica?: string
           tipo_disponibilidad?: string
