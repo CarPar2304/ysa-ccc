@@ -27,11 +27,23 @@ const News = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { isAdmin, isBeneficiario, isStakeholder, userId } = useUserRole();
-  const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
+  const { isApproved, loading: quotaLoading, quotaInfo } = useQuotaStatus(userId);
   const navigate = useNavigate();
 
   const canViewNews = isAdmin || isStakeholder || (isBeneficiario && isApproved);
   const canEditNews = isAdmin;
+
+  const filterByAudience = (noticias: Noticia[]): Noticia[] => {
+    if (isAdmin || isStakeholder) return noticias;
+    if (!isBeneficiario || !quotaInfo) return noticias;
+    return noticias.filter(n => {
+      const niv = (n as any).niveles_acceso as string[] | null;
+      const coh = (n as any).cohortes_acceso as number[] | null;
+      const nivelOk = !niv || niv.length === 0 || (quotaInfo.nivel && niv.includes(quotaInfo.nivel));
+      const cohorteOk = !coh || coh.length === 0 || (quotaInfo.cohorte && coh.includes(quotaInfo.cohorte));
+      return nivelOk && cohorteOk;
+    });
+  };
 
   useEffect(() => {
     fetchNoticias();
@@ -50,7 +62,7 @@ const News = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-      setNoticias(data || []);
+      setNoticias(filterByAudience(data || []));
     } catch (error) {
       console.error("Error fetching news:", error);
       toast({ title: "Error", description: "No se pudieron cargar las noticias", variant: "destructive" });

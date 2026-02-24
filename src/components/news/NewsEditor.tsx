@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Upload, X, Loader2 as LoaderIcon } from "lucide-react";
@@ -40,6 +41,8 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
     publicado: false,
     boton_texto: "",
     boton_url: "",
+    niveles_acceso: [] as string[],
+    cohortes_acceso: [] as number[],
   });
 
   useEffect(() => {
@@ -53,10 +56,33 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
         publicado: noticia.publicado,
         boton_texto: (noticia as any).boton_texto || "",
         boton_url: (noticia as any).boton_url || "",
+        niveles_acceso: (noticia as any).niveles_acceso || [],
+        cohortes_acceso: (noticia as any).cohortes_acceso || [],
       });
       setImagePreview(noticia.imagen_url || null);
     }
   }, [noticia]);
+
+  const NIVELES = ["Starter", "Growth", "Scale"];
+  const COHORTES = Array.from({ length: 10 }, (_, i) => i + 1);
+
+  const toggleNivel = (nivel: string) => {
+    setFormData(prev => ({
+      ...prev,
+      niveles_acceso: prev.niveles_acceso.includes(nivel)
+        ? prev.niveles_acceso.filter(n => n !== nivel)
+        : [...prev.niveles_acceso, nivel],
+    }));
+  };
+
+  const toggleCohorte = (cohorte: number) => {
+    setFormData(prev => ({
+      ...prev,
+      cohortes_acceso: prev.cohortes_acceso.includes(cohorte)
+        ? prev.cohortes_acceso.filter(c => c !== cohorte)
+        : [...prev.cohortes_acceso, cohorte],
+    }));
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,17 +123,23 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
         return;
       }
 
+      const payload = {
+        ...formData,
+        niveles_acceso: formData.niveles_acceso.length > 0 ? formData.niveles_acceso : null,
+        cohortes_acceso: formData.cohortes_acceso.length > 0 ? formData.cohortes_acceso : null,
+      };
+
       if (noticia) {
         const { error } = await supabase
           .from("noticias")
-          .update({ ...formData, updated_at: new Date().toISOString() })
+          .update({ ...payload, updated_at: new Date().toISOString() })
           .eq("id", noticia.id);
         if (error) throw error;
         toast({ title: "Noticia actualizada" });
       } else {
         const { error } = await supabase
           .from("noticias")
-          .insert({ ...formData, autor_id: user.id });
+          .insert({ ...payload, autor_id: user.id });
         if (error) throw error;
         toast({ title: "Noticia creada" });
       }
@@ -115,7 +147,7 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
       setOpen(false);
       onSuccess();
       if (!noticia) {
-        setFormData({ titulo: "", descripcion: "", contenido: "", categoria: "", imagen_url: "", publicado: false, boton_texto: "", boton_url: "" });
+        setFormData({ titulo: "", descripcion: "", contenido: "", categoria: "", imagen_url: "", publicado: false, boton_texto: "", boton_url: "", niveles_acceso: [], cohortes_acceso: [] });
         setImagePreview(null);
       }
     } catch (error: any) {
@@ -236,6 +268,40 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
                   onChange={(e) => setFormData({ ...formData, boton_url: e.target.value })}
                   placeholder="https://..."
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Público objetivo */}
+          <div className="space-y-3 rounded-md border border-border p-3">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Público objetivo (opcional)</Label>
+            <p className="text-[11px] text-muted-foreground">Si no seleccionas nada, la noticia será visible para todos los beneficiarios aprobados.</p>
+            <div className="space-y-2">
+              <Label className="text-xs">Niveles</Label>
+              <div className="flex flex-wrap gap-3">
+                {NIVELES.map(nivel => (
+                  <label key={nivel} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={formData.niveles_acceso.includes(nivel)}
+                      onCheckedChange={() => toggleNivel(nivel)}
+                    />
+                    {nivel}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Cohortes</Label>
+              <div className="flex flex-wrap gap-3">
+                {COHORTES.map(cohorte => (
+                  <label key={cohorte} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={formData.cohortes_acceso.includes(cohorte)}
+                      onCheckedChange={() => toggleCohorte(cohorte)}
+                    />
+                    {cohorte}
+                  </label>
+                ))}
               </div>
             </div>
           </div>
