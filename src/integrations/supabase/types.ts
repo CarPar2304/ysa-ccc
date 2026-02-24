@@ -1103,11 +1103,13 @@ export type Database = {
           boton_texto: string | null
           boton_url: string | null
           categoria: string | null
+          cohortes_acceso: number[] | null
           contenido: string | null
           created_at: string
           descripcion: string | null
           id: string
           imagen_url: string | null
+          niveles_acceso: string[] | null
           publicado: boolean
           titulo: string
           updated_at: string
@@ -1117,11 +1119,13 @@ export type Database = {
           boton_texto?: string | null
           boton_url?: string | null
           categoria?: string | null
+          cohortes_acceso?: number[] | null
           contenido?: string | null
           created_at?: string
           descripcion?: string | null
           id?: string
           imagen_url?: string | null
+          niveles_acceso?: string[] | null
           publicado?: boolean
           titulo: string
           updated_at?: string
@@ -1131,11 +1135,13 @@ export type Database = {
           boton_texto?: string | null
           boton_url?: string | null
           categoria?: string | null
+          cohortes_acceso?: number[] | null
           contenido?: string | null
           created_at?: string
           descripcion?: string | null
           id?: string
           imagen_url?: string | null
+          niveles_acceso?: string[] | null
           publicado?: boolean
           titulo?: string
           updated_at?: string
