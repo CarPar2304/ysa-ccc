@@ -51,13 +51,13 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
 
   const isEditing = !!tarea;
 
-  const uploadGuia = async (userId: string): Promise<string | null> => {
+  const uploadGuia = async (): Promise<string | null> => {
     if (!guiaFile) return null;
     const fileExt = guiaFile.name.split(".").pop();
     const fileName = `guias/${moduloId}/${Date.now()}.${fileExt}`;
-    const { error } = await supabase.storage.from("entregas").upload(fileName, guiaFile);
+    const { error } = await supabase.storage.from("lab-images").upload(fileName, guiaFile);
     if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from("entregas").getPublicUrl(fileName);
+    const { data: { publicUrl } } = supabase.storage.from("lab-images").getPublicUrl(fileName);
     return publicUrl;
   };
 
@@ -71,7 +71,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
 
       let guiaUrl: string | null | undefined = undefined;
       if (guiaFile) {
-        guiaUrl = await uploadGuia(user.id);
+        guiaUrl = await uploadGuia();
       } else if (removeGuia) {
         guiaUrl = null;
       }
