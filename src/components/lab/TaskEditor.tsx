@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, Loader2 } from "lucide-react";
+import { Plus, Pencil, Loader2, Upload, FileText, X } from "lucide-react";
 
 interface Tarea {
   id: string;
@@ -23,6 +23,7 @@ interface Tarea {
   num_documentos: number;
   fecha_limite: string;
   activo: boolean;
+  documento_guia_url?: string | null;
 }
 
 interface TaskEditorProps {
@@ -42,9 +43,23 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
     tarea?.fecha_limite ? new Date(tarea.fecha_limite).toISOString().slice(0, 16) : ""
   );
   const [activo, setActivo] = useState(tarea?.activo ?? true);
+  const [guiaFile, setGuiaFile] = useState<File | null>(null);
+  const [existingGuiaUrl, setExistingGuiaUrl] = useState(tarea?.documento_guia_url || null);
+  const [removeGuia, setRemoveGuia] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const isEditing = !!tarea;
+
+  const uploadGuia = async (userId: string): Promise<string | null> => {
+    if (!guiaFile) return null;
+    const fileExt = guiaFile.name.split(".").pop();
+    const fileName = `guias/${moduloId}/${Date.now()}.${fileExt}`;
+    const { error } = await supabase.storage.from("entregas").upload(fileName, guiaFile);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from("entregas").getPublicUrl(fileName);
+    return publicUrl;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,54 +69,52 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
 
-      const tareaData = {
-        modulo_id: moduloId,
-        titulo,
-        descripcion: descripcion || null,
-        num_documentos: numDocumentos,
-        fecha_limite: new Date(fechaLimite).toISOString(),
-        activo,
-        created_by: user.id,
-      };
+      let guiaUrl: string | null | undefined = undefined;
+      if (guiaFile) {
+        guiaUrl = await uploadGuia(user.id);
+      } else if (removeGuia) {
+        guiaUrl = null;
+      }
 
       if (isEditing) {
+        const updateData: any = {
+          titulo,
+          descripcion: descripcion || null,
+          num_documentos: numDocumentos,
+          fecha_limite: new Date(fechaLimite).toISOString(),
+          activo,
+        };
+        if (guiaUrl !== undefined) updateData.documento_guia_url = guiaUrl;
+
         const { error } = await supabase
           .from("tareas")
-          .update({
-            titulo,
-            descripcion: descripcion || null,
-            num_documentos: numDocumentos,
-            fecha_limite: new Date(fechaLimite).toISOString(),
-            activo,
-          })
+          .update(updateData)
           .eq("id", tarea.id);
 
         if (error) throw error;
-
-        toast({
-          title: "Tarea actualizada",
-          description: "La tarea se actualizó correctamente",
-        });
+        toast({ title: "Tarea actualizada", description: "La tarea se actualizó correctamente" });
       } else {
+        const tareaData: any = {
+          modulo_id: moduloId,
+          titulo,
+          descripcion: descripcion || null,
+          num_documentos: numDocumentos,
+          fecha_limite: new Date(fechaLimite).toISOString(),
+          activo,
+          created_by: user.id,
+        };
+        if (guiaUrl) tareaData.documento_guia_url = guiaUrl;
+
         const { error } = await supabase.from("tareas").insert(tareaData);
-
         if (error) throw error;
-
-        toast({
-          title: "Tarea creada",
-          description: "La tarea se creó correctamente",
-        });
+        toast({ title: "Tarea creada", description: "La tarea se creó correctamente" });
       }
 
       setOpen(false);
       resetForm();
       onSuccess();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -114,6 +127,21 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
       setNumDocumentos(1);
       setFechaLimite("");
       setActivo(true);
+      setGuiaFile(null);
+      setExistingGuiaUrl(null);
+      setRemoveGuia(false);
+    }
+  };
+
+  const handleGuiaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 20 * 1024 * 1024) {
+        toast({ title: "Error", description: "El archivo no debe superar 20MB", variant: "destructive" });
+        return;
+      }
+      setGuiaFile(file);
+      setRemoveGuia(false);
     }
   };
 
@@ -182,6 +210,66 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
                 required
               />
             </div>
+          </div>
+
+          {/* Documento guía */}
+          <div className="space-y-2">
+            <Label>Documento guía (opcional)</Label>
+            {(existingGuiaUrl && !removeGuia && !guiaFile) ? (
+              <div className="flex items-center gap-2 p-2 bg-muted rounded-md border border-border">
+                <FileText className="h-4 w-4 text-primary shrink-0" />
+                <a
+                  href={existingGuiaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline truncate flex-1"
+                >
+                  Documento guía actual
+                </a>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  onClick={() => { setRemoveGuia(true); setExistingGuiaUrl(null); }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : guiaFile ? (
+              <div className="flex items-center gap-2 p-2 bg-muted rounded-md border border-border">
+                <FileText className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-sm truncate flex-1">{guiaFile.name}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  onClick={() => { setGuiaFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleGuiaSelect}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4" />
+                  Cargar documento guía
+                </Button>
+              </div>
+            )}
           </div>
 
           {isEditing && (

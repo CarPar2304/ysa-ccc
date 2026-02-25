@@ -50,6 +50,7 @@ interface Tarea {
   fecha_limite: string;
   activo: boolean;
   created_at: string;
+  documento_guia_url?: string | null;
 }
 
 interface Entrega {
@@ -455,7 +456,21 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
                   </CardContent>
                 )}
 
-                {/* Show feedback for beneficiarios */}
+                {/* Guide document link */}
+                {tarea.documento_guia_url && (
+                  <CardContent className="pt-0 pb-4">
+                    <a
+                      href={tarea.documento_guia_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline bg-muted px-3 py-2 rounded-md border border-border"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Descargar documento guía
+                    </a>
+                  </CardContent>
+                )}
+
                 {isBeneficiario && entrega?.feedback && (
                   <CardContent className="pt-0 pb-4">
                     <div className="p-3 bg-muted rounded-lg space-y-1 border border-border/50">

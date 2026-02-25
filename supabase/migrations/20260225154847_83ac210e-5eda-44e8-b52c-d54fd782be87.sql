@@ -1,0 +1,1 @@
+ALTER TABLE public.tareas ADD COLUMN documento_guia_url text DEFAULT NULL;

@@ -1458,6 +1458,7 @@ export type Database = {
           created_at: string
           created_by: string
           descripcion: string | null
+          documento_guia_url: string | null
           fecha_limite: string
           id: string
           modulo_id: string
@@ -1470,6 +1471,7 @@ export type Database = {
           created_at?: string
           created_by: string
           descripcion?: string | null
+          documento_guia_url?: string | null
           fecha_limite: string
           id?: string
           modulo_id: string
@@ -1482,6 +1484,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           descripcion?: string | null
+          documento_guia_url?: string | null
           fecha_limite?: string
           id?: string
           modulo_id?: string
