@@ -3,6 +3,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { RoleRedirect } from "@/components/RoleRedirect";
 import { AssignedEntrepreneurships } from "@/components/mentor/AssignedEntrepreneurships";
 import { AsesoriasManager } from "@/components/mentor/AsesoriasManager";
+import { MentorEntregas } from "@/components/mentor/MentorEntregas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MentorPanel = () => {
@@ -31,13 +32,18 @@ const MentorPanel = () => {
         </div>
 
         <Tabs defaultValue="evaluaciones" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="evaluaciones">Evaluaciones</TabsTrigger>
+            <TabsTrigger value="entregas">Entregas</TabsTrigger>
             <TabsTrigger value="asesorias">Mis Asesorías</TabsTrigger>
           </TabsList>
 
           <TabsContent value="evaluaciones">
             <AssignedEntrepreneurships />
+          </TabsContent>
+
+          <TabsContent value="entregas">
+            <MentorEntregas />
           </TabsContent>
 
           <TabsContent value="asesorias">
