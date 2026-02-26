@@ -1,0 +1,1 @@
+ALTER TABLE public.evaluaciones ADD COLUMN recomienda_participacion boolean DEFAULT NULL;

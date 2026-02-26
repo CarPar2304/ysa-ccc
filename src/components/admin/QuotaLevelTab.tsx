@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
@@ -25,6 +25,7 @@ interface EmprendimientoElegible {
   asignacion_id?: string;
   asignacion_estado?: string;
   asignacion_cohorte?: number;
+  recomendaciones: { si: number; no: number; total: number };
 }
 
 interface QuotaLevelTabProps {
@@ -66,7 +67,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
       
       const { data: evalData, error: evalError } = await supabase
         .from("evaluaciones")
-        .select("emprendimiento_id, puntaje, estado")
+        .select("emprendimiento_id, puntaje, estado, recomienda_participacion")
         .in("emprendimiento_id", empIds)
         .not("puntaje", "is", null);
 
@@ -109,6 +110,11 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         const mentoresAsignados = mentorAssignments?.filter(m => m.emprendimiento_id === emp.id).length || 0;
         const asignacion = asignaciones?.find(a => a.emprendimiento_id === emp.id);
         
+        // Calcular recomendaciones
+        const recsForEmp = evaluaciones.filter(e => e.recomienda_participacion !== null);
+        const recSi = recsForEmp.filter(e => e.recomienda_participacion === true).length;
+        const recNo = recsForEmp.filter(e => e.recomienda_participacion === false).length;
+
         return {
           id: emp.id,
           nombre: emp.nombre,
@@ -121,7 +127,8 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           evaluaciones_completadas: evaluacionesCompletadas,
           asignacion_id: asignacion?.id,
           asignacion_estado: asignacion?.estado,
-          asignacion_cohorte: asignacion?.cohorte
+          asignacion_cohorte: asignacion?.cohorte,
+          recomendaciones: { si: recSi, no: recNo, total: recsForEmp.length },
         };
       }) || [];
 
@@ -384,6 +391,8 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         "Evaluaciones": emp.total_evaluaciones,
         "Mentores Asignados": emp.mentores_asignados,
         "Evaluaciones Completadas": emp.evaluaciones_completadas,
+        "Recomiendan Sí": emp.recomendaciones.si,
+        "Recomiendan No": emp.recomendaciones.no,
         "Estado": emp.asignacion_estado || "Pendiente"
       };
       
@@ -551,8 +560,9 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                   </TableHead>
                   <TableHead className="text-center">Evaluaciones</TableHead>
                   <TableHead className="text-center">Mentores</TableHead>
-                  <TableHead className="text-center">Completadas</TableHead>
-                  <TableHead className="text-center">Estado</TableHead>
+                   <TableHead className="text-center">Completadas</TableHead>
+                   <TableHead className="text-center">Recomendación</TableHead>
+                   <TableHead className="text-center">Estado</TableHead>
                   {tieneCohorts && <TableHead className="text-center">Cohorte</TableHead>}
                   <TableHead className="text-center">Acciones</TableHead>
                 </TableRow>
@@ -582,6 +592,22 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                       >
                         {emp.evaluaciones_completadas}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {emp.recomendaciones.total > 0 ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="flex items-center gap-1 text-green-600">
+                            <ThumbsUp className="h-3.5 w-3.5" />
+                            {emp.recomendaciones.si}
+                          </span>
+                          <span className="flex items-center gap-1 text-destructive">
+                            <ThumbsDown className="h-3.5 w-3.5" />
+                            {emp.recomendaciones.no}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Sin datos</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       {emp.asignacion_estado === "aprobado" && (
