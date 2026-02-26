@@ -277,8 +277,16 @@ export const MentorEntregas = () => {
       const { error } = await supabase.from("entregas").update(updateData).eq("id", entregaId);
       if (error) throw error;
 
+      // Update locally without full reload
+      setEntregas((prev) =>
+        prev.map((e) =>
+          e.id === entregaId
+            ? { ...e, estado, feedback: feedback ?? e.feedback, nota: nota !== undefined ? nota : e.nota }
+            : e
+        )
+      );
+
       toast({ title: "Entrega actualizada", description: "Los cambios se guardaron correctamente" });
-      fetchEntregas();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }

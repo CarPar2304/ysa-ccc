@@ -314,8 +314,20 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
 
       if (error) throw error;
 
+      // Update locally without full reload
+      setAllEntregas((prev) => {
+        const updated = { ...prev };
+        for (const key of Object.keys(updated)) {
+          updated[key] = updated[key].map((e) =>
+            e.id === entregaId
+              ? { ...e, estado, feedback: feedback ?? e.feedback, nota: nota !== undefined ? nota : e.nota }
+              : e
+          );
+        }
+        return updated;
+      });
+
       toast({ title: "Entrega actualizada", description: "Los cambios se guardaron correctamente" });
-      fetchAllEntregas();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
