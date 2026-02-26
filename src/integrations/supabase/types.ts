@@ -789,6 +789,7 @@ export type Database = {
           puntaje_proyeccion_financiacion: number | null
           puntaje_referido_regional: number | null
           puntaje_ventas: number | null
+          recomienda_participacion: boolean | null
           referido_regional: string | null
           tipo_evaluacion: Database["public"]["Enums"]["tipo_evaluacion"]
           updated_at: string
@@ -821,6 +822,7 @@ export type Database = {
           puntaje_proyeccion_financiacion?: number | null
           puntaje_referido_regional?: number | null
           puntaje_ventas?: number | null
+          recomienda_participacion?: boolean | null
           referido_regional?: string | null
           tipo_evaluacion?: Database["public"]["Enums"]["tipo_evaluacion"]
           updated_at?: string
@@ -853,6 +855,7 @@ export type Database = {
           puntaje_proyeccion_financiacion?: number | null
           puntaje_referido_regional?: number | null
           puntaje_ventas?: number | null
+          recomienda_participacion?: boolean | null
           referido_regional?: string | null
           tipo_evaluacion?: Database["public"]["Enums"]["tipo_evaluacion"]
           updated_at?: string

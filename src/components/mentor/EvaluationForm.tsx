@@ -36,6 +36,7 @@ const evaluationSchemaBase = z.object({
   proyeccion_financiacion_texto: z.string().trim(),
   
   comentarios_adicionales: z.string().trim().optional(),
+  recomienda_participacion: z.boolean().nullable().optional(),
 });
 
 // Función para crear schema con validaciones condicionales basadas en CCC
@@ -161,6 +162,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
       puntaje_proyeccion_financiacion: 0,
       proyeccion_financiacion_texto: "",
       comentarios_adicionales: "",
+      recomienda_participacion: null,
     },
   });
 
@@ -210,6 +212,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
           puntaje_proyeccion_financiacion: evaluation.puntaje_proyeccion_financiacion || 0,
           proyeccion_financiacion_texto: evaluation.proyeccion_financiacion_texto || "",
           comentarios_adicionales: evaluation.comentarios_adicionales || "",
+          recomienda_participacion: evaluation.recomienda_participacion ?? null,
         });
       }
     } catch (error) {
@@ -263,6 +266,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
         puntaje_proyeccion_financiacion: formData.puntaje_proyeccion_financiacion,
         proyeccion_financiacion_texto: formData.proyeccion_financiacion_texto,
         comentarios_adicionales: formData.comentarios_adicionales,
+        recomienda_participacion: formData.recomienda_participacion ?? null,
         estado,
         puede_editar: estado === 'borrador',
       };
@@ -764,9 +768,47 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
 
         <Separator />
 
+        {/* Recomendación de Participación */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">3. Recomendación de Participación</h3>
+          <div className="p-4 border rounded-lg space-y-3">
+            <p className="text-sm text-muted-foreground">
+              ¿Consideras que este emprendimiento debería participar en el programa?
+            </p>
+            <FormField
+              control={form.control}
+              name="recomienda_participacion"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <RadioGroup
+                      value={field.value === true ? "si" : field.value === false ? "no" : ""}
+                      onValueChange={(val) => field.onChange(val === "si" ? true : val === "no" ? false : null)}
+                      disabled={isReadOnly}
+                      className="flex gap-6"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="rec-si" />
+                        <Label htmlFor="rec-si">Sí, lo recomiendo</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="rec-no" />
+                        <Label htmlFor="rec-no">No lo recomiendo</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Comentarios Adicionales */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">3. Comentarios Adicionales</h3>
+          <h3 className="text-lg font-semibold">4. Comentarios Adicionales</h3>
           <FormField
             control={form.control}
             name="comentarios_adicionales"
