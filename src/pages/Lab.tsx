@@ -238,7 +238,7 @@ const Lab = () => {
       className="group overflow-hidden shadow-medium border-border hover:shadow-strong transition-all cursor-pointer"
       onClick={() => handleModuloClick(modulo.id)}
     >
-      <div className="relative aspect-video w-full overflow-hidden bg-muted">
+      <div className="relative w-full overflow-hidden bg-muted" style={{ aspectRatio: '1600 / 400' }}>
         {modulo.imagen_url ? (
           <img
             src={modulo.imagen_url}
