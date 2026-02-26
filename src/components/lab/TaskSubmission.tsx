@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { EntregaFileLink } from "./EntregaFileLink";
 import {
   Dialog,
   DialogContent,
@@ -103,7 +104,7 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
 
-      // Upload new files
+      // Upload new files – store the storage path, not a public URL
       const uploadedFiles: { name: string; url: string }[] = [...archivosExistentes];
 
       for (const archivo of archivos) {
@@ -116,13 +117,9 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("entregas")
-          .getPublicUrl(fileName);
-
         uploadedFiles.push({
           name: archivo.name,
-          url: publicUrl,
+          url: fileName, // store path, signed URL generated on access
         });
       }
 
@@ -250,15 +247,10 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
             {/* Existing files */}
             {archivosExistentes.map((archivo, index) => (
               <div key={`existing-${index}`} className="flex items-center gap-2 p-2 bg-muted rounded">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <a 
-                  href={archivo.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm flex-1 truncate hover:underline"
-                >
-                  {archivo.name}
-                </a>
+                <EntregaFileLink
+                  archivo={archivo}
+                  className="text-sm flex-1 truncate hover:underline flex items-center gap-1.5 text-primary"
+                />
                 {!isExpired && (
                   <Button
                     type="button"

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { EntregaFileLink } from "./EntregaFileLink";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -128,16 +129,11 @@ const EntregaReviewCard = ({
       {/* Files */}
       <div className="flex flex-wrap gap-2">
         {entrega.archivos_urls.map((archivo, idx) => (
-          <a
+          <EntregaFileLink
             key={idx}
-            href={archivo.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline flex items-center gap-1 bg-background px-2 py-1 rounded border border-border"
-          >
-            <FileText className="h-3 w-3" />
-            {archivo.name}
-          </a>
+            archivo={archivo}
+            className="text-xs text-primary hover:underline flex items-center gap-1 bg-background px-2 py-1 rounded border border-border disabled:opacity-50"
+          />
         ))}
       </div>
 
