@@ -1,84 +1,68 @@
 
 
-# Plan: Sistema de Asistencia por Correos
+# Plan: Mejoras al Sistema de Asistencia y Cohortes en Clases
 
 ## Resumen
-Reemplazar el botón de "Marcar como completada" (autoservicio del estudiante) por un sistema donde los mentores operadores y admins registran la asistencia pegando correos electrónicos de los asistentes a cada clase.
+Cuatro cambios principales: (1) mover el AttendanceManager al sidebar derecho, (2) agregar campo de cohorte a las clases, (3) agregar seccion de asistentes manuales del mismo nivel/cohorte que no cruzaron por correo, (4) confirmar visibilidad solo para admin y operadores.
 
-## Cambios principales
+## Cambios
 
-### 1. Quitar el botón de "Marcar como completada"
-- En `LabClassView.tsx`, eliminar el checkbox de completado y toda la lógica asociada (`handleToggleCompletado`, estado `completado`, la query de progreso).
+### 1. Mover AttendanceManager al sidebar (debajo de "Contenido del curso")
+- En `LabClassView.tsx`, quitar el `AttendanceManager` del area principal (col-span-2) y moverlo al sidebar (col-span-1), debajo de la card de "Contenido del curso"
+- Solo visible para `isAdmin || isOperador`
 
-### 2. Crear componente de Registro de Asistencia
-- Nuevo componente `src/components/lab/AttendanceManager.tsx`
-- Visible solo para admin y mentores operadores (que tengan el nivel del modulo)
-- Contiene:
-  - Un `<textarea>` donde se pegan correos (separados por coma, salto de linea, o punto y coma)
-  - Boton "Validar" que cruza los correos con la tabla `usuarios`
-  - Muestra resultados: cuantos encontrados, cuantos no encontrados, y lista de los no encontrados
-  - Los encontrados se muestran con nombre y emprendimiento
-  - Los que ya tienen asistencia registrada se muestran como "ya registrados"
-  - Boton "Guardar Asistencia" que inserta/actualiza registros en `progreso_usuario` con `completado = true`
+### 2. Agregar campo `cohorte` a la tabla `clases`
+- Migracion SQL: `ALTER TABLE clases ADD COLUMN cohorte integer[] DEFAULT '{1}'`
+- Para clases de modulos Starter/Growth, se puede elegir cohorte 1, 2, o ambas
+- Para clases de modulos Scale, por defecto cohorte 1 (solo hay una)
 
-### 3. Integrar el componente en LabClassView
-- Agregar el `AttendanceManager` en la vista de clase (debajo del contenido), visible solo para admin/operadores
-- Se pasa `claseId` y `moduloId` como props
+### 3. Agregar selector de cohorte en ClassEditor
+- En `ClassEditor.tsx`, agregar un selector de cohorte(s) con checkboxes
+- Necesita conocer el nivel del modulo para determinar las opciones disponibles
+- Si nivel es Scale: solo cohorte 1 (automatico)
+- Si nivel es Starter o Growth: opciones para cohorte 1, 2, o ambas
 
-### 4. La pagina de Estudiantes sigue funcionando igual
-- Ya lee de `progreso_usuario` para calcular el progreso por modulo
-- Al guardar asistencia clase por clase, el porcentaje de progreso se calcula automaticamente (clases completadas / total clases)
+### 4. Agregar asistentes manuales en AttendanceManager
+- Despues de validar correos, mostrar una seccion adicional con los estudiantes del nivel/cohorte de la clase que NO aparecieron en los correos pegados y que NO tienen asistencia previa
+- Se obtienen consultando `asignacion_cupos` filtrando por nivel del modulo y cohorte de la clase
+- Se muestran con checkbox para poder agregarlos manualmente
+- Al guardar, se incluyen tanto los validados por correo como los agregados manualmente
+
+### 5. Pasar informacion de cohorte y nivel al AttendanceManager
+- Nuevas props: `cohortes: number[]`, `nivelModulo: string`
+- Estas se obtienen del modulo y la clase en `LabClassView.tsx`
 
 ## Detalles tecnicos
 
-### Flujo de validacion de correos
-```text
-1. Usuario pega correos en textarea
-2. Click "Validar"
-3. Query: SELECT id, email, nombres, apellidos FROM usuarios WHERE email IN (...)
-4. Cruzar con emprendimientos para mostrar nombre del emprendimiento
-5. Separar en: encontrados vs no encontrados
-6. Mostrar resultados con checkboxes (todos pre-seleccionados)
-7. Click "Guardar Asistencia"
-8. UPSERT en progreso_usuario para cada usuario seleccionado
+### Migracion SQL
+```sql
+ALTER TABLE public.clases ADD COLUMN cohorte integer[] DEFAULT '{1}';
 ```
 
-### Componente AttendanceManager
-- Props: `claseId: string`, `moduloId: string`
-- Estados: emails raw text, validated results, loading states
-- Muestra asistencias ya registradas para esa clase
-- Permite agregar nuevas asistencias sin borrar las existentes
-
-### Permisos
-- Se reutiliza la logica existente de `useUserRole` (isAdmin, isOperador) y `can_edit_modulo`
-- La tabla `progreso_usuario` ya permite INSERT/UPDATE para admins (RLS existente)
-- Se necesita agregar una politica RLS para que operadores puedan insertar/actualizar progreso de usuarios de su nivel
-
-### Migracion SQL necesaria
-- Agregar politica RLS en `progreso_usuario` para operadores:
-  ```sql
-  CREATE POLICY "Operadores: gestionar progreso de su nivel"
-  ON public.progreso_usuario
-  FOR ALL
-  TO authenticated
-  USING (
-    is_operador(auth.uid()) AND user_id IN (
-      SELECT e.user_id FROM emprendimientos e
-      WHERE e.id IN (SELECT get_operador_emprendimiento_ids(auth.uid()))
-    )
-  )
-  WITH CHECK (
-    is_operador(auth.uid()) AND user_id IN (
-      SELECT e.user_id FROM emprendimientos e
-      WHERE e.id IN (SELECT get_operador_emprendimiento_ids(auth.uid()))
-    )
-  );
-  ```
-
 ### Archivos a modificar
-1. **`src/pages/LabClassView.tsx`** -- Quitar checkbox completado, agregar AttendanceManager
-2. **`src/components/lab/AttendanceManager.tsx`** -- Nuevo componente
-3. **Migracion SQL** -- RLS para operadores en progreso_usuario
+1. **Migracion SQL** -- agregar columna `cohorte` a `clases`
+2. **`src/components/lab/ClassEditor.tsx`** -- agregar selector de cohorte, necesita recibir `nivelModulo` como prop
+3. **`src/pages/LabClassView.tsx`** -- mover AttendanceManager al sidebar, fetch nivel del modulo, pasar cohorte/nivel al AttendanceManager
+4. **`src/components/lab/AttendanceManager.tsx`** -- recibir cohortes y nivel, agregar seccion de asistentes manuales (estudiantes del nivel/cohorte que no cruzaron)
+5. **`src/pages/LabModuleView.tsx`** -- pasar `nivelModulo` al ClassEditor
 
-### Sin cambios en Estudiantes
-La pagina de Estudiantes (`src/pages/Estudiantes.tsx`) ya calcula el progreso leyendo `progreso_usuario` por clase, asi que reflejara automaticamente las asistencias guardadas.
+### Flujo de asistentes manuales
+```text
+1. Admin/operador pega correos y valida
+2. Se muestran: validados, no encontrados
+3. Se consultan todos los estudiantes del nivel+cohorte de la clase
+4. Se restan los ya validados y los ya registrados
+5. Se muestran como "Asistentes adicionales" con checkboxes
+6. Al guardar, se incluyen ambos grupos
+```
+
+### Consulta de estudiantes del nivel/cohorte
+```sql
+SELECT u.id, u.email, u.nombres, u.apellidos, e.nombre as emprendimiento
+FROM usuarios u
+JOIN emprendimientos e ON e.user_id = u.id
+JOIN asignacion_cupos ac ON ac.emprendimiento_id = e.id
+WHERE ac.estado = 'aprobado'
+  AND ac.nivel = :nivelModulo
+  AND ac.cohorte = ANY(:cohortes)
+```
