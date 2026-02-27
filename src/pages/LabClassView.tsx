@@ -2,7 +2,7 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List, FileDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ interface Clase {
   video_url: string | null;
   duracion_minutos: number | null;
   orden: number | null;
-  recursos_url: { titulo: string; url: string }[] | null;
+  recursos_url: { titulo: string; url: string; tipo?: "link" | "archivo" }[] | null;
   modulo_id: string;
 }
 
@@ -273,10 +273,18 @@ const LabClassView = () => {
                         href={recurso.url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        download={recurso.tipo === "archivo" ? recurso.titulo : undefined}
                         className="flex items-center gap-2 p-3 rounded-lg border border-border hover:bg-muted transition-colors"
                       >
-                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-foreground">{recurso.titulo}</span>
+                        {recurso.tipo === "archivo" ? (
+                          <FileDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <span className="text-foreground flex-1">{recurso.titulo}</span>
+                        {recurso.tipo === "archivo" && (
+                          <span className="text-xs text-muted-foreground">Descargar</span>
+                        )}
                       </a>
                     ))}
                   </div>
