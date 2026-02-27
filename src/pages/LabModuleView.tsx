@@ -296,7 +296,7 @@ const LabModuleView = () => {
 
                         {/* Botones de edición */}
                         {canEdit && (
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                             <ClassEditor
                               clase={clase}
                               moduloId={modulo.id}
