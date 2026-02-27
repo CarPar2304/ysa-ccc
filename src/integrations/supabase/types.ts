@@ -1462,6 +1462,7 @@ export type Database = {
           created_by: string
           descripcion: string | null
           documento_guia_url: string | null
+          documentos_obligatorios: boolean
           fecha_limite: string
           id: string
           modulo_id: string
@@ -1475,6 +1476,7 @@ export type Database = {
           created_by: string
           descripcion?: string | null
           documento_guia_url?: string | null
+          documentos_obligatorios?: boolean
           fecha_limite: string
           id?: string
           modulo_id: string
@@ -1488,6 +1490,7 @@ export type Database = {
           created_by?: string
           descripcion?: string | null
           documento_guia_url?: string | null
+          documentos_obligatorios?: boolean
           fecha_limite?: string
           id?: string
           modulo_id?: string
