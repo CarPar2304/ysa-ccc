@@ -1,0 +1,1 @@
+ALTER TABLE public.clases ADD COLUMN cohorte integer[] DEFAULT '{1}';

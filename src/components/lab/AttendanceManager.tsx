@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, UserCheck, UserX, CheckCircle2, ClipboardList } from "lucide-react";
+import { Loader2, UserCheck, UserX, CheckCircle2, ClipboardList, UserPlus } from "lucide-react";
 
 interface ValidatedUser {
   id: string;
@@ -18,17 +18,29 @@ interface ValidatedUser {
   selected: boolean;
 }
 
+interface CohortStudent {
+  id: string;
+  email: string | null;
+  nombres: string | null;
+  apellidos: string | null;
+  emprendimiento: string | null;
+  selected: boolean;
+}
+
 interface AttendanceManagerProps {
   claseId: string;
   moduloId: string;
+  cohortes?: number[];
+  nivelModulo?: string | null;
 }
 
-const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
+const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: AttendanceManagerProps) => {
   const [rawEmails, setRawEmails] = useState("");
   const [validating, setValidating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validatedUsers, setValidatedUsers] = useState<ValidatedUser[]>([]);
   const [notFoundEmails, setNotFoundEmails] = useState<string[]>([]);
+  const [cohortStudents, setCohortStudents] = useState<CohortStudent[]>([]);
   const [existingAttendees, setExistingAttendees] = useState<{ id: string; nombres: string | null; apellidos: string | null; emprendimiento: string | null }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const { toast } = useToast();
@@ -84,6 +96,72 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
       .filter((e) => e.length > 0 && e.includes("@"));
   };
 
+  const fetchCohortStudents = async (excludeUserIds: Set<string>, alreadyRegisteredIds: Set<string>) => {
+    if (!nivelModulo) return;
+
+    try {
+      // Get all students from the level+cohort via asignacion_cupos
+      const { data: cupos } = await supabase
+        .from("asignacion_cupos")
+        .select("emprendimiento_id, cohorte")
+        .eq("estado", "aprobado")
+        .eq("nivel", nivelModulo as any);
+
+      if (!cupos || cupos.length === 0) {
+        setCohortStudents([]);
+        return;
+      }
+
+      // Filter by cohortes
+      const filteredCupos = cupos.filter(c => cohortes.includes(c.cohorte));
+      const empIds = filteredCupos.map(c => c.emprendimiento_id);
+
+      if (empIds.length === 0) {
+        setCohortStudents([]);
+        return;
+      }
+
+      const { data: emps } = await supabase
+        .from("emprendimientos")
+        .select("id, user_id, nombre")
+        .in("id", empIds);
+
+      if (!emps || emps.length === 0) {
+        setCohortStudents([]);
+        return;
+      }
+
+      const empUserIds = emps.map(e => e.user_id);
+      // Exclude those already validated or already registered
+      const remainingUserIds = empUserIds.filter(uid => !excludeUserIds.has(uid) && !alreadyRegisteredIds.has(uid));
+
+      if (remainingUserIds.length === 0) {
+        setCohortStudents([]);
+        return;
+      }
+
+      const { data: usuarios } = await supabase
+        .from("usuarios")
+        .select("id, email, nombres, apellidos")
+        .in("id", remainingUserIds);
+
+      const empMap = new Map(emps.map(e => [e.user_id, e.nombre]));
+
+      setCohortStudents(
+        (usuarios || []).map(u => ({
+          id: u.id,
+          email: u.email,
+          nombres: u.nombres,
+          apellidos: u.apellidos,
+          emprendimiento: empMap.get(u.id) || null,
+          selected: false,
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching cohort students:", error);
+    }
+  };
+
   const handleValidate = async () => {
     const emails = parseEmails(rawEmails);
     if (emails.length === 0) {
@@ -93,7 +171,6 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
 
     setValidating(true);
     try {
-      // Fetch users matching emails
       const { data: usuarios, error } = await supabase
         .from("usuarios")
         .select("id, email, nombres, apellidos")
@@ -104,7 +181,6 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
       const foundEmails = new Set((usuarios || []).map((u) => u.email?.toLowerCase()));
       const notFound = emails.filter((e) => !foundEmails.has(e));
 
-      // Fetch emprendimientos for found users
       const userIds = (usuarios || []).map((u) => u.id);
       const { data: emprendimientos } = await supabase
         .from("emprendimientos")
@@ -113,7 +189,6 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
 
       const empMap = new Map(emprendimientos?.map((e) => [e.user_id, e.nombre]) || []);
 
-      // Check existing progress
       const { data: existingProgress } = await supabase
         .from("progreso_usuario")
         .select("user_id")
@@ -136,6 +211,11 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
       setValidatedUsers(validated);
       setNotFoundEmails(notFound);
       setShowResults(true);
+
+      // Fetch cohort students excluding validated and already registered
+      const allExcluded = new Set([...userIds, ...existingAttendees.map(a => a.id)]);
+      const allRegistered = new Set([...alreadySet, ...existingAttendees.map(a => a.id)]);
+      await fetchCohortStudents(allExcluded, allRegistered);
     } catch (error) {
       console.error("Error validating emails:", error);
       toast({ title: "Error al validar correos", variant: "destructive" });
@@ -150,8 +230,17 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
     );
   };
 
+  const handleToggleCohortStudent = (userId: string) => {
+    setCohortStudents((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, selected: !u.selected } : u))
+    );
+  };
+
   const handleSave = async () => {
-    const toSave = validatedUsers.filter((u) => u.selected && !u.alreadyRegistered);
+    const fromValidated = validatedUsers.filter((u) => u.selected && !u.alreadyRegistered);
+    const fromCohort = cohortStudents.filter((u) => u.selected);
+    const toSave = [...fromValidated, ...fromCohort];
+
     if (toSave.length === 0) {
       toast({ title: "No hay nuevas asistencias para guardar" });
       return;
@@ -177,6 +266,7 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
       setRawEmails("");
       setValidatedUsers([]);
       setNotFoundEmails([]);
+      setCohortStudents([]);
       fetchExistingAttendance();
     } catch (error) {
       console.error("Error saving attendance:", error);
@@ -186,29 +276,30 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
     }
   };
 
-  const newUsersCount = validatedUsers.filter((u) => !u.alreadyRegistered).length;
+  const newUsersCount = validatedUsers.filter((u) => !u.alreadyRegistered && u.selected).length;
+  const manualCount = cohortStudents.filter((u) => u.selected).length;
   const alreadyCount = validatedUsers.filter((u) => u.alreadyRegistered).length;
+  const totalToSave = newUsersCount + manualCount;
 
   return (
     <Card>
-      <CardContent className="p-6 space-y-4">
+      <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-bold">Registro de Asistencia</h2>
+          <ClipboardList className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-bold">Registro de Asistencia</h3>
         </div>
 
         {/* Existing attendees */}
         {existingAttendees.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground font-medium">
-              Asistencias registradas: {existingAttendees.length}
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground font-medium">
+              Registrados: {existingAttendees.length}
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1">
               {existingAttendees.map((a) => (
-                <Badge key={a.id} variant="secondary" className="text-xs">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                <Badge key={a.id} variant="secondary" className="text-[10px]">
+                  <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
                   {a.nombres} {a.apellidos}
-                  {a.emprendimiento && ` · ${a.emprendimiento}`}
                 </Badge>
               ))}
             </div>
@@ -217,36 +308,37 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
 
         {/* Email input */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">
-            Pega los correos de los asistentes (separados por coma, punto y coma, o salto de línea)
+          <label className="text-xs font-medium">
+            Correos de asistentes (separados por coma, ; o salto de línea)
           </label>
           <Textarea
             value={rawEmails}
             onChange={(e) => setRawEmails(e.target.value)}
-            placeholder="correo1@ejemplo.com, correo2@ejemplo.com&#10;correo3@ejemplo.com"
-            rows={5}
+            placeholder="correo1@ejemplo.com&#10;correo2@ejemplo.com"
+            rows={3}
+            className="text-xs"
           />
-          <Button onClick={handleValidate} disabled={validating || !rawEmails.trim()}>
-            {validating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          <Button size="sm" onClick={handleValidate} disabled={validating || !rawEmails.trim()} className="w-full">
+            {validating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
             Validar correos
           </Button>
         </div>
 
         {/* Validation results */}
         {showResults && (
-          <div className="space-y-4 border-t pt-4">
-            <div className="flex gap-4 text-sm">
+          <div className="space-y-3 border-t pt-3">
+            <div className="flex flex-wrap gap-2 text-xs">
               <span className="flex items-center gap-1 text-primary">
-                <UserCheck className="h-4 w-4" /> Encontrados: {validatedUsers.length}
+                <UserCheck className="h-3 w-3" /> {validatedUsers.length} encontrados
               </span>
               {alreadyCount > 0 && (
                 <span className="flex items-center gap-1 text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4" /> Ya registrados: {alreadyCount}
+                  <CheckCircle2 className="h-3 w-3" /> {alreadyCount} ya registrados
                 </span>
               )}
               {notFoundEmails.length > 0 && (
                 <span className="flex items-center gap-1 text-destructive">
-                  <UserX className="h-4 w-4" /> No encontrados: {notFoundEmails.length}
+                  <UserX className="h-3 w-3" /> {notFoundEmails.length} no encontrados
                 </span>
               )}
             </div>
@@ -254,12 +346,12 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
             {/* Found users */}
             {validatedUsers.length > 0 && (
               <div className="space-y-1">
-                <p className="text-sm font-medium">Estudiantes encontrados:</p>
-                <div className="max-h-60 overflow-y-auto space-y-1 border rounded-lg p-2">
+                <p className="text-xs font-medium">Validados por correo:</p>
+                <div className="max-h-40 overflow-y-auto space-y-0.5 border rounded-lg p-1.5">
                   {validatedUsers.map((u) => (
                     <div
                       key={u.id}
-                      className={`flex items-center gap-2 p-2 rounded text-sm ${
+                      className={`flex items-center gap-1.5 p-1.5 rounded text-xs ${
                         u.alreadyRegistered ? "opacity-60 bg-muted" : "hover:bg-muted/50"
                       }`}
                     >
@@ -268,15 +360,14 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
                         disabled={u.alreadyRegistered}
                         onCheckedChange={() => handleToggleUser(u.id)}
                       />
-                      <span className="flex-1">
+                      <span className="flex-1 truncate">
                         {u.nombres} {u.apellidos}
                         {u.emprendimiento && (
                           <span className="text-muted-foreground"> · {u.emprendimiento}</span>
                         )}
                       </span>
-                      <span className="text-xs text-muted-foreground">{u.email}</span>
                       {u.alreadyRegistered && (
-                        <Badge variant="outline" className="text-xs">Ya registrado</Badge>
+                        <Badge variant="outline" className="text-[10px] px-1">Ya</Badge>
                       )}
                     </div>
                   ))}
@@ -287,20 +378,49 @@ const AttendanceManager = ({ claseId, moduloId }: AttendanceManagerProps) => {
             {/* Not found emails */}
             {notFoundEmails.length > 0 && (
               <div className="space-y-1">
-                <p className="text-sm font-medium text-destructive">Correos no encontrados:</p>
-                <div className="border border-destructive/30 rounded-lg p-2 space-y-1">
+                <p className="text-xs font-medium text-destructive">No encontrados:</p>
+                <div className="border border-destructive/30 rounded-lg p-1.5 space-y-0.5">
                   {notFoundEmails.map((email) => (
-                    <p key={email} className="text-sm text-muted-foreground">{email}</p>
+                    <p key={email} className="text-xs text-muted-foreground">{email}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Manual cohort students */}
+            {cohortStudents.length > 0 && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <UserPlus className="h-3 w-3 text-primary" />
+                  <p className="text-xs font-medium">Agregar manualmente ({cohortStudents.length} del nivel/cohorte):</p>
+                </div>
+                <div className="max-h-40 overflow-y-auto space-y-0.5 border rounded-lg p-1.5">
+                  {cohortStudents.map((u) => (
+                    <div
+                      key={u.id}
+                      className="flex items-center gap-1.5 p-1.5 rounded text-xs hover:bg-muted/50"
+                    >
+                      <Checkbox
+                        checked={u.selected}
+                        onCheckedChange={() => handleToggleCohortStudent(u.id)}
+                      />
+                      <span className="flex-1 truncate">
+                        {u.nombres} {u.apellidos}
+                        {u.emprendimiento && (
+                          <span className="text-muted-foreground"> · {u.emprendimiento}</span>
+                        )}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
 
             {/* Save button */}
-            {newUsersCount > 0 && (
-              <Button onClick={handleSave} disabled={saving} className="w-full">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Guardar Asistencia ({validatedUsers.filter((u) => u.selected && !u.alreadyRegistered).length} nuevos)
+            {totalToSave > 0 && (
+              <Button size="sm" onClick={handleSave} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                Guardar Asistencia ({totalToSave} nuevos)
               </Button>
             )}
           </div>

@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List, FileDown, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List, FileDown } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import AttendanceManager from "@/components/lab/AttendanceManager";
 import { useState, useEffect } from "react";
@@ -20,11 +20,13 @@ interface Clase {
   orden: number | null;
   recursos_url: { titulo: string; url: string; tipo?: "link" | "archivo" }[] | null;
   modulo_id: string;
+  cohorte: number[] | null;
 }
 
 interface Modulo {
   id: string;
   titulo: string;
+  nivel: string | null;
 }
 
 const LabClassView = () => {
@@ -45,7 +47,6 @@ const LabClassView = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch clase actual
       const { data: claseData, error: claseError } = await supabase
         .from("clases")
         .select("*")
@@ -55,17 +56,15 @@ const LabClassView = () => {
       if (claseError) throw claseError;
       setClase(claseData as unknown as Clase);
 
-      // Fetch modulo
       const { data: moduloData, error: moduloError } = await supabase
         .from("modulos")
-        .select("id, titulo")
+        .select("id, titulo, nivel")
         .eq("id", moduloId)
         .single();
 
       if (moduloError) throw moduloError;
       setModulo(moduloData);
 
-      // Fetch todas las clases del módulo
       const { data: clasesData, error: clasesError } = await supabase
         .from("clases")
         .select("*")
@@ -87,22 +86,16 @@ const LabClassView = () => {
     }
   };
 
-  const getCurrentIndex = () => {
-    return clases.findIndex((c) => c.id === claseId);
-  };
+  const getCurrentIndex = () => clases.findIndex((c) => c.id === claseId);
 
   const handlePrevious = () => {
     const currentIndex = getCurrentIndex();
-    if (currentIndex > 0) {
-      navigate(`/lab/${moduloId}/${clases[currentIndex - 1].id}`);
-    }
+    if (currentIndex > 0) navigate(`/lab/${moduloId}/${clases[currentIndex - 1].id}`);
   };
 
   const handleNext = () => {
     const currentIndex = getCurrentIndex();
-    if (currentIndex < clases.length - 1) {
-      navigate(`/lab/${moduloId}/${clases[currentIndex + 1].id}`);
-    }
+    if (currentIndex < clases.length - 1) navigate(`/lab/${moduloId}/${clases[currentIndex + 1].id}`);
   };
 
   if (loading || !clase || !modulo) {
@@ -112,17 +105,14 @@ const LabClassView = () => {
   const currentIndex = getCurrentIndex();
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < clases.length - 1;
+  const showAttendance = isAdmin || isOperador;
 
   return (
     <Layout>
       <div className="mx-auto max-w-7xl">
         {/* Header Navigation */}
         <div className="flex items-center justify-between p-4 border-b border-border bg-background">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(`/lab/${moduloId}`)}
-            className="gap-2"
-          >
+          <Button variant="ghost" onClick={() => navigate(`/lab/${moduloId}`)} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Clase anterior
           </Button>
@@ -132,18 +122,11 @@ const LabClassView = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(`/lab/${moduloId}`)}
-            >
+            <Button variant="ghost" onClick={() => navigate(`/lab/${moduloId}`)}>
               <List className="h-4 w-4 mr-2" />
               Ver clases
             </Button>
-            <Button
-              variant="ghost"
-              onClick={handleNext}
-              disabled={!hasNext}
-            >
+            <Button variant="ghost" onClick={handleNext} disabled={!hasNext}>
               Siguiente clase
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
@@ -158,12 +141,7 @@ const LabClassView = () => {
               <Card>
                 <CardContent className="p-0">
                   <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                    <iframe
-                      src={clase.video_url}
-                      className="w-full h-full"
-                      allowFullScreen
-                      title={clase.titulo}
-                    />
+                    <iframe src={clase.video_url} className="w-full h-full" allowFullScreen title={clase.titulo} />
                   </div>
                 </CardContent>
               </Card>
@@ -171,24 +149,14 @@ const LabClassView = () => {
 
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={!hasPrevious}
-              >
+              <Button variant="outline" onClick={handlePrevious} disabled={!hasPrevious}>
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Anterior
               </Button>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Clase {currentIndex + 1} de {clases.length}
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleNext}
-                disabled={!hasNext}
-              >
+              <span className="text-sm text-muted-foreground">
+                Clase {currentIndex + 1} de {clases.length}
+              </span>
+              <Button variant="outline" onClick={handleNext} disabled={!hasNext}>
                 Siguiente
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
@@ -219,22 +187,15 @@ const LabClassView = () => {
                       const isArchivo = recurso.tipo === "archivo";
                       
                       const handleClick = async (e: React.MouseEvent) => {
-                        if (!isArchivo) return; // let default <a> behavior handle links
+                        if (!isArchivo) return;
                         e.preventDefault();
                         try {
-                          // Extract storage path from public URL
                           const url = new URL(recurso.url);
                           const pathMatch = url.pathname.match(/\/object\/public\/lab-images\/(.+)$/);
-                          if (!pathMatch) {
-                            window.open(recurso.url, '_blank');
-                            return;
-                          }
+                          if (!pathMatch) { window.open(recurso.url, '_blank'); return; }
                           const storagePath = decodeURIComponent(pathMatch[1]);
-                          const { data, error } = await supabase.storage
-                            .from('lab-images')
-                            .download(storagePath);
+                          const { data, error } = await supabase.storage.from('lab-images').download(storagePath);
                           if (error) throw error;
-                          
                           const blobUrl = URL.createObjectURL(data);
                           const a = document.createElement('a');
                           a.href = blobUrl;
@@ -274,15 +235,10 @@ const LabClassView = () => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Attendance Manager - only for admin/operators */}
-            {(isAdmin || isOperador) && claseId && moduloId && (
-              <AttendanceManager claseId={claseId} moduloId={moduloId} />
-            )}
           </div>
 
-          {/* Sidebar - Class List */}
-          <div className="lg:col-span-1">
+          {/* Sidebar */}
+          <div className="lg:col-span-1 space-y-4">
             <Card className="sticky top-4">
               <CardContent className="p-4">
                 <h3 className="font-bold text-lg mb-4">Contenido del curso</h3>
@@ -298,17 +254,11 @@ const LabClassView = () => {
                       }`}
                     >
                       <div className="flex items-start gap-2">
-                        <span className="text-xs font-semibold mt-0.5">
-                          {index + 1}
-                        </span>
+                        <span className="text-xs font-semibold mt-0.5">{index + 1}</span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium line-clamp-2">
-                            {c.titulo}
-                          </p>
+                          <p className="text-sm font-medium line-clamp-2">{c.titulo}</p>
                           {c.duracion_minutos && (
-                            <p className="text-xs opacity-80 mt-1">
-                              {c.duracion_minutos} min
-                            </p>
+                            <p className="text-xs opacity-80 mt-1">{c.duracion_minutos} min</p>
                           )}
                         </div>
                       </div>
@@ -317,6 +267,16 @@ const LabClassView = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Attendance Manager - sidebar, below course content */}
+            {showAttendance && claseId && moduloId && (
+              <AttendanceManager
+                claseId={claseId}
+                moduloId={moduloId}
+                cohortes={clase.cohorte || [1]}
+                nivelModulo={modulo.nivel}
+              />
+            )}
           </div>
         </div>
       </div>

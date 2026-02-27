@@ -44,6 +44,7 @@ interface Clase {
   duracion_minutos: number | null;
   orden: number | null;
   recursos_url: { titulo: string; url: string }[] | null;
+  cohorte: number[] | null;
 }
 
 const LabModuleView = () => {
@@ -206,6 +207,7 @@ const LabModuleView = () => {
             {canEdit && (
               <ClassEditor
                 moduloId={modulo.id}
+                nivelModulo={modulo.nivel}
                 onSuccess={fetchClases}
               />
             )}
@@ -298,6 +300,7 @@ const LabModuleView = () => {
                             <ClassEditor
                               clase={clase}
                               moduloId={modulo.id}
+                              nivelModulo={modulo.nivel}
                               onSuccess={fetchClases}
                               trigger={
                                 <Button variant="ghost" size="sm">
