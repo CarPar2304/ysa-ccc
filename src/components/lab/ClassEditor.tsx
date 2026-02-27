@@ -6,7 +6,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Upload, X } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
+import { Plus, Upload, X, Link, FileUp } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface Recurso {
+  titulo: string;
+  url: string;
+  tipo?: "link" | "archivo";
+}
 
 interface ClassEditorProps {
   clase?: {
@@ -17,7 +25,7 @@ interface ClassEditorProps {
     video_url: string;
     duracion_minutos: number;
     orden: number;
-    recursos_url: { titulo: string; url: string }[];
+    recursos_url: Recurso[];
     imagen_url?: string;
   };
   moduloId: string;
@@ -40,7 +48,8 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
   const [imagenUrl, setImagenUrl] = useState("");
   const [duracionMinutos, setDuracionMinutos] = useState("");
   const [orden, setOrden] = useState("");
-  const [recursos, setRecursos] = useState<{ titulo: string; url: string }[]>([]);
+  const [recursos, setRecursos] = useState<Recurso[]>([]);
+  const [uploadingRecurso, setUploadingRecurso] = useState<number | null>(null);
 
   useEffect(() => {
     if (clase) {
@@ -129,7 +138,7 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
             contenido: contenido || null,
             video_url: videoUrl || null,
             duracion_minutos: duracionMinutos ? parseInt(duracionMinutos) : null,
-            recursos_url: recursos.length > 0 ? recursos : null,
+            recursos_url: recursos.length > 0 ? (recursos as unknown as Json[]) : null,
             imagen_url: finalImagenUrl || null,
             orden: orden ? parseInt(orden) : null,
           })
@@ -151,7 +160,7 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
             contenido: contenido || null,
             video_url: videoUrl || null,
             duracion_minutos: duracionMinutos ? parseInt(duracionMinutos) : null,
-            recursos_url: recursos.length > 0 ? recursos : null,
+            recursos_url: recursos.length > 0 ? (recursos as unknown as Json[]) : null,
             imagen_url: finalImagenUrl || null,
             orden: orden ? parseInt(orden) : null,
           })
@@ -300,42 +309,104 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
 
           <div className="space-y-2">
             <Label>Recursos</Label>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {recursos.map((recurso, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    placeholder="Título del recurso"
-                    value={recurso.titulo}
-                    onChange={(e) => {
-                      const newRecursos = [...recursos];
-                      newRecursos[index].titulo = e.target.value;
-                      setRecursos(newRecursos);
-                    }}
-                  />
-                  <Input
-                    placeholder="URL del recurso"
-                    value={recurso.url}
-                    onChange={(e) => {
-                      const newRecursos = [...recursos];
-                      newRecursos[index].url = e.target.value;
-                      setRecursos(newRecursos);
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setRecursos(recursos.filter((_, i) => i !== index))}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div key={index} className="border border-border rounded-lg p-3 space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      placeholder="Título del recurso"
+                      value={recurso.titulo}
+                      onChange={(e) => {
+                        const newRecursos = [...recursos];
+                        newRecursos[index] = { ...newRecursos[index], titulo: e.target.value };
+                        setRecursos(newRecursos);
+                      }}
+                      className="flex-1"
+                    />
+                    <Select
+                      value={recurso.tipo || "link"}
+                      onValueChange={(val: "link" | "archivo") => {
+                        const newRecursos = [...recursos];
+                        newRecursos[index] = { ...newRecursos[index], tipo: val, url: "" };
+                        setRecursos(newRecursos);
+                      }}
+                    >
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="link">
+                          <span className="flex items-center gap-1"><Link className="h-3 w-3" /> Link</span>
+                        </SelectItem>
+                        <SelectItem value="archivo">
+                          <span className="flex items-center gap-1"><FileUp className="h-3 w-3" /> Archivo</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setRecursos(recursos.filter((_, i) => i !== index))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {(recurso.tipo || "link") === "link" ? (
+                    <Input
+                      placeholder="https://..."
+                      value={recurso.url}
+                      onChange={(e) => {
+                        const newRecursos = [...recursos];
+                        newRecursos[index] = { ...newRecursos[index], url: e.target.value };
+                        setRecursos(newRecursos);
+                      }}
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      {recurso.url ? (
+                        <p className="text-xs text-muted-foreground truncate">✅ Archivo cargado</p>
+                      ) : null}
+                      <Input
+                        type="file"
+                        disabled={uploadingRecurso === index}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingRecurso(index);
+                          try {
+                            const fileExt = file.name.split('.').pop()?.toLowerCase();
+                            const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                            const filePath = `recursos/${fileName}`;
+                            const { error: upErr } = await supabase.storage
+                              .from('lab-images')
+                              .upload(filePath, file, { cacheControl: '3600', upsert: false });
+                            if (upErr) throw upErr;
+                            const { data } = supabase.storage.from('lab-images').getPublicUrl(filePath);
+                            const newRecursos = [...recursos];
+                            newRecursos[index] = {
+                              ...newRecursos[index],
+                              url: data.publicUrl,
+                              titulo: newRecursos[index].titulo || file.name,
+                            };
+                            setRecursos(newRecursos);
+                            toast({ title: "Archivo subido correctamente" });
+                          } catch (err: any) {
+                            toast({ title: "Error al subir archivo", description: err.message, variant: "destructive" });
+                          } finally {
+                            setUploadingRecurso(null);
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setRecursos([...recursos, { titulo: "", url: "" }])}
+                onClick={() => setRecursos([...recursos, { titulo: "", url: "", tipo: "link" }])}
               >
                 + Agregar recurso
               </Button>
