@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -27,13 +28,15 @@ interface ClassEditorProps {
     orden: number;
     recursos_url: Recurso[];
     imagen_url?: string;
+    cohorte?: number[];
   };
   moduloId: string;
+  nivelModulo?: string | null;
   onSuccess: () => void;
   trigger?: React.ReactNode;
 }
 
-export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditorProps) => {
+export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }: ClassEditorProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -50,6 +53,9 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
   const [orden, setOrden] = useState("");
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [uploadingRecurso, setUploadingRecurso] = useState<number | null>(null);
+  const [cohortes, setCohortes] = useState<number[]>([1]);
+
+  const isScale = nivelModulo === "Scale";
 
   useEffect(() => {
     if (clase) {
@@ -62,8 +68,26 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
       setOrden(clase.orden?.toString() || "");
       setRecursos(clase.recursos_url || []);
       setImagePreview(clase.imagen_url || null);
+      setCohortes(clase.cohorte || [1]);
     }
   }, [clase]);
+
+  // For Scale, always force cohorte 1
+  useEffect(() => {
+    if (isScale) {
+      setCohortes([1]);
+    }
+  }, [isScale]);
+
+  const toggleCohorte = (c: number) => {
+    setCohortes(prev => {
+      if (prev.includes(c)) {
+        const next = prev.filter(x => x !== c);
+        return next.length === 0 ? [c] : next; // at least one must be selected
+      }
+      return [...prev, c].sort();
+    });
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -141,6 +165,7 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
             recursos_url: recursos.length > 0 ? (recursos as unknown as Json[]) : null,
             imagen_url: finalImagenUrl || null,
             orden: orden ? parseInt(orden) : null,
+            cohorte: cohortes,
           })
           .eq("id", clase.id);
 
@@ -163,6 +188,7 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
             recursos_url: recursos.length > 0 ? (recursos as unknown as Json[]) : null,
             imagen_url: finalImagenUrl || null,
             orden: orden ? parseInt(orden) : null,
+            cohorte: cohortes,
           })
           .select()
           .single();
@@ -183,6 +209,7 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
       setDuracionMinutos("");
       setOrden("");
       setRecursos([]);
+      setCohortes([1]);
       setImageFile(null);
       setImagePreview(null);
       setOpen(false);
@@ -305,6 +332,33 @@ export const ClassEditor = ({ clase, moduloId, onSuccess, trigger }: ClassEditor
                 onChange={(e) => setOrden(e.target.value)}
               />
             </div>
+          </div>
+
+          {/* Cohorte selector */}
+          <div className="space-y-2">
+            <Label>Cohorte</Label>
+            {isScale ? (
+              <p className="text-sm text-muted-foreground">Scale: Cohorte 1 (única)</p>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="cohorte-1"
+                    checked={cohortes.includes(1)}
+                    onCheckedChange={() => toggleCohorte(1)}
+                  />
+                  <Label htmlFor="cohorte-1" className="text-sm font-normal">Cohorte 1</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="cohorte-2"
+                    checked={cohortes.includes(2)}
+                    onCheckedChange={() => toggleCohorte(2)}
+                  />
+                  <Label htmlFor="cohorte-2" className="text-sm font-normal">Cohorte 2</Label>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

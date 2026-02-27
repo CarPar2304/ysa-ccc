@@ -252,6 +252,7 @@ export type Database = {
       }
       clases: {
         Row: {
+          cohorte: number[] | null
           contenido: string | null
           created_at: string
           descripcion: string | null
@@ -266,6 +267,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          cohorte?: number[] | null
           contenido?: string | null
           created_at?: string
           descripcion?: string | null
@@ -280,6 +282,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          cohorte?: number[] | null
           contenido?: string | null
           created_at?: string
           descripcion?: string | null
