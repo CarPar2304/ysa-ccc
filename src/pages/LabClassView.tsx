@@ -1,8 +1,9 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List, FileDown, Loader2 } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
+import AttendanceManager from "@/components/lab/AttendanceManager";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,9 +33,9 @@ const LabClassView = () => {
   const [clase, setClase] = useState<Clase | null>(null);
   const [modulo, setModulo] = useState<Modulo | null>(null);
   const [clases, setClases] = useState<Clase[]>([]);
-  const [completado, setCompletado] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { isAdmin, isOperador } = useUserRole();
 
   useEffect(() => {
     if (claseId && moduloId) {
@@ -73,19 +74,6 @@ const LabClassView = () => {
 
       if (clasesError) throw clasesError;
       setClases((clasesData || []) as unknown as Clase[]);
-
-      // Fetch progreso
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: progresoData } = await supabase
-          .from("progreso_usuario")
-          .select("completado")
-          .eq("user_id", user.id)
-          .eq("clase_id", claseId)
-          .single();
-
-        setCompletado(progresoData?.completado || false);
-      }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -96,38 +84,6 @@ const LabClassView = () => {
       navigate(`/lab/${moduloId}`);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleToggleCompletado = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const newCompletado = !completado;
-
-      const { error } = await supabase
-        .from("progreso_usuario")
-        .upsert({
-          user_id: user.id,
-          clase_id: claseId!,
-          completado: newCompletado,
-          progreso_porcentaje: newCompletado ? 100 : 0,
-        });
-
-      if (error) throw error;
-
-      setCompletado(newCompletado);
-      toast({
-        title: newCompletado ? "Clase completada" : "Marcada como no completada",
-      });
-    } catch (error) {
-      console.error("Error updating progress:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el progreso",
-        variant: "destructive",
-      });
     }
   };
 
@@ -224,17 +180,9 @@ const LabClassView = () => {
                 Anterior
               </Button>
               <div className="flex items-center gap-2">
-                <Checkbox
-                  id="completado"
-                  checked={completado}
-                  onCheckedChange={handleToggleCompletado}
-                />
-                <label
-                  htmlFor="completado"
-                  className="text-sm font-medium cursor-pointer"
-                >
-                  Marcar como completada
-                </label>
+                <span className="text-sm text-muted-foreground">
+                  Clase {currentIndex + 1} de {clases.length}
+                </span>
               </div>
               <Button
                 variant="outline"
@@ -325,6 +273,11 @@ const LabClassView = () => {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Attendance Manager - only for admin/operators */}
+            {(isAdmin || isOperador) && claseId && moduloId && (
+              <AttendanceManager claseId={claseId} moduloId={moduloId} />
             )}
           </div>
 
