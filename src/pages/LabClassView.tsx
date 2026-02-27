@@ -2,7 +2,7 @@ import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List, FileDown } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List, FileDown, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -267,26 +267,61 @@ const LabClassView = () => {
                 <CardContent className="p-6">
                   <h2 className="text-xl font-bold mb-4">Recursos</h2>
                   <div className="space-y-2">
-                    {clase.recursos_url.map((recurso, index) => (
-                      <a
-                        key={index}
-                        href={recurso.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download={recurso.tipo === "archivo" ? recurso.titulo : undefined}
-                        className="flex items-center gap-2 p-3 rounded-lg border border-border hover:bg-muted transition-colors"
-                      >
-                        {recurso.tipo === "archivo" ? (
-                          <FileDown className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        )}
-                        <span className="text-foreground flex-1">{recurso.titulo}</span>
-                        {recurso.tipo === "archivo" && (
-                          <span className="text-xs text-muted-foreground">Descargar</span>
-                        )}
-                      </a>
-                    ))}
+                    {clase.recursos_url.map((recurso, index) => {
+                      const isArchivo = recurso.tipo === "archivo";
+                      
+                      const handleClick = async (e: React.MouseEvent) => {
+                        if (!isArchivo) return; // let default <a> behavior handle links
+                        e.preventDefault();
+                        try {
+                          // Extract storage path from public URL
+                          const url = new URL(recurso.url);
+                          const pathMatch = url.pathname.match(/\/object\/public\/lab-images\/(.+)$/);
+                          if (!pathMatch) {
+                            window.open(recurso.url, '_blank');
+                            return;
+                          }
+                          const storagePath = decodeURIComponent(pathMatch[1]);
+                          const { data, error } = await supabase.storage
+                            .from('lab-images')
+                            .download(storagePath);
+                          if (error) throw error;
+                          
+                          const blobUrl = URL.createObjectURL(data);
+                          const a = document.createElement('a');
+                          a.href = blobUrl;
+                          a.download = recurso.titulo || storagePath.split('/').pop() || 'archivo';
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(blobUrl);
+                        } catch (err) {
+                          console.error("Error downloading file:", err);
+                          window.open(recurso.url, '_blank');
+                        }
+                      };
+
+                      return (
+                        <a
+                          key={index}
+                          href={recurso.url}
+                          target={isArchivo ? undefined : "_blank"}
+                          rel={isArchivo ? undefined : "noopener noreferrer"}
+                          onClick={isArchivo ? handleClick : undefined}
+                          className="flex items-center gap-2 p-3 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
+                        >
+                          {isArchivo ? (
+                            <FileDown className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <span className="text-foreground flex-1">{recurso.titulo}</span>
+                          {isArchivo && (
+                            <span className="text-xs text-muted-foreground">Descargar</span>
+                          )}
+                        </a>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
