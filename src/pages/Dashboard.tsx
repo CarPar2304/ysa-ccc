@@ -37,7 +37,7 @@ interface Post {
 }
 
 const Dashboard = () => {
-  const { isBeneficiario, isAdmin, isStakeholder, loading: roleLoading, userId } = useUserRole();
+  const { isBeneficiario, isAdmin, isStakeholder, isOperador, loading: roleLoading, userId } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,14 +46,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!roleLoading) {
-      if (isBeneficiario || isAdmin || isStakeholder) {
+      if (isBeneficiario || isAdmin || isStakeholder || isOperador) {
         fetchPosts();
         fetchUserAvatar();
       } else {
         setLoading(false);
       }
     }
-  }, [roleLoading, isBeneficiario, isAdmin, isStakeholder]);
+  }, [roleLoading, isBeneficiario, isAdmin, isStakeholder, isOperador]);
 
   const fetchUserAvatar = async () => {
     if (!userId) return;
@@ -133,7 +133,7 @@ const Dashboard = () => {
     );
   }
 
-  if (!isBeneficiario && !isAdmin && !isStakeholder) {
+  if (!isBeneficiario && !isAdmin && !isStakeholder && !isOperador) {
     return <RoleRedirect />;
   }
 

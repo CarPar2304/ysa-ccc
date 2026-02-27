@@ -36,7 +36,7 @@ interface ModuleWithProgress {
 
 const Estudiantes = () => {
   const { isAdmin, isOperador, loading } = useUserRole();
-  const { niveles: operadorNiveles } = useOperadorNiveles();
+  const { niveles: operadorNiveles, loading: nivelesLoading } = useOperadorNiveles();
   const [modalOpen, setModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
@@ -138,7 +138,7 @@ const Estudiantes = () => {
 
       return resultado;
     },
-    enabled: hasAccess,
+    enabled: hasAccess && !nivelesLoading && allowedNiveles.length > 0,
   });
 
   // Build export data for operators
@@ -288,7 +288,7 @@ const Estudiantes = () => {
     enabled: hasAccess && isOperador && !!modulosData,
   });
 
-  if (loading || isLoading) {
+  if (loading || isLoading || nivelesLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
