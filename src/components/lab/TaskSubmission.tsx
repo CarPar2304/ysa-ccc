@@ -22,6 +22,7 @@ interface Tarea {
   titulo: string;
   descripcion: string | null;
   num_documentos: number;
+  documentos_obligatorios: boolean;
   fecha_limite: string;
 }
 
@@ -65,7 +66,7 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
     const files = Array.from(e.target.files || []);
     const totalFiles = archivos.length + archivosExistentes.length + files.length;
     
-    if (totalFiles > tarea.num_documentos) {
+    if (tarea.documentos_obligatorios && totalFiles > tarea.num_documentos) {
       toast({
         title: "Límite de archivos",
         description: `Solo puedes subir máximo ${tarea.num_documentos} archivo(s)`,
@@ -241,7 +242,7 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>
-              Archivos ({archivosExistentes.length + archivos.length}/{tarea.num_documentos})
+              Archivos ({archivosExistentes.length + archivos.length}/{tarea.documentos_obligatorios ? tarea.num_documentos : `${tarea.num_documentos} recomendados`})
             </Label>
             
             {/* Existing files */}
@@ -280,14 +281,14 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
               </div>
             ))}
 
-            {!isExpired && archivosExistentes.length + archivos.length < tarea.num_documentos && (
+            {!isExpired && (!tarea.documentos_obligatorios || archivosExistentes.length + archivos.length < tarea.num_documentos) && (
               <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
                 <input
                   type="file"
                   id="archivos"
                   onChange={handleFileChange}
                   className="hidden"
-                  multiple={tarea.num_documentos > 1}
+                  multiple
                 />
                 <label
                   htmlFor="archivos"

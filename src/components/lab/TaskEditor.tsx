@@ -21,6 +21,7 @@ interface Tarea {
   titulo: string;
   descripcion: string | null;
   num_documentos: number;
+  documentos_obligatorios: boolean;
   fecha_limite: string;
   activo: boolean;
   documento_guia_url?: string | null;
@@ -39,6 +40,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
   const [titulo, setTitulo] = useState(tarea?.titulo || "");
   const [descripcion, setDescripcion] = useState(tarea?.descripcion || "");
   const [numDocumentos, setNumDocumentos] = useState(tarea?.num_documentos || 1);
+  const [documentosObligatorios, setDocumentosObligatorios] = useState(tarea?.documentos_obligatorios ?? true);
   const [fechaLimite, setFechaLimite] = useState(
     tarea?.fecha_limite ? new Date(tarea.fecha_limite).toISOString().slice(0, 16) : ""
   );
@@ -81,6 +83,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
           titulo,
           descripcion: descripcion || null,
           num_documentos: numDocumentos,
+          documentos_obligatorios: documentosObligatorios,
           fecha_limite: new Date(fechaLimite).toISOString(),
           activo,
         };
@@ -99,6 +102,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
           titulo,
           descripcion: descripcion || null,
           num_documentos: numDocumentos,
+          documentos_obligatorios: documentosObligatorios,
           fecha_limite: new Date(fechaLimite).toISOString(),
           activo,
           created_by: user.id,
@@ -125,6 +129,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
       setTitulo("");
       setDescripcion("");
       setNumDocumentos(1);
+      setDocumentosObligatorios(true);
       setFechaLimite("");
       setActivo(true);
       setGuiaFile(null);
@@ -210,6 +215,21 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
                 required
               />
             </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="documentosObligatorios"
+              checked={documentosObligatorios}
+              onChange={(e) => setDocumentosObligatorios(e.target.checked)}
+              className="rounded border-input"
+            />
+            <Label htmlFor="documentosObligatorios" className="text-sm">
+              {documentosObligatorios
+                ? `Obligatorio subir exactamente ${numDocumentos} documento(s)`
+                : `Recomendado ${numDocumentos} documento(s), pero se permiten más`}
+            </Label>
           </div>
 
           {/* Documento guía */}

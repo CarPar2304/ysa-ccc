@@ -1,0 +1,1 @@
+ALTER TABLE public.tareas ADD COLUMN documentos_obligatorios boolean NOT NULL DEFAULT true;

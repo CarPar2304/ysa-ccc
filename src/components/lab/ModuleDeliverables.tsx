@@ -48,6 +48,7 @@ interface Tarea {
   titulo: string;
   descripcion: string | null;
   num_documentos: number;
+  documentos_obligatorios: boolean;
   fecha_limite: string;
   activo: boolean;
   created_at: string;
