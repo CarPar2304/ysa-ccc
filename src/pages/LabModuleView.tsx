@@ -244,7 +244,7 @@ const LabModuleView = () => {
                   <Card 
                     key={clase.id} 
                     className="border-border hover:shadow-md transition-all cursor-pointer group"
-                    onClick={() => !canEdit && navigate(`/lab/${moduloId}/${clase.id}`)}
+                    onClick={() => navigate(`/lab/${moduloId}/${clase.id}`)}
                   >
                     <CardContent className="p-0">
                       <div className="flex items-center gap-4 p-4">
