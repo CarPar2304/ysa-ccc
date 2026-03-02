@@ -116,7 +116,7 @@ export const EvaluationsModal = ({ open, onOpenChange, evaluaciones }: Evaluatio
                     <InfoSection 
                       title="Ventas"
                       score={evaluacion.puntaje_ventas}
-                      maxScore={15}
+                      maxScore={10}
                       text={evaluacion.ventas_texto}
                     />
 

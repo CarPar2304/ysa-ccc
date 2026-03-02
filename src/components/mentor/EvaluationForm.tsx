@@ -30,7 +30,7 @@ const evaluationSchemaBase = z.object({
   equipo_texto: z.string().trim(),
   puntaje_innovacion_tecnologia: z.number().min(0).max(25),
   innovacion_tecnologia_texto: z.string().trim(),
-  puntaje_ventas: z.number().min(0).max(15),
+  puntaje_ventas: z.number().min(0).max(10),
   ventas_texto: z.string().trim(),
   puntaje_proyeccion_financiacion: z.number().min(0).max(5),
   proyeccion_financiacion_texto: z.string().trim(),
@@ -423,7 +423,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Ventas</p>
-                  <p className="text-lg font-semibold">{cccEvaluation.puntaje_ventas || 0} / 15</p>
+                  <p className="text-lg font-semibold">{cccEvaluation.puntaje_ventas || 0} / 10</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Proyección</p>
@@ -669,7 +669,7 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
                     <ScoreInput
                       label="Ventas"
                       description="Evalúa la viabilidad del modelo de negocio y su aceptación en el mercado para una demanda sostenida."
-                      maxScore={15}
+                      maxScore={10}
                       value={field.value}
                       onChange={field.onChange}
                       disabled={isReadOnly}
