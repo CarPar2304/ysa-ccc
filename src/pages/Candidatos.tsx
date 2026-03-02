@@ -57,6 +57,8 @@ export interface CandidatoData {
     tipo_cliente?: string;
     pagina_web?: string;
     ano_fundacion?: number;
+    nit?: number;
+    como_se_entero?: string;
     ventas_ultimo_ano?: string;
     nivel_innovacion?: string;
     integracion_tecnologia?: string;
@@ -256,6 +258,8 @@ const Candidatos = () => {
             tipo_cliente: emprendimiento.tipo_cliente || undefined,
             pagina_web: emprendimiento.pagina_web || undefined,
             ano_fundacion: emprendimiento.ano_fundacion || undefined,
+            nit: emprendimiento.nit || undefined,
+            como_se_entero: emprendimiento.como_se_entero || undefined,
             ventas_ultimo_ano: emprendimiento.ventas_ultimo_ano || undefined,
             nivel_innovacion: emprendimiento.nivel_innovacion || undefined,
             integracion_tecnologia: emprendimiento.integracion_tecnologia || undefined,
