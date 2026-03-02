@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown, Search, Filter } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
@@ -35,6 +36,10 @@ interface QuotaLevelTabProps {
   maxPorCohorte?: number;
 }
 
+type EstadoFilter = "todos" | "pendiente" | "aprobado" | "rechazado";
+type RecomendacionFilter = "todos" | "recomendado" | "no_recomendado" | "sin_datos";
+type EvalCountFilter = "todos" | "0" | "1" | "2" | "3+";
+
 export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: QuotaLevelTabProps) => {
   const [loading, setLoading] = useState(true);
   const [emprendimientos, setEmprendimientos] = useState<EmprendimientoElegible[]>([]);
@@ -42,13 +47,20 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
   const [cuposPorCohorte, setCuposPorCohorte] = useState({ 1: 0, 2: 0 });
   const [selectedCohortes, setSelectedCohortes] = useState<Record<string, number>>({});
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>("todos");
+  const [cohorteFilter, setCohorteFilter] = useState<string>("todos");
+  const [recomendacionFilter, setRecomendacionFilter] = useState<RecomendacionFilter>("todos");
+  const [evalCountFilter, setEvalCountFilter] = useState<EvalCountFilter>("todos");
+  
   const { toast } = useToast();
 
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      // Obtener emprendimientos elegibles con su nivel definitivo
       const { data: empData, error: empError } = await supabase
         .from("emprendimientos")
         .select(`
@@ -62,44 +74,25 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
 
       if (empError) throw empError;
 
-      // Obtener evaluaciones para cada emprendimiento
       const empIds = empData?.map(e => e.id) || [];
       
-      const { data: evalData, error: evalError } = await supabase
-        .from("evaluaciones")
-        .select("emprendimiento_id, puntaje, estado, recomienda_participacion")
-        .in("emprendimiento_id", empIds)
-        .not("puntaje", "is", null);
+      const [{ data: evalData, error: evalError }, { data: mentorAssignments, error: mentorError }, { data: asignaciones, error: asigError }] = await Promise.all([
+        supabase.from("evaluaciones").select("emprendimiento_id, puntaje, estado, recomienda_participacion").in("emprendimiento_id", empIds).not("puntaje", "is", null),
+        supabase.from("mentor_emprendimiento_assignments").select("emprendimiento_id, mentor_id").in("emprendimiento_id", empIds).eq("activo", true),
+        supabase.from("asignacion_cupos").select("*").eq("nivel", nivel),
+      ]);
 
       if (evalError) throw evalError;
-
-      // Obtener asignaciones de mentores
-      const { data: mentorAssignments, error: mentorError } = await supabase
-        .from("mentor_emprendimiento_assignments")
-        .select("emprendimiento_id, mentor_id")
-        .in("emprendimiento_id", empIds)
-        .eq("activo", true);
-
       if (mentorError) throw mentorError;
-
-      // Obtener asignaciones existentes
-      const { data: asignaciones, error: asigError } = await supabase
-        .from("asignacion_cupos")
-        .select("*")
-        .eq("nivel", nivel);
-
       if (asigError) throw asigError;
 
-      // Calcular cupos usados
       const aprobados = asignaciones?.filter(a => a.estado === "aprobado") || [];
       setCuposUsados(aprobados.length);
+      setCuposPorCohorte({
+        1: aprobados.filter(a => a.cohorte === 1).length,
+        2: aprobados.filter(a => a.cohorte === 2).length,
+      });
 
-      // Calcular cupos por cohorte
-      const cohorte1 = aprobados.filter(a => a.cohorte === 1).length;
-      const cohorte2 = aprobados.filter(a => a.cohorte === 2).length;
-      setCuposPorCohorte({ 1: cohorte1, 2: cohorte2 });
-
-      // Procesar datos
       const empConEvaluaciones = empData?.map(emp => {
         const evaluaciones = evalData?.filter(e => e.emprendimiento_id === emp.id) || [];
         const evaluacionesCompletadas = evaluaciones.filter(e => e.estado === 'enviada').length;
@@ -110,7 +103,6 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         const mentoresAsignados = mentorAssignments?.filter(m => m.emprendimiento_id === emp.id).length || 0;
         const asignacion = asignaciones?.find(a => a.emprendimiento_id === emp.id);
         
-        // Calcular recomendaciones
         const recsForEmp = evaluaciones.filter(e => e.recomienda_participacion !== null);
         const recSi = recsForEmp.filter(e => e.recomienda_participacion === true).length;
         const recNo = recsForEmp.filter(e => e.recomienda_participacion === false).length;
@@ -132,16 +124,10 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         };
       }) || [];
 
-      // Filtrar solo los que tienen evaluaciones
       const elegibles = empConEvaluaciones.filter(e => e.total_evaluaciones > 0);
-      
       setEmprendimientos(elegibles);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -151,13 +137,66 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
     fetchData();
   }, [nivel]);
 
+  // Filtered + sorted list
+  const filteredEmprendimientos = useMemo(() => {
+    let result = [...emprendimientos];
+
+    // Search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(e =>
+        e.nombre.toLowerCase().includes(q) ||
+        `${e.beneficiario_nombre} ${e.beneficiario_apellido}`.toLowerCase().includes(q)
+      );
+    }
+
+    // Estado filter
+    if (estadoFilter !== "todos") {
+      result = result.filter(e => {
+        const estado = e.asignacion_estado || "pendiente";
+        return estado === estadoFilter;
+      });
+    }
+
+    // Cohorte filter
+    if (cohorteFilter !== "todos") {
+      const cohNum = parseInt(cohorteFilter);
+      result = result.filter(e => e.asignacion_cohorte === cohNum);
+    }
+
+    // Recomendacion filter
+    if (recomendacionFilter !== "todos") {
+      if (recomendacionFilter === "sin_datos") {
+        result = result.filter(e => e.recomendaciones.total === 0);
+      } else if (recomendacionFilter === "recomendado") {
+        result = result.filter(e => e.recomendaciones.total > 0 && e.recomendaciones.si > e.recomendaciones.no);
+      } else if (recomendacionFilter === "no_recomendado") {
+        result = result.filter(e => e.recomendaciones.total > 0 && e.recomendaciones.no >= e.recomendaciones.si);
+      }
+    }
+
+    // Eval count filter
+    if (evalCountFilter !== "todos") {
+      if (evalCountFilter === "3+") {
+        result = result.filter(e => e.total_evaluaciones >= 3);
+      } else {
+        const count = parseInt(evalCountFilter);
+        result = result.filter(e => e.total_evaluaciones === count);
+      }
+    }
+
+    // Sort
+    result.sort((a, b) => sortOrder === "desc" ? b.puntaje_promedio - a.puntaje_promedio : a.puntaje_promedio - b.puntaje_promedio);
+
+    return result;
+  }, [emprendimientos, searchQuery, estadoFilter, cohorteFilter, recomendacionFilter, evalCountFilter, sortOrder]);
+
   const sendWebhookNotification = async (
     accion: "Aprobada" | "Rechazada",
     emprendimiento: EmprendimientoElegible,
     cohorte: number
   ) => {
     try {
-      // Obtener email del usuario
       const { data: userData, error: userError } = await supabase
         .from("usuarios")
         .select("email")
@@ -169,41 +208,25 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         return;
       }
 
-      // Crear FormData para enviar parámetros por separado
       const formData = new URLSearchParams();
-      formData.append("accion", accion); // "Aprobada" o "Rechazada"
-      formData.append("nivel", nivel); // Nivel donde fue aprobado el cupo
-      formData.append("email", userData?.email || ""); // Email del usuario
-      formData.append("nombre", `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`); // Nombre del usuario
-      formData.append("emprendimiento", emprendimiento.nombre); // Nombre del emprendimiento
+      formData.append("accion", accion);
+      formData.append("nivel", nivel);
+      formData.append("email", userData?.email || "");
+      formData.append("nombre", `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`);
+      formData.append("emprendimiento", emprendimiento.nombre);
 
-      console.log("Enviando webhook con parámetros:", {
-        accion,
-        nivel,
-        email: userData?.email || "",
-        nombre: `${emprendimiento.beneficiario_nombre} ${emprendimiento.beneficiario_apellido}`,
-        emprendimiento: emprendimiento.nombre,
-      });
-
-      // Enviar al webhook con parámetros como form-data
-      const response = await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/1d5d0e38-477d-429c-a848-9b214e49d3e7", {
+      await fetch("https://n8n-n8n.yajjj6.easypanel.host/webhook/1d5d0e38-477d-429c-a848-9b214e49d3e7", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
         mode: "no-cors",
         body: formData.toString(),
       });
-
-      console.log("Webhook enviado exitosamente");
-      
     } catch (error) {
       console.error("Error sending webhook notification:", error);
     }
   };
 
   const handleAprobar = async (emprendimiento: EmprendimientoElegible) => {
-    // Validar que todas las evaluaciones de mentores asignados estén completadas
     if (emprendimiento.mentores_asignados > emprendimiento.evaluaciones_completadas) {
       toast({
         title: "Evaluaciones pendientes",
@@ -215,23 +238,14 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
 
     const cohorte = selectedCohortes[emprendimiento.id] || 1;
 
-    // Validar límites de cupos
     if (cuposUsados >= maxCupos) {
-      toast({
-        title: "Límite alcanzado",
-        description: `Ya se han asignado los ${maxCupos} cupos disponibles para ${nivel}`,
-        variant: "destructive"
-      });
+      toast({ title: "Límite alcanzado", description: `Ya se han asignado los ${maxCupos} cupos disponibles para ${nivel}`, variant: "destructive" });
       return;
     }
 
     if (tieneCohorts && maxPorCohorte) {
       if (cuposPorCohorte[cohorte as 1 | 2] >= maxPorCohorte) {
-        toast({
-          title: "Límite de cohorte alcanzado",
-          description: `Ya se han asignado los ${maxPorCohorte} cupos de la cohorte ${cohorte}`,
-          variant: "destructive"
-        });
+        toast({ title: "Límite de cohorte alcanzado", description: `Ya se han asignado los ${maxPorCohorte} cupos de la cohorte ${cohorte}`, variant: "destructive" });
         return;
       }
     }
@@ -240,147 +254,70 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
       const { data: { user } } = await supabase.auth.getUser();
 
       if (emprendimiento.asignacion_id) {
-        // Actualizar asignación existente
         const { error } = await supabase
           .from("asignacion_cupos")
-          .update({
-            estado: "aprobado",
-            cohorte,
-            aprobado_por: user?.id,
-            fecha_asignacion: new Date().toISOString()
-          })
+          .update({ estado: "aprobado", cohorte, aprobado_por: user?.id, fecha_asignacion: new Date().toISOString() })
           .eq("id", emprendimiento.asignacion_id);
-
         if (error) throw error;
       } else {
-        // Crear nueva asignación
         const { error } = await supabase
           .from("asignacion_cupos")
-          .insert({
-            emprendimiento_id: emprendimiento.id,
-            nivel,
-            cohorte,
-            estado: "aprobado",
-            aprobado_por: user?.id
-          });
-
+          .insert({ emprendimiento_id: emprendimiento.id, nivel, cohorte, estado: "aprobado", aprobado_por: user?.id });
         if (error) throw error;
       }
 
-      // Activar visualización de evaluaciones al aprobar
       const { error: evalError } = await supabase
         .from("evaluaciones")
         .update({ visible_para_usuario: true })
         .eq("emprendimiento_id", emprendimiento.id);
-
       if (evalError) throw evalError;
 
-      // Enviar notificación al webhook
       sendWebhookNotification("Aprobada", emprendimiento, cohorte);
 
-      toast({
-        title: "Cupo aprobado",
-        description: `${emprendimiento.nombre} ha sido aprobado para ${nivel} - Cohorte ${cohorte}. Las evaluaciones ahora son visibles para el usuario.`
-      });
-
+      toast({ title: "Cupo aprobado", description: `${emprendimiento.nombre} ha sido aprobado para ${nivel} - Cohorte ${cohorte}. Las evaluaciones ahora son visibles para el usuario.` });
       fetchData();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
   const handleRevertir = async (emprendimiento: EmprendimientoElegible) => {
     try {
       if (!emprendimiento.asignacion_id) return;
-
-      const { error } = await supabase
-        .from("asignacion_cupos")
-        .delete()
-        .eq("id", emprendimiento.asignacion_id);
-
+      const { error } = await supabase.from("asignacion_cupos").delete().eq("id", emprendimiento.asignacion_id);
       if (error) throw error;
-
-      toast({
-        title: "Cupo revertido",
-        description: `${emprendimiento.nombre} ha vuelto al estado pendiente`
-      });
-
+      toast({ title: "Cupo revertido", description: `${emprendimiento.nombre} ha vuelto al estado pendiente` });
       fetchData();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
   const handleRechazar = async (emprendimiento: EmprendimientoElegible) => {
     try {
       const cohorte = selectedCohortes[emprendimiento.id] || 1;
-      
       if (emprendimiento.asignacion_id) {
-        const { error } = await supabase
-          .from("asignacion_cupos")
-          .update({ estado: "rechazado" })
-          .eq("id", emprendimiento.asignacion_id);
-
+        const { error } = await supabase.from("asignacion_cupos").update({ estado: "rechazado" }).eq("id", emprendimiento.asignacion_id);
         if (error) throw error;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
-        
-        const { error } = await supabase
-          .from("asignacion_cupos")
-          .insert({
-            emprendimiento_id: emprendimiento.id,
-            nivel,
-            cohorte,
-            estado: "rechazado",
-            aprobado_por: user?.id
-          });
-
+        const { error } = await supabase.from("asignacion_cupos").insert({ emprendimiento_id: emprendimiento.id, nivel, cohorte, estado: "rechazado", aprobado_por: user?.id });
         if (error) throw error;
       }
-
-      // Enviar notificación al webhook
       sendWebhookNotification("Rechazada", emprendimiento, cohorte);
-
-      toast({
-        title: "Cupo rechazado",
-        description: `La solicitud de ${emprendimiento.nombre} ha sido rechazada`
-      });
-
+      toast({ title: "Cupo rechazado", description: `La solicitud de ${emprendimiento.nombre} ha sido rechazada` });
       fetchData();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
-  const toggleSort = () => {
-    setSortOrder(prev => prev === "desc" ? "asc" : "desc");
-  };
-
-  const sortedEmprendimientos = [...emprendimientos].sort((a, b) => {
-    if (sortOrder === "desc") {
-      return b.puntaje_promedio - a.puntaje_promedio;
-    } else {
-      return a.puntaje_promedio - b.puntaje_promedio;
-    }
-  });
+  const toggleSort = () => setSortOrder(prev => prev === "desc" ? "asc" : "desc");
 
   const exportToExcel = (estado?: string) => {
-    let dataToExport = sortedEmprendimientos;
-    
+    let dataToExport = filteredEmprendimientos;
     if (estado) {
-      dataToExport = sortedEmprendimientos.filter(e => e.asignacion_estado === estado);
+      dataToExport = filteredEmprendimientos.filter(e => (e.asignacion_estado || "pendiente") === estado);
     }
 
     const worksheetData = dataToExport.map(emp => {
@@ -395,37 +332,30 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         "Recomiendan No": emp.recomendaciones.no,
         "Estado": emp.asignacion_estado || "Pendiente"
       };
-      
       if (tieneCohorts) {
-        return {
-          ...baseData,
-          "Cohorte": emp.asignacion_cohorte || "-"
-        };
+        return { ...baseData, "Cohorte": emp.asignacion_cohorte || "-" };
       }
-      
       return baseData;
     });
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
-    
-    const sheetName = estado 
-      ? `${nivel} - ${estado.charAt(0).toUpperCase() + estado.slice(1)}`
-      : `${nivel} - Todos`;
-    
+    const sheetName = estado ? `${nivel} - ${estado.charAt(0).toUpperCase() + estado.slice(1)}` : `${nivel} - Todos`;
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-    
-    const filename = estado 
-      ? `${nivel}_${estado}_${new Date().toISOString().split('T')[0]}.xlsx`
-      : `${nivel}_todos_${new Date().toISOString().split('T')[0]}.xlsx`;
-    
+    const filename = estado ? `${nivel}_${estado}_${new Date().toISOString().split('T')[0]}.xlsx` : `${nivel}_todos_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, filename);
-
-    toast({
-      title: "Exportado exitosamente",
-      description: `Se han exportado ${dataToExport.length} registros a Excel`
-    });
+    toast({ title: "Exportado exitosamente", description: `Se han exportado ${dataToExport.length} registros a Excel` });
   };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setEstadoFilter("todos");
+    setCohorteFilter("todos");
+    setRecomendacionFilter("todos");
+    setEvalCountFilter("todos");
+  };
+
+  const hasActiveFilters = searchQuery || estadoFilter !== "todos" || cohorteFilter !== "todos" || recomendacionFilter !== "todos" || evalCountFilter !== "todos";
 
   if (loading) {
     return (
@@ -442,7 +372,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
 
   return (
     <div className="space-y-4">
-      {/* Tarjeta de estadísticas */}
+      {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
@@ -450,7 +380,6 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
             <CardTitle className="text-3xl">{maxCupos}</CardTitle>
           </CardHeader>
         </Card>
-
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Cupos Usados</CardDescription>
@@ -458,14 +387,10 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           </CardHeader>
           <CardContent>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary transition-all"
-                style={{ width: `${porcentajeUsado}%` }}
-              />
+              <div className="h-full bg-primary transition-all" style={{ width: `${porcentajeUsado}%` }} />
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Cupos Disponibles</CardDescription>
@@ -491,41 +416,102 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
         </div>
       )}
 
-      {/* Tabla de emprendimientos */}
+      {/* Filters */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Filtros</CardTitle>
+            </div>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+                Limpiar filtros
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar emprendimiento..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={estadoFilter} onValueChange={(v) => setEstadoFilter(v as EstadoFilter)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendiente</SelectItem>
+                <SelectItem value="aprobado">Aprobado</SelectItem>
+                <SelectItem value="rechazado">Rechazado</SelectItem>
+              </SelectContent>
+            </Select>
+            {tieneCohorts && (
+              <Select value={cohorteFilter} onValueChange={setCohorteFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Cohorte" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas las cohortes</SelectItem>
+                  <SelectItem value="1">Cohorte 1</SelectItem>
+                  <SelectItem value="2">Cohorte 2</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={recomendacionFilter} onValueChange={(v) => setRecomendacionFilter(v as RecomendacionFilter)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Recomendación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas las recomendaciones</SelectItem>
+                <SelectItem value="recomendado">Recomendado</SelectItem>
+                <SelectItem value="no_recomendado">No recomendado</SelectItem>
+                <SelectItem value="sin_datos">Sin datos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={evalCountFilter} onValueChange={(v) => setEvalCountFilter(v as EvalCountFilter)}>
+              <SelectTrigger>
+                <SelectValue placeholder="# Evaluaciones" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas las evaluaciones</SelectItem>
+                <SelectItem value="1">1 evaluación</SelectItem>
+                <SelectItem value="2">2 evaluaciones</SelectItem>
+                <SelectItem value="3+">3+ evaluaciones</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Emprendimientos Elegibles - Nivel {nivel}</CardTitle>
               <CardDescription>
-                {emprendimientos.length} emprendimiento(s) con evaluaciones completadas
+                {filteredEmprendimientos.length} de {emprendimientos.length} emprendimiento(s)
+                {hasActiveFilters && " (filtrado)"}
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => exportToExcel()}
-                className="gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={() => exportToExcel()} className="gap-2">
                 <Download className="h-4 w-4" />
                 Exportar Todos
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => exportToExcel("aprobado")}
-                className="gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={() => exportToExcel("aprobado")} className="gap-2">
                 <Download className="h-4 w-4" />
                 Aprobados
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => exportToExcel("rechazado")}
-                className="gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={() => exportToExcel("rechazado")} className="gap-2">
                 <Download className="h-4 w-4" />
                 Rechazados
               </Button>
@@ -533,9 +519,9 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           </div>
         </CardHeader>
         <CardContent>
-          {emprendimientos.length === 0 ? (
+          {filteredEmprendimientos.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              No hay emprendimientos elegibles para este nivel
+              {hasActiveFilters ? "No hay resultados con los filtros seleccionados" : "No hay emprendimientos elegibles para este nivel"}
             </p>
           ) : (
             <Table>
@@ -544,36 +530,25 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                   <TableHead>Emprendimiento</TableHead>
                   <TableHead>Beneficiario</TableHead>
                   <TableHead className="text-center">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={toggleSort}
-                      className="gap-1 hover:bg-muted"
-                    >
+                    <Button variant="ghost" size="sm" onClick={toggleSort} className="gap-1 hover:bg-muted">
                       Puntaje Promedio
-                      {sortOrder === "desc" ? (
-                        <ArrowDown className="h-4 w-4" />
-                      ) : (
-                        <ArrowUp className="h-4 w-4" />
-                      )}
+                      {sortOrder === "desc" ? <ArrowDown className="h-4 w-4" /> : <ArrowUp className="h-4 w-4" />}
                     </Button>
                   </TableHead>
                   <TableHead className="text-center">Evaluaciones</TableHead>
                   <TableHead className="text-center">Mentores</TableHead>
-                   <TableHead className="text-center">Completadas</TableHead>
-                   <TableHead className="text-center">Recomendación</TableHead>
-                   <TableHead className="text-center">Estado</TableHead>
+                  <TableHead className="text-center">Completadas</TableHead>
+                  <TableHead className="text-center">Recomendación</TableHead>
+                  <TableHead className="text-center">Estado</TableHead>
                   {tieneCohorts && <TableHead className="text-center">Cohorte</TableHead>}
                   <TableHead className="text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedEmprendimientos.map((emp) => (
+                {filteredEmprendimientos.map((emp) => (
                   <TableRow key={emp.id}>
                     <TableCell className="font-medium">{emp.nombre}</TableCell>
-                    <TableCell>
-                      {emp.beneficiario_nombre} {emp.beneficiario_apellido}
-                    </TableCell>
+                    <TableCell>{emp.beneficiario_nombre} {emp.beneficiario_apellido}</TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <TrendingUp className="h-4 w-4 text-primary" />
@@ -587,9 +562,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                       <Badge variant="outline">{emp.mentores_asignados}</Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge 
-                        variant={emp.mentores_asignados === emp.evaluaciones_completadas ? "default" : "destructive"}
-                      >
+                      <Badge variant={emp.mentores_asignados === emp.evaluaciones_completadas ? "default" : "destructive"}>
                         {emp.evaluaciones_completadas}
                       </Badge>
                     </TableCell>
@@ -610,15 +583,9 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                       )}
                     </TableCell>
                     <TableCell className="text-center">
-                      {emp.asignacion_estado === "aprobado" && (
-                        <Badge className="bg-green-500">Aprobado</Badge>
-                      )}
-                      {emp.asignacion_estado === "rechazado" && (
-                        <Badge variant="destructive">Rechazado</Badge>
-                      )}
-                      {!emp.asignacion_estado && (
-                        <Badge variant="outline">Pendiente</Badge>
-                      )}
+                      {emp.asignacion_estado === "aprobado" && <Badge className="bg-green-500">Aprobado</Badge>}
+                      {emp.asignacion_estado === "rechazado" && <Badge variant="destructive">Rechazado</Badge>}
+                      {!emp.asignacion_estado && <Badge variant="outline">Pendiente</Badge>}
                     </TableCell>
                     {tieneCohorts && (
                       <TableCell className="text-center">
@@ -627,12 +594,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                         ) : (
                           <Select
                             value={selectedCohortes[emp.id]?.toString() || "1"}
-                            onValueChange={(value) =>
-                              setSelectedCohortes(prev => ({
-                                ...prev,
-                                [emp.id]: parseInt(value)
-                              }))
-                            }
+                            onValueChange={(value) => setSelectedCohortes(prev => ({ ...prev, [emp.id]: parseInt(value) }))}
                           >
                             <SelectTrigger className="w-24">
                               <SelectValue />
@@ -653,33 +615,20 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                             onClick={() => handleAprobar(emp)}
                             className="gap-1"
                             disabled={emp.mentores_asignados > emp.evaluaciones_completadas}
-                            title={emp.mentores_asignados > emp.evaluaciones_completadas 
-                              ? "Faltan evaluaciones por completar" 
-                              : "Aprobar cupo"}
+                            title={emp.mentores_asignados > emp.evaluaciones_completadas ? "Faltan evaluaciones por completar" : "Aprobar cupo"}
                           >
                             <CheckCircle className="h-4 w-4" />
                             Aprobar
                           </Button>
                         )}
                         {emp.asignacion_estado !== "rechazado" && emp.asignacion_estado !== "aprobado" && (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleRechazar(emp)}
-                            className="gap-1"
-                          >
+                          <Button size="sm" variant="destructive" onClick={() => handleRechazar(emp)} className="gap-1">
                             <XCircle className="h-4 w-4" />
                             Rechazar
                           </Button>
                         )}
                         {(emp.asignacion_estado === "aprobado" || emp.asignacion_estado === "rechazado") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRevertir(emp)}
-                            className="gap-1"
-                            title="Volver al estado pendiente"
-                          >
+                          <Button size="sm" variant="outline" onClick={() => handleRevertir(emp)} className="gap-1" title="Volver al estado pendiente">
                             <RotateCcw className="h-4 w-4" />
                             Revertir
                           </Button>

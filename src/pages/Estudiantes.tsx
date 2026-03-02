@@ -42,7 +42,6 @@ const Estudiantes = () => {
 
   const hasAccess = isAdmin || isOperador;
 
-  // Determine which levels to show
   const allowedNiveles: NivelEmprendimiento[] = isAdmin
     ? ["Starter", "Growth", "Scale"]
     : (operadorNiveles as NivelEmprendimiento[]);
@@ -50,82 +49,121 @@ const Estudiantes = () => {
   const { data: modulosData, isLoading } = useQuery({
     queryKey: ["modulos-progreso", allowedNiveles],
     queryFn: async () => {
-      const { data: modulos } = await supabase
-        .from("modulos")
-        .select("*")
-        .order("orden");
+      // 1. Fetch all modules and classes in parallel
+      const [{ data: modulos }, { data: allClases }] = await Promise.all([
+        supabase.from("modulos").select("*").order("orden"),
+        supabase.from("clases").select("id, modulo_id"),
+      ]);
 
       if (!modulos) return { Starter: [], Growth: [], Scale: [] };
 
+      // Filter modules by allowed levels
+      const filteredModulos = modulos.filter(m => m.nivel && allowedNiveles.includes(m.nivel));
+      const moduloIds = filteredModulos.map(m => m.id);
+
+      // Group classes by module
+      const clasesByModulo: Record<string, string[]> = {};
+      for (const clase of (allClases || [])) {
+        if (!moduloIds.includes(clase.modulo_id)) continue;
+        if (!clasesByModulo[clase.modulo_id]) clasesByModulo[clase.modulo_id] = [];
+        clasesByModulo[clase.modulo_id].push(clase.id);
+      }
+
+      // 2. Fetch all approved cupo assignments for allowed levels
+      const { data: asignaciones } = await supabase
+        .from("asignacion_cupos")
+        .select(`
+          emprendimiento_id,
+          nivel,
+          emprendimientos (
+            id,
+            nombre,
+            user_id,
+            usuarios (
+              id,
+              nombres,
+              apellidos,
+              avatar_url
+            )
+          )
+        `)
+        .in("nivel", allowedNiveles)
+        .eq("estado", "aprobado");
+
+      // Group students by nivel
+      const studentsByNivel: Record<string, Array<{ user_id: string; nombres: string; apellidos: string; avatar_url: string | null; emprendimiento_nombre: string }>> = {};
+      const allStudentUserIds: string[] = [];
+
+      for (const asig of (asignaciones || [])) {
+        const emp = asig.emprendimientos as any;
+        if (!emp?.usuarios) continue;
+        const usuario = emp.usuarios;
+        if (!studentsByNivel[asig.nivel]) studentsByNivel[asig.nivel] = [];
+        studentsByNivel[asig.nivel].push({
+          user_id: usuario.id,
+          nombres: usuario.nombres || "",
+          apellidos: usuario.apellidos || "",
+          avatar_url: usuario.avatar_url,
+          emprendimiento_nombre: emp.nombre || "",
+        });
+        if (!allStudentUserIds.includes(usuario.id)) allStudentUserIds.push(usuario.id);
+      }
+
+      // 3. Fetch ALL progress records for all relevant classes in ONE query
+      const allClaseIds = Object.values(clasesByModulo).flat();
+      let allProgreso: Array<{ user_id: string; clase_id: string; completado: boolean }> = [];
+      
+      if (allClaseIds.length > 0 && allStudentUserIds.length > 0) {
+        // Batch in chunks of 500 to avoid query limits
+        const chunkSize = 500;
+        const progresoPromises = [];
+        for (let i = 0; i < allStudentUserIds.length; i += chunkSize) {
+          const userChunk = allStudentUserIds.slice(i, i + chunkSize);
+          progresoPromises.push(
+            supabase
+              .from("progreso_usuario")
+              .select("user_id, clase_id, completado")
+              .in("user_id", userChunk)
+              .in("clase_id", allClaseIds)
+          );
+        }
+        const progresoResults = await Promise.all(progresoPromises);
+        for (const { data } of progresoResults) {
+          if (data) allProgreso.push(...data);
+        }
+      }
+
+      // Index progress by user_id + clase_id
+      const progresoMap = new Set<string>();
+      for (const p of allProgreso) {
+        if (p.completado) progresoMap.add(`${p.user_id}:${p.clase_id}`);
+      }
+
+      // 4. Build result
       const resultado: Record<NivelEmprendimiento, ModuleWithProgress[]> = {
         Starter: [],
         Growth: [],
         Scale: [],
       };
 
-      for (const modulo of modulos) {
+      for (const modulo of filteredModulos) {
         if (!modulo.nivel) continue;
-        if (!allowedNiveles.includes(modulo.nivel)) continue;
+        const clasesIds = clasesByModulo[modulo.id] || [];
+        const totalClases = clasesIds.length;
+        const students = studentsByNivel[modulo.nivel] || [];
 
-        const { data: clases } = await supabase
-          .from("clases")
-          .select("id")
-          .eq("modulo_id", modulo.id);
+        const estudiantes: StudentProgress[] = students.map(student => {
+          const clasesCompletadas = clasesIds.filter(cId => progresoMap.has(`${student.user_id}:${cId}`)).length;
+          const progresoTotal = totalClases > 0 ? (clasesCompletadas / totalClases) * 100 : 0;
+          return {
+            ...student,
+            progreso_porcentaje: Math.round(progresoTotal),
+          };
+        });
 
-        const totalClases = clases?.length || 0;
-
-        const { data: asignaciones } = await supabase
-          .from("asignacion_cupos")
-          .select(`
-            emprendimiento_id,
-            emprendimientos (
-              id,
-              nombre,
-              user_id,
-              usuarios (
-                id,
-                nombres,
-                apellidos,
-                avatar_url
-              )
-            )
-          `)
-          .eq("nivel", modulo.nivel)
-          .eq("estado", "aprobado");
-
-        const estudiantes: StudentProgress[] = [];
-
-        if (asignaciones && clases) {
-          for (const asignacion of asignaciones) {
-            const emp = asignacion.emprendimientos as any;
-            if (!emp || !emp.usuarios) continue;
-
-            const usuario = emp.usuarios;
-            const clasesIds = clases.map((c) => c.id);
-            const { data: progreso } = await supabase
-              .from("progreso_usuario")
-              .select("*")
-              .eq("user_id", usuario.id)
-              .in("clase_id", clasesIds);
-
-            const clasesCompletadas = progreso?.filter((p) => p.completado).length || 0;
-            const progresoTotal = totalClases > 0 ? (clasesCompletadas / totalClases) * 100 : 0;
-
-            estudiantes.push({
-              user_id: usuario.id,
-              nombres: usuario.nombres || "",
-              apellidos: usuario.apellidos || "",
-              avatar_url: usuario.avatar_url,
-              emprendimiento_nombre: emp.nombre || "",
-              progreso_porcentaje: Math.round(progresoTotal),
-            });
-          }
-        }
-
-        const progresoPromedio =
-          estudiantes.length > 0
-            ? estudiantes.reduce((sum, e) => sum + e.progreso_porcentaje, 0) / estudiantes.length
-            : 0;
+        const progresoPromedio = estudiantes.length > 0
+          ? estudiantes.reduce((sum, e) => sum + e.progreso_porcentaje, 0) / estudiantes.length
+          : 0;
 
         resultado[modulo.nivel].push({
           id: modulo.id,
@@ -145,7 +183,6 @@ const Estudiantes = () => {
   const { data: exportData } = useQuery({
     queryKey: ["estudiantes-export-data", allowedNiveles],
     queryFn: async () => {
-      // Fetch students with approved cupo in allowed levels
       const { data: cupos } = await supabase
         .from("asignacion_cupos")
         .select(`
@@ -171,7 +208,6 @@ const Estudiantes = () => {
         supabase.from("evaluaciones").select("*").in("emprendimiento_id", cupos.map(c => c.emprendimiento_id)),
       ]);
 
-      // Build progress data
       const allModulos = modulosData || { Starter: [], Growth: [], Scale: [] };
 
       return cupos.map((cupo: any) => {
@@ -185,7 +221,6 @@ const Estudiantes = () => {
         const diagnostico = emp.diagnosticos?.[0];
         const userEvals = evaluaciones?.filter((e) => e.emprendimiento_id === emp.id) || [];
 
-        // Calculate progress per module
         const nivelModulos = allModulos[cupo.nivel as NivelEmprendimiento] || [];
         const totalModulos = nivelModulos.length;
         const studentInModulos = nivelModulos.map((m) => {
@@ -280,7 +315,6 @@ const Estudiantes = () => {
             cumple_interes: ev.cumple_interes ?? false,
             created_at: ev.created_at,
           })),
-          // Extra: progress percentage
           _progreso_promedio: avgProgress,
         } as CandidatoData & { _progreso_promedio?: number };
       }).filter(Boolean) as CandidatoData[];
@@ -364,10 +398,7 @@ const Estudiantes = () => {
                           {estudiante.emprendimiento_nombre}
                         </p>
                         <div className="mt-2 flex items-center gap-3">
-                          <Progress
-                            value={estudiante.progreso_porcentaje}
-                            className="flex-1"
-                          />
+                          <Progress value={estudiante.progreso_porcentaje} className="flex-1" />
                           <span className="text-sm font-medium text-foreground min-w-[3rem] text-right">
                             {estudiante.progreso_porcentaje}%
                           </span>
