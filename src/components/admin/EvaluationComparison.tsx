@@ -63,7 +63,7 @@ export const EvaluationComparison = ({ cccEvaluation, juradoEvaluation }: Evalua
                 <ScoreItem label="Impacto" score={cccEvaluation.puntaje_impacto} max={30} />
                 <ScoreItem label="Equipo" score={cccEvaluation.puntaje_equipo} max={25} />
                 <ScoreItem label="Innovación" score={cccEvaluation.puntaje_innovacion_tecnologia} max={25} />
-                <ScoreItem label="Ventas" score={cccEvaluation.puntaje_ventas} max={15} />
+                <ScoreItem label="Ventas" score={cccEvaluation.puntaje_ventas} max={10} />
                 <ScoreItem label="Referido Regional" score={cccEvaluation.puntaje_referido_regional} max={5} />
               </div>
               {cccEvaluation.nivel && (
@@ -177,7 +177,7 @@ export const EvaluationComparison = ({ cccEvaluation, juradoEvaluation }: Evalua
                 label="Ventas" 
                 cccScore={cccEvaluation.puntaje_ventas || 0}
                 juradoScore={juradoEvaluation.puntaje_ventas || 0}
-                maxScore={15}
+                maxScore={10}
               />
               <ScoreComparison 
                 label="Referido" 
