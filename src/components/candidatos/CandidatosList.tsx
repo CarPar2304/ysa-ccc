@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Eye, RefreshCw, ArrowUpDown } from "lucide-react";
+import { Search, Download, Eye, RefreshCw, ArrowUpDown, Pencil, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CandidatoData } from "@/pages/Candidatos";
 import { CandidatoFullDetailModal } from "./CandidatoFullDetailModal";
 import { ExportOptionsModal } from "./ExportOptionsModal";
+import { UpdateDataModal } from "./UpdateDataModal";
+import { UpdateCredentialsModal } from "./UpdateCredentialsModal";
 
 interface CandidatosListProps {
   candidatos: CandidatoData[];
@@ -25,6 +28,8 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportCandidato, setExportCandidato] = useState<CandidatoData | null>(null);
   const [massExportModalOpen, setMassExportModalOpen] = useState(false);
+  const [updateDataModalOpen, setUpdateDataModalOpen] = useState(false);
+  const [updateCredentialsModalOpen, setUpdateCredentialsModalOpen] = useState(false);
 
   const filteredCandidatos = useMemo(() => {
     const filtered = candidatos.filter((candidato) => {
@@ -86,6 +91,23 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
                 <Download className="h-4 w-4 mr-2" />
                 Exportar ({filteredCandidatos.length})
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Actualizar Datos
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setUpdateDataModalOpen(true)}>
+                    Actualización masiva / individual
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setUpdateCredentialsModalOpen(true)}>
+                    Cambiar correo / contraseña
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
@@ -236,6 +258,18 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         candidatos={filteredCandidatos}
         open={massExportModalOpen}
         onClose={() => setMassExportModalOpen(false)}
+      />
+
+      <UpdateDataModal
+        open={updateDataModalOpen}
+        onClose={() => setUpdateDataModalOpen(false)}
+        candidatos={candidatos}
+        onRefresh={onRefresh}
+      />
+
+      <UpdateCredentialsModal
+        open={updateCredentialsModalOpen}
+        onClose={() => setUpdateCredentialsModalOpen(false)}
       />
     </>
   );
