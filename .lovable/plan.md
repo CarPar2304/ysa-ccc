@@ -1,68 +1,80 @@
 
 
-# Plan: Mejoras al Sistema de Asistencia y Cohortes en Clases
+# Plan: Botón de Actualización de Datos en Candidatos
 
 ## Resumen
-Cuatro cambios principales: (1) mover el AttendanceManager al sidebar derecho, (2) agregar campo de cohorte a las clases, (3) agregar seccion de asistentes manuales del mismo nivel/cohorte que no cruzaron por correo, (4) confirmar visibilidad solo para admin y operadores.
+Crear un sistema de actualización de datos con dos modos (masivo e individual) y una función especial para actualizar correo/contraseña via edge function con service_role.
 
-## Cambios
+## Componentes a crear
 
-### 1. Mover AttendanceManager al sidebar (debajo de "Contenido del curso")
-- En `LabClassView.tsx`, quitar el `AttendanceManager` del area principal (col-span-2) y moverlo al sidebar (col-span-1), debajo de la card de "Contenido del curso"
-- Solo visible para `isAdmin || isOperador`
+### 1. `UpdateDataModal.tsx` (nuevo componente en `src/components/candidatos/`)
+Modal principal con dos tabs:
+- **Masiva**: Seleccionar campos a actualizar → descargar plantilla Excel (siempre con columna email + campos seleccionados) → cargar Excel con datos → validar emails contra BD → mostrar cuáles cruzaron/no cruzaron → confirmar actualización solo de los que cruzaron
+- **Individual**: Buscar/seleccionar un candidato → editar los campos seleccionados directamente en un formulario → guardar
 
-### 2. Agregar campo `cohorte` a la tabla `clases`
-- Migracion SQL: `ALTER TABLE clases ADD COLUMN cohorte integer[] DEFAULT '{1}'`
-- Para clases de modulos Starter/Growth, se puede elegir cohorte 1, 2, o ambas
-- Para clases de modulos Scale, por defecto cohorte 1 (solo hay una)
+**Campos disponibles para actualización masiva/individual:**
+- Datos de usuario: nombres, apellidos, celular, numero_identificacion, departamento, municipio, genero, direccion, ano_nacimiento, etc.
+- Datos de emprendimiento: nombre, nit, como_se_entero, categoria, etapa, pagina_web, industria_vertical, etc.
 
-### 3. Agregar selector de cohorte en ClassEditor
-- En `ClassEditor.tsx`, agregar un selector de cohorte(s) con checkboxes
-- Necesita conocer el nivel del modulo para determinar las opciones disponibles
-- Si nivel es Scale: solo cohorte 1 (automatico)
-- Si nivel es Starter o Growth: opciones para cohorte 1, 2, o ambas
+### 2. `UpdateCredentialsModal.tsx` (nuevo componente en `src/components/candidatos/`)
+Modal separado para actualizar email y/o contraseña de un usuario:
+- Buscar usuario por email actual
+- Campos: nuevo email, nueva contraseña (opcionales, al menos uno)
+- Al guardar, llama a una edge function que usa `service_role` para:
+  - `supabase.auth.admin.updateUserById()` para actualizar email/contraseña en auth sin enviar notificación
+  - Actualizar el campo `email` en la tabla `usuarios` si se cambió el correo
 
-### 4. Agregar asistentes manuales en AttendanceManager
-- Despues de validar correos, mostrar una seccion adicional con los estudiantes del nivel/cohorte de la clase que NO aparecieron en los correos pegados y que NO tienen asistencia previa
-- Se obtienen consultando `asignacion_cupos` filtrando por nivel del modulo y cohorte de la clase
-- Se muestran con checkbox para poder agregarlos manualmente
-- Al guardar, se incluyen tanto los validados por correo como los agregados manualmente
+### 3. Edge Function `update-user-credentials` (nuevo)
+- Recibe: `user_id`, `new_email?`, `new_password?`
+- Valida que el caller sea admin (verifica JWT + role)
+- Usa `supabase.auth.admin.updateUserById(user_id, { email, password, email_confirm: true })` con `email_confirm: true` para que no envíe correo de confirmación
+- Si se cambió email, también hace `UPDATE usuarios SET email = new_email WHERE id = user_id`
 
-### 5. Pasar informacion de cohorte y nivel al AttendanceManager
-- Nuevas props: `cohortes: number[]`, `nivelModulo: string`
-- Estas se obtienen del modulo y la clase en `LabClassView.tsx`
+### 4. Integración en `CandidatosList.tsx`
+- Agregar botón "Actualizar Datos" junto a los botones existentes (Actualizar, Exportar)
+- Dropdown o modal que permita elegir: "Actualización masiva", "Actualización individual", "Cambiar correo/contraseña"
 
-## Detalles tecnicos
+## Flujo de actualización masiva
 
-### Migracion SQL
-```sql
-ALTER TABLE public.clases ADD COLUMN cohorte integer[] DEFAULT '{1}';
-```
-
-### Archivos a modificar
-1. **Migracion SQL** -- agregar columna `cohorte` a `clases`
-2. **`src/components/lab/ClassEditor.tsx`** -- agregar selector de cohorte, necesita recibir `nivelModulo` como prop
-3. **`src/pages/LabClassView.tsx`** -- mover AttendanceManager al sidebar, fetch nivel del modulo, pasar cohorte/nivel al AttendanceManager
-4. **`src/components/lab/AttendanceManager.tsx`** -- recibir cohortes y nivel, agregar seccion de asistentes manuales (estudiantes del nivel/cohorte que no cruzaron)
-5. **`src/pages/LabModuleView.tsx`** -- pasar `nivelModulo` al ClassEditor
-
-### Flujo de asistentes manuales
 ```text
-1. Admin/operador pega correos y valida
-2. Se muestran: validados, no encontrados
-3. Se consultan todos los estudiantes del nivel+cohorte de la clase
-4. Se restan los ya validados y los ya registrados
-5. Se muestran como "Asistentes adicionales" con checkboxes
-6. Al guardar, se incluyen ambos grupos
+1. Admin abre modal → selecciona campos (ej: NIT, como_se_entero)
+2. Descarga plantilla Excel con columnas: Email, NIT, Por dónde se enteró
+3. Llena la plantilla con datos
+4. Carga el Excel
+5. Sistema lee emails, cruza contra tabla usuarios
+6. Muestra: X emails encontrados, Y no encontrados (lista de ambos)
+7. Admin confirma → se actualizan solo los registros que cruzaron
+8. Resultado: X actualizados, Y ignorados
 ```
 
-### Consulta de estudiantes del nivel/cohorte
-```sql
-SELECT u.id, u.email, u.nombres, u.apellidos, e.nombre as emprendimiento
-FROM usuarios u
-JOIN emprendimientos e ON e.user_id = u.id
-JOIN asignacion_cupos ac ON ac.emprendimiento_id = e.id
-WHERE ac.estado = 'aprobado'
-  AND ac.nivel = :nivelModulo
-  AND ac.cohorte = ANY(:cohortes)
+## Flujo de actualización de credenciales
+
+```text
+1. Admin busca usuario por email
+2. Ingresa nuevo email y/o nueva contraseña
+3. Confirma → edge function actualiza auth + BD
+4. No se envía ningún correo al usuario
 ```
+
+## Archivos a crear/modificar
+1. **Crear** `src/components/candidatos/UpdateDataModal.tsx` -- modal con tabs masiva/individual
+2. **Crear** `src/components/candidatos/UpdateCredentialsModal.tsx` -- modal para email/contraseña
+3. **Crear** `supabase/functions/update-user-credentials/index.ts` -- edge function con service_role
+4. **Modificar** `supabase/config.toml` -- agregar config para la nueva edge function con `verify_jwt = false`
+5. **Modificar** `src/components/candidatos/CandidatosList.tsx` -- agregar botón y estados para los nuevos modales
+
+## Detalles técnicos
+
+### Edge function `update-user-credentials`
+- Verificación manual de JWT del caller
+- Verificación de que el caller tiene rol admin via query a `user_roles`
+- Usa `SUPABASE_SERVICE_ROLE_KEY` (ya existe como secret)
+- `updateUserById` con `email_confirm: true` evita envío de correo de confirmación
+
+### Actualización masiva - lógica de cruce
+- Lee Excel con `xlsx` (ya instalado)
+- Normaliza emails (lowercase, trim)
+- Query a `usuarios` para encontrar IDs por email
+- Para campos de `usuarios`: update directo
+- Para campos de `emprendimientos`: buscar emprendimiento por user_id, luego update
+
