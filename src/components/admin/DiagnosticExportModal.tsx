@@ -61,12 +61,80 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
   const [open, setOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todos");
+  const [nivelFiltro, setNivelFiltro] = useState<NivelFiltro>("todos");
+  const [cuposMap, setCuposMap] = useState<Map<string, { estado: string; nivel: string }>>(new Map());
+  const [evaluacionesMap, setEvaluacionesMap] = useState<Map<string, number>>(new Map());
+  const [filtersLoading, setFiltersLoading] = useState(false);
   const { toast } = useToast();
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
 
-  const allSelected = diagnosticos.length > 0 && selectedIds.length === diagnosticos.length;
-  const someSelected = selectedIds.length > 0 && selectedIds.length < diagnosticos.length;
+  // Fetch cupos and evaluaciones when modal opens
+  useEffect(() => {
+    if (!open) return;
+    const fetchFilterData = async () => {
+      setFiltersLoading(true);
+      try {
+        const empIds = emprendimientos.map(e => e.id);
+        const [{ data: cupos }, { data: evaluaciones }] = await Promise.all([
+          supabase.from("asignacion_cupos").select("emprendimiento_id, estado, nivel").in("emprendimiento_id", empIds),
+          supabase.from("evaluaciones").select("emprendimiento_id, puntaje").in("emprendimiento_id", empIds),
+        ]);
+        const cm = new Map<string, { estado: string; nivel: string }>();
+        cupos?.forEach(c => {
+          if (c.estado === "aprobado") cm.set(c.emprendimiento_id, { estado: c.estado, nivel: c.nivel });
+        });
+        setCuposMap(cm);
+
+        const em = new Map<string, number>();
+        evaluaciones?.forEach(ev => {
+          const current = em.get(ev.emprendimiento_id) || 0;
+          if ((ev.puntaje || 0) > current) em.set(ev.emprendimiento_id, ev.puntaje || 0);
+        });
+        setEvaluacionesMap(em);
+      } catch (e) {
+        console.error("Error fetching filter data:", e);
+      } finally {
+        setFiltersLoading(false);
+      }
+    };
+    fetchFilterData();
+  }, [open, emprendimientos]);
+
+  const getNivelFromScore = (puntaje: number): string => {
+    if (puntaje > 80) return "Scale";
+    if (puntaje > 50) return "Growth";
+    return "Starter";
+  };
+
+  const filteredDiagnosticos = useMemo(() => {
+    return diagnosticos.filter(d => {
+      const cupo = cuposMap.get(d.emprendimiento_id);
+      const isBeneficiario = cupo?.estado === "aprobado";
+
+      // Filtro tipo
+      if (tipoFiltro === "beneficiarios" && !isBeneficiario) return false;
+      if (tipoFiltro === "candidatos" && isBeneficiario) return false;
+
+      // Filtro nivel
+      if (nivelFiltro !== "todos") {
+        if (isBeneficiario) {
+          if (cupo?.nivel !== nivelFiltro) return false;
+        } else {
+          const puntaje = evaluacionesMap.get(d.emprendimiento_id);
+          if (!puntaje || getNivelFromScore(puntaje) !== nivelFiltro) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [diagnosticos, tipoFiltro, nivelFiltro, cuposMap, evaluacionesMap]);
+
+  // Reset selections when filters change
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [tipoFiltro, nivelFiltro]);
 
   const getEmprendimientoNombre = (empId: string) => {
     return emprendimientos.find(e => e.id === empId)?.nombre || "Sin nombre";
