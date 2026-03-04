@@ -1,13 +1,15 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileDown, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Marked } from "marked";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { supabase } from "@/integrations/supabase/client";
 
 // Create a synchronous marked instance
 const markedInstance = new Marked();
@@ -29,6 +31,9 @@ interface Diagnostico {
   visible_para_usuario: boolean;
   created_at: string;
 }
+
+type TipoFiltro = "todos" | "beneficiarios" | "candidatos";
+type NivelFiltro = "todos" | "Starter" | "Growth" | "Scale";
 
 interface DiagnosticExportModalProps {
   diagnosticos: Diagnostico[];
