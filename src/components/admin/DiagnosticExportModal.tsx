@@ -1,13 +1,15 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileDown, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Marked } from "marked";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { supabase } from "@/integrations/supabase/client";
 
 // Create a synchronous marked instance
 const markedInstance = new Marked();
@@ -29,6 +31,9 @@ interface Diagnostico {
   visible_para_usuario: boolean;
   created_at: string;
 }
+
+type TipoFiltro = "todos" | "beneficiarios" | "candidatos";
+type NivelFiltro = "todos" | "Starter" | "Growth" | "Scale";
 
 interface DiagnosticExportModalProps {
   diagnosticos: Diagnostico[];
@@ -56,12 +61,80 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
   const [open, setOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todos");
+  const [nivelFiltro, setNivelFiltro] = useState<NivelFiltro>("todos");
+  const [cuposMap, setCuposMap] = useState<Map<string, { estado: string; nivel: string }>>(new Map());
+  const [evaluacionesMap, setEvaluacionesMap] = useState<Map<string, number>>(new Map());
+  const [filtersLoading, setFiltersLoading] = useState(false);
   const { toast } = useToast();
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
 
-  const allSelected = diagnosticos.length > 0 && selectedIds.length === diagnosticos.length;
-  const someSelected = selectedIds.length > 0 && selectedIds.length < diagnosticos.length;
+  // Fetch cupos and evaluaciones when modal opens
+  useEffect(() => {
+    if (!open) return;
+    const fetchFilterData = async () => {
+      setFiltersLoading(true);
+      try {
+        const empIds = emprendimientos.map(e => e.id);
+        const [{ data: cupos }, { data: evaluaciones }] = await Promise.all([
+          supabase.from("asignacion_cupos").select("emprendimiento_id, estado, nivel").in("emprendimiento_id", empIds),
+          supabase.from("evaluaciones").select("emprendimiento_id, puntaje").in("emprendimiento_id", empIds),
+        ]);
+        const cm = new Map<string, { estado: string; nivel: string }>();
+        cupos?.forEach(c => {
+          if (c.estado === "aprobado") cm.set(c.emprendimiento_id, { estado: c.estado, nivel: c.nivel });
+        });
+        setCuposMap(cm);
+
+        const em = new Map<string, number>();
+        evaluaciones?.forEach(ev => {
+          const current = em.get(ev.emprendimiento_id) || 0;
+          if ((ev.puntaje || 0) > current) em.set(ev.emprendimiento_id, ev.puntaje || 0);
+        });
+        setEvaluacionesMap(em);
+      } catch (e) {
+        console.error("Error fetching filter data:", e);
+      } finally {
+        setFiltersLoading(false);
+      }
+    };
+    fetchFilterData();
+  }, [open, emprendimientos]);
+
+  const getNivelFromScore = (puntaje: number): string => {
+    if (puntaje > 80) return "Scale";
+    if (puntaje > 50) return "Growth";
+    return "Starter";
+  };
+
+  const filteredDiagnosticos = useMemo(() => {
+    return diagnosticos.filter(d => {
+      const cupo = cuposMap.get(d.emprendimiento_id);
+      const isBeneficiario = cupo?.estado === "aprobado";
+
+      // Filtro tipo
+      if (tipoFiltro === "beneficiarios" && !isBeneficiario) return false;
+      if (tipoFiltro === "candidatos" && isBeneficiario) return false;
+
+      // Filtro nivel
+      if (nivelFiltro !== "todos") {
+        if (isBeneficiario) {
+          if (cupo?.nivel !== nivelFiltro) return false;
+        } else {
+          const puntaje = evaluacionesMap.get(d.emprendimiento_id);
+          if (!puntaje || getNivelFromScore(puntaje) !== nivelFiltro) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [diagnosticos, tipoFiltro, nivelFiltro, cuposMap, evaluacionesMap]);
+
+  // Reset selections when filters change
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [tipoFiltro, nivelFiltro]);
 
   const getEmprendimientoNombre = (empId: string) => {
     return emprendimientos.find(e => e.id === empId)?.nombre || "Sin nombre";
@@ -75,11 +148,14 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
     );
   };
 
+  const allSelected = filteredDiagnosticos.length > 0 && selectedIds.length === filteredDiagnosticos.length;
+  const someSelected = selectedIds.length > 0 && selectedIds.length < filteredDiagnosticos.length;
+
   const selectAll = () => {
     if (allSelected) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(diagnosticos.map(d => d.id));
+      setSelectedIds(filteredDiagnosticos.map(d => d.id));
     }
   };
 
@@ -363,6 +439,37 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
         </DialogHeader>
 
         <div className="flex flex-col gap-3 min-h-0 flex-1 overflow-hidden">
+          {/* Filtros */}
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground mb-1 block">Tipo</Label>
+              <Select value={tipoFiltro} onValueChange={(v) => setTipoFiltro(v as TipoFiltro)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="beneficiarios">Beneficiarios</SelectItem>
+                  <SelectItem value="candidatos">Candidatos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground mb-1 block">Nivel</Label>
+              <Select value={nivelFiltro} onValueChange={(v) => setNivelFiltro(v as NivelFiltro)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="Starter">Starter</SelectItem>
+                  <SelectItem value="Growth">Growth</SelectItem>
+                  <SelectItem value="Scale">Scale</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between border-b pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -371,7 +478,7 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
                 onCheckedChange={selectAll}
               />
               <Label htmlFor="select-all" className="font-medium cursor-pointer text-sm">
-                Todos ({diagnosticos.length})
+                Todos ({filteredDiagnosticos.length})
               </Label>
             </div>
             <span className="text-xs text-muted-foreground">
@@ -379,19 +486,23 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
             </span>
           </div>
 
-          {/* Scroll nativo (más confiable que Radix dentro de Dialog en algunos navegadores) */}
+          {/* Scroll nativo */}
           <div
             className="flex-1 min-h-0 h-[40vh] max-h-[300px] w-full overflow-y-auto overflow-x-hidden pr-3 overscroll-contain touch-pan-y"
             style={{ WebkitOverflowScrolling: "touch" }}
             tabIndex={0}
           >
             <div className="flex flex-col gap-2 w-full">
-              {diagnosticos.length === 0 ? (
+              {filtersLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredDiagnosticos.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 text-sm">
                   No hay diagnósticos disponibles
                 </p>
               ) : (
-                diagnosticos.map((diag) => {
+                filteredDiagnosticos.map((diag) => {
                   const empNombre = getEmprendimientoNombre(diag.emprendimiento_id);
                   const isSelected = selectedIds.includes(diag.id);
                   return (
