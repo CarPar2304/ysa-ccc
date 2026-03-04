@@ -148,11 +148,14 @@ export function DiagnosticExportModal({ diagnosticos, emprendimientos }: Diagnos
     );
   };
 
+  const allSelected = filteredDiagnosticos.length > 0 && selectedIds.length === filteredDiagnosticos.length;
+  const someSelected = selectedIds.length > 0 && selectedIds.length < filteredDiagnosticos.length;
+
   const selectAll = () => {
     if (allSelected) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(diagnosticos.map(d => d.id));
+      setSelectedIds(filteredDiagnosticos.map(d => d.id));
     }
   };
 
