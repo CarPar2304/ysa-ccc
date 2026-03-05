@@ -300,6 +300,15 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
           percentage: ((value as number) / total) * 100,
         }))
       );
+
+      // Promedio valor de ventas
+      const ventasValues = emprendimientos
+        .map(e => (e as any).valor_ventas)
+        .filter((v): v is number => v != null && v > 0);
+      const avgVentas = ventasValues.length > 0
+        ? ventasValues.reduce((sum, v) => sum + v, 0) / ventasValues.length
+        : 0;
+      setPromedioVentas(avgVentas);
     } catch (error) {
       console.error("Error fetching emprendimientos stats:", error);
     } finally {
