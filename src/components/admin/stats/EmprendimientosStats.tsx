@@ -325,7 +325,7 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Con Plan de Negocio</CardTitle>
@@ -353,6 +353,16 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">{actividadesID.toFixed(1)}%</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/30 border-green-200 dark:border-green-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Promedio Valor Ventas</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-700 dark:text-green-300">${promedioVentas.toLocaleString('es-CO', { maximumFractionDigits: 0 })}</div>
           </CardContent>
         </Card>
       </div>

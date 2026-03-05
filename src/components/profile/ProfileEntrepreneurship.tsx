@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Briefcase, FileText, TrendingUp, Target, Globe, Calendar, Building2, Pencil, Check, X } from "lucide-react";
+import { Loader2, Briefcase, FileText, TrendingUp, Target, Globe, Calendar, Building2, Pencil, Check, X, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 

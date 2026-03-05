@@ -273,6 +273,7 @@ export const CandidatoFullDetailModal = ({ candidato, open, onClose }: Candidato
                         <InfoRow label="Tipo de Cliente" value={candidato.emprendimiento.tipo_cliente} />
                         <InfoRow label="Alcance de Mercado" value={candidato.emprendimiento.alcance_mercado} />
                         <InfoRow label="Ventas Último Año" value={candidato.emprendimiento.ventas_ultimo_ano} />
+                        <InfoRow label="Valor de las Ventas" value={candidato.emprendimiento.valor_ventas ? `$${candidato.emprendimiento.valor_ventas.toLocaleString('es-CO')}` : undefined} />
                         <InfoRow label="Página Web" value={candidato.emprendimiento.pagina_web} />
                         <InfoRow label="Nivel de Innovación" value={candidato.emprendimiento.nivel_innovacion} />
                         <InfoRow label="Integración Tecnológica" value={candidato.emprendimiento.integracion_tecnologia} />

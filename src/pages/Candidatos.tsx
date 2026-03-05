@@ -60,6 +60,7 @@ export interface CandidatoData {
     nit?: number;
     como_se_entero?: string;
     ventas_ultimo_ano?: string;
+    valor_ventas?: number;
     nivel_innovacion?: string;
     integracion_tecnologia?: string;
     plan_negocios?: string;
