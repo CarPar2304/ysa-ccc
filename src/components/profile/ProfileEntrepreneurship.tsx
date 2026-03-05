@@ -25,6 +25,7 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
     afiliacion_comfandi: "",
     nit: "",
     como_se_entero: "",
+    valor_ventas: "",
   });
   const [editingComfandi, setEditingComfandi] = useState(false);
   const [comfandiValue, setComfandiValue] = useState("");
