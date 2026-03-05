@@ -81,6 +81,7 @@ export const EmprendimientosStats = ({ filterType, nivelFilter }: Emprendimiento
   const [ubicacionData, setUbicacionData] = useState<ChartData[]>([]);
   const [ventasData, setVentasData] = useState<ChartData[]>([]);
   const [comfandiData, setComfandiData] = useState<ChartData[]>([]);
+  const [promedioVentas, setPromedioVentas] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
