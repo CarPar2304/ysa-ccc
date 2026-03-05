@@ -1,0 +1,1 @@
+ALTER TABLE public.emprendimientos ADD COLUMN valor_ventas integer NULL;

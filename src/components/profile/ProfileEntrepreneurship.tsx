@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Briefcase, FileText, TrendingUp, Target, Globe, Calendar, Building2, Pencil, Check, X } from "lucide-react";
+import { Loader2, Briefcase, FileText, TrendingUp, Target, Globe, Calendar, Building2, Pencil, Check, X, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -25,6 +25,7 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
     afiliacion_comfandi: "",
     nit: "",
     como_se_entero: "",
+    valor_ventas: "",
   });
   const [editingComfandi, setEditingComfandi] = useState(false);
   const [comfandiValue, setComfandiValue] = useState("");
@@ -64,6 +65,7 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
           afiliacion_comfandi: data.afiliacion_comfandi || "",
           nit: data.nit ? String(data.nit) : "",
           como_se_entero: data.como_se_entero || "",
+          valor_ventas: data.valor_ventas ? String(data.valor_ventas) : "",
         });
         setComfandiValue(data.afiliacion_comfandi || "");
       }
@@ -152,6 +154,7 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
             <InfoItem icon={Globe} label="Página Web" value={formData.pagina_web} />
             <InfoItem icon={Calendar} label="Año de Fundación" value={formData.ano_fundacion} />
             <InfoItem icon={FileText} label="NIT" value={formData.nit} />
+            <InfoItem icon={DollarSign} label="Valor de las Ventas" value={formData.valor_ventas ? `$${Number(formData.valor_ventas).toLocaleString('es-CO')}` : ""} />
             <InfoItem icon={FileText} label="¿Por dónde se enteró?" value={formData.como_se_entero} />
           </div>
 

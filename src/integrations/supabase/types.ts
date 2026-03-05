@@ -503,6 +503,7 @@ export type Database = {
             | null
           updated_at: string
           user_id: string
+          valor_ventas: number | null
           ventas_ultimo_ano:
             | Database["public"]["Enums"]["ventas_ultimo_ano"]
             | null
@@ -575,6 +576,7 @@ export type Database = {
             | null
           updated_at?: string
           user_id: string
+          valor_ventas?: number | null
           ventas_ultimo_ano?:
             | Database["public"]["Enums"]["ventas_ultimo_ano"]
             | null
@@ -647,6 +649,7 @@ export type Database = {
             | null
           updated_at?: string
           user_id?: string
+          valor_ventas?: number | null
           ventas_ultimo_ano?:
             | Database["public"]["Enums"]["ventas_ultimo_ano"]
             | null
