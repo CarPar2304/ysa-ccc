@@ -77,12 +77,16 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
   const COHORTES = getCohortes();
 
   const toggleNivel = (nivel: string) => {
-    setFormData(prev => ({
-      ...prev,
-      niveles_acceso: prev.niveles_acceso.includes(nivel)
+    setFormData(prev => {
+      const newNiveles = prev.niveles_acceso.includes(nivel)
         ? prev.niveles_acceso.filter(n => n !== nivel)
-        : [...prev.niveles_acceso, nivel],
-    }));
+        : [...prev.niveles_acceso, nivel];
+      // Clean up invalid cohort selections based on new niveles
+      const hasOnlyScale = newNiveles.length === 1 && newNiveles.includes("Scale");
+      const maxCohorte = hasOnlyScale ? 1 : 2;
+      const cleanedCohortes = prev.cohortes_acceso.filter(c => c <= maxCohorte);
+      return { ...prev, niveles_acceso: newNiveles, cohortes_acceso: cleanedCohortes };
+    });
   };
 
   const toggleCohorte = (cohorte: number) => {
