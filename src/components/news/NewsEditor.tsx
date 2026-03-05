@@ -64,7 +64,17 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
   }, [noticia]);
 
   const NIVELES = ["Starter", "Growth", "Scale"];
-  const COHORTES = Array.from({ length: 10 }, (_, i) => i + 1);
+  // Starter/Growth have 2 cohorts, Scale has 1
+  const getCohortes = () => {
+    const selected = formData.niveles_acceso;
+    if (selected.length === 0) return [1, 2]; // default: show both
+    const hasStarterOrGrowth = selected.includes("Starter") || selected.includes("Growth");
+    const hasOnlyScale = selected.length === 1 && selected.includes("Scale");
+    if (hasOnlyScale) return [1];
+    if (hasStarterOrGrowth) return [1, 2];
+    return [1, 2];
+  };
+  const COHORTES = getCohortes();
 
   const toggleNivel = (nivel: string) => {
     setFormData(prev => ({

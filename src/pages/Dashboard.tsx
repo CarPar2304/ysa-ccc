@@ -36,12 +36,21 @@ interface Post {
   }>;
 }
 
+export interface UserQuotaMap {
+  [userId: string]: {
+    isApproved: boolean;
+    nivel: string | null;
+    cohorte: number | null;
+  };
+}
+
 const Dashboard = () => {
   const { isBeneficiario, isAdmin, isStakeholder, isOperador, loading: roleLoading, userId } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
+  const [userQuotaMap, setUserQuotaMap] = useState<UserQuotaMap>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,10 +72,43 @@ const Dashboard = () => {
         .select("avatar_url")
         .eq("id", userId)
         .single();
-      
       setCurrentUserAvatar(data?.avatar_url || null);
     } catch (error) {
       console.error("Error fetching user avatar:", error);
+    }
+  };
+
+  const fetchUserQuotas = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    try {
+      // Get emprendimientos for all post authors
+      const { data: emprendimientos } = await supabase
+        .from("emprendimientos")
+        .select("id, user_id")
+        .in("user_id", userIds);
+
+      if (!emprendimientos || emprendimientos.length === 0) return;
+
+      const empIds = emprendimientos.map(e => e.id);
+      const { data: cupos } = await supabase
+        .from("asignacion_cupos")
+        .select("emprendimiento_id, estado, nivel, cohorte")
+        .in("emprendimiento_id", empIds)
+        .eq("estado", "aprobado");
+
+      const map: UserQuotaMap = {};
+      for (const uid of userIds) {
+        const emp = emprendimientos.find(e => e.user_id === uid);
+        if (emp) {
+          const cupo = cupos?.find(c => c.emprendimiento_id === emp.id);
+          map[uid] = cupo
+            ? { isApproved: true, nivel: cupo.nivel, cohorte: cupo.nivel === "Scale" ? 1 : cupo.cohorte }
+            : { isApproved: false, nivel: null, cohorte: null };
+        }
+      }
+      setUserQuotaMap(map);
+    } catch (error) {
+      console.error("Error fetching user quotas:", error);
     }
   };
 
@@ -84,7 +126,6 @@ const Dashboard = () => {
 
       if (postsError) throw postsError;
 
-      // Fetch tags and user info separately for each post
       const postsWithTags = await Promise.all(
         (postsData || []).map(async (post) => {
           const { data: tags } = await supabase
@@ -92,23 +133,23 @@ const Dashboard = () => {
             .select("user_id")
             .eq("post_id", post.id);
 
-          // Get user info for each tagged user using secure function
           const taggedUserIds = (tags || []).map(tag => tag.user_id);
           const { data: taggedUsersData } = await supabase
             .rpc("get_public_user_profiles", { user_ids: taggedUserIds });
-          
+
           const taggedUsersDataMapped = taggedUsersData?.map((userData: any) => ({
             usuarios: { nombres: userData.nombres, apellidos: userData.apellidos }
           })) || [];
 
-          return {
-            ...post,
-            post_tags: taggedUsersDataMapped,
-          };
+          return { ...post, post_tags: taggedUsersDataMapped };
         })
       );
 
       setPosts(postsWithTags);
+
+      // Fetch quota status for all unique post authors
+      const uniqueUserIds = [...new Set(postsWithTags.map(p => p.user_id))];
+      fetchUserQuotas(uniqueUserIds);
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast({
@@ -120,8 +161,6 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
-
-
 
   if (roleLoading || loading || quotaLoading) {
     return (
@@ -137,7 +176,6 @@ const Dashboard = () => {
     return <RoleRedirect />;
   }
 
-  // Verificar cupo aprobado solo para beneficiarios
   if (isBeneficiario && !isApproved) {
     return (
       <Layout>
@@ -151,7 +189,7 @@ const Dashboard = () => {
               </div>
               <h2 className="text-2xl font-bold text-foreground">Acceso Restringido</h2>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Tu cupo aún no ha sido aprobado. Una vez que el equipo administrativo apruebe tu solicitud, 
+                Tu cupo aún no ha sido aprobado. Una vez que el equipo administrativo apruebe tu solicitud,
                 podrás acceder a YSA Conecta para compartir y conectar con la comunidad.
               </p>
             </CardContent>
@@ -164,9 +202,14 @@ const Dashboard = () => {
   return (
     <Layout>
       <div className="mx-auto max-w-3xl p-4 md:p-6 space-y-6">
-        <div className="bg-gradient-to-r from-primary/10 to-accent/10 p-6 rounded-lg border border-border">
-          <h1 className="text-3xl font-bold text-foreground mb-2">YSA Conecta</h1>
-          <p className="text-muted-foreground">Comparte ideas, imágenes y conecta con tu comunidad</p>
+        {/* Header mejorado */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-accent/10 p-8 border border-primary/10">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-8 translate-x-8" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/10 rounded-full translate-y-6 -translate-x-6" />
+          <div className="relative">
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">YSA Conecta</h1>
+            <p className="text-muted-foreground mt-1.5 text-sm">Comparte ideas, imágenes y conecta con tu comunidad</p>
+          </div>
         </div>
 
         {userId && (
@@ -177,18 +220,19 @@ const Dashboard = () => {
           />
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {posts.map((post) => (
             <PostCard
               key={post.id}
               post={post}
               onRefresh={fetchPosts}
               currentUserId={userId}
+              userQuota={userQuotaMap[post.user_id]}
             />
           ))}
 
           {posts.length === 0 && (
-            <Card className="shadow-soft border-border">
+            <Card className="border-border border-dashed">
               <CardContent className="p-12 text-center space-y-2">
                 <p className="text-lg text-muted-foreground">
                   No hay publicaciones aún
