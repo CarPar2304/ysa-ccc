@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can update all users" ON public.usuarios FOR UPDATE USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
