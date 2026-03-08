@@ -63,7 +63,6 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
           ano_fundacion: data.ano_fundacion ? String(data.ano_fundacion) : "",
           afiliacion_comfandi: data.afiliacion_comfandi || "",
           nit: data.nit ? String(data.nit) : "",
-          como_se_entero: data.como_se_entero || "",
           valor_ventas: data.valor_ventas ? String(data.valor_ventas) : "",
         });
         setComfandiValue(data.afiliacion_comfandi || "");
