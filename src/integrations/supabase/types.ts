@@ -447,7 +447,6 @@ export type Database = {
           categoria:
             | Database["public"]["Enums"]["categoria_emprendimiento"]
             | null
-          como_se_entero: string | null
           created_at: string
           cultura_conocimiento_ancestral: string | null
           cultura_dialogo: string | null
@@ -520,7 +519,6 @@ export type Database = {
           categoria?:
             | Database["public"]["Enums"]["categoria_emprendimiento"]
             | null
-          como_se_entero?: string | null
           created_at?: string
           cultura_conocimiento_ancestral?: string | null
           cultura_dialogo?: string | null
@@ -593,7 +591,6 @@ export type Database = {
           categoria?:
             | Database["public"]["Enums"]["categoria_emprendimiento"]
             | null
-          como_se_entero?: string | null
           created_at?: string
           cultura_conocimiento_ancestral?: string | null
           cultura_dialogo?: string | null

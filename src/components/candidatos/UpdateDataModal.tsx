@@ -35,7 +35,6 @@ const EMPRENDIMIENTO_FIELDS: { key: string; label: string; table: "emprendimient
   { key: "nombre", label: "Nombre emprendimiento", table: "emprendimientos" },
   { key: "nit", label: "NIT", table: "emprendimientos" },
   { key: "valor_ventas", label: "Valor de las Ventas", table: "emprendimientos" },
-  { key: "como_se_entero", label: "Por dónde se enteró", table: "emprendimientos" },
   { key: "categoria", label: "Categoría", table: "emprendimientos" },
   { key: "etapa", label: "Etapa", table: "emprendimientos" },
   { key: "pagina_web", label: "Página web", table: "emprendimientos" },

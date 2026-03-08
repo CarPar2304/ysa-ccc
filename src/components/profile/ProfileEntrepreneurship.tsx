@@ -24,7 +24,6 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
     ano_fundacion: "",
     afiliacion_comfandi: "",
     nit: "",
-    como_se_entero: "",
     valor_ventas: "",
   });
   const [editingComfandi, setEditingComfandi] = useState(false);
@@ -64,7 +63,6 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
           ano_fundacion: data.ano_fundacion ? String(data.ano_fundacion) : "",
           afiliacion_comfandi: data.afiliacion_comfandi || "",
           nit: data.nit ? String(data.nit) : "",
-          como_se_entero: data.como_se_entero || "",
           valor_ventas: data.valor_ventas ? String(data.valor_ventas) : "",
         });
         setComfandiValue(data.afiliacion_comfandi || "");
@@ -155,7 +153,6 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
             <InfoItem icon={Calendar} label="Año de Fundación" value={formData.ano_fundacion} />
             <InfoItem icon={FileText} label="NIT" value={formData.nit} />
             <InfoItem icon={DollarSign} label="Valor de las Ventas" value={formData.valor_ventas ? `$${Number(formData.valor_ventas).toLocaleString('es-CO')}` : ""} />
-            <InfoItem icon={FileText} label="¿Por dónde se enteró?" value={formData.como_se_entero} />
           </div>
 
           {/* Afiliación Comfandi */}

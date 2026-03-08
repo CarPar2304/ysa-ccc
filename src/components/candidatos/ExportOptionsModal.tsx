@@ -133,7 +133,6 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, inclu
         "Plan de Negocios": c.emprendimiento?.plan_negocios || "N/A",
         "Formalización": c.emprendimiento?.formalizacion ? "Sí" : "No",
         "NIT": c.emprendimiento?.nit || "N/A",
-        "Por dónde se enteró": c.emprendimiento?.como_se_entero || "N/A",
       });
     }
 
@@ -302,7 +301,6 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, inclu
           "Plan de Negocios": c.emprendimiento.plan_negocios || "N/A",
           "Formalización": c.emprendimiento.formalizacion ? "Sí" : "No",
           "NIT": c.emprendimiento.nit || "N/A",
-          "Por dónde se enteró": c.emprendimiento.como_se_entero || "N/A",
         };
         XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([empData]), "Emprendimiento");
       }
