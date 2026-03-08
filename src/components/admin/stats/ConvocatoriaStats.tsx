@@ -169,7 +169,7 @@ export const ConvocatoriaStats = ({ filterType, nivelFilter }: ConvocatoriaStats
         <CardTitle className="text-base font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        {data.length === 0 || (data.length === 1 && data[0].name === "Sin especificar") ? (
+        {data.length === 0 || totalUsuarios === 0 ? (
           <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">Sin datos disponibles</div>
         ) : (
           <ResponsiveContainer width="100%" height={Math.max(280, data.length * 40)}>
