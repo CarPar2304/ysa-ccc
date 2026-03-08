@@ -109,6 +109,10 @@ export const AdminDashboard = ({ operadorNiveles }: AdminDashboardProps) => {
         <TabsContent value="proyecciones">
           <ProyeccionesStats filterType={filterType} nivelFilter={nivelFilter} />
         </TabsContent>
+        
+        <TabsContent value="convocatoria">
+          <ConvocatoriaStats filterType={filterType} nivelFilter={nivelFilter} />
+        </TabsContent>
       </Tabs>
     </div>
   );
