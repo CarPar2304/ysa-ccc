@@ -81,12 +81,13 @@ export const AdminDashboard = ({ operadorNiveles }: AdminDashboardProps) => {
       </div>
       
       <Tabs defaultValue="usuarios" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
           <TabsTrigger value="emprendimientos">Emprendimientos</TabsTrigger>
           <TabsTrigger value="equipos">Equipos</TabsTrigger>
           <TabsTrigger value="financiamiento">Financiamiento</TabsTrigger>
           <TabsTrigger value="proyecciones">Proyecciones</TabsTrigger>
+          <TabsTrigger value="convocatoria">Convocatoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="usuarios">
