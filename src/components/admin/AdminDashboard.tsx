@@ -7,6 +7,7 @@ import { EmprendimientosStats } from "./stats/EmprendimientosStats";
 import { EquiposStats } from "./stats/EquiposStats";
 import { FinanciamientosStats } from "./stats/FinanciamientosStats";
 import { ProyeccionesStats } from "./stats/ProyeccionesStats";
+import { ConvocatoriaStats } from "./stats/ConvocatoriaStats";
 import { DashboardFilters, FilterType, NivelFilter } from "./DashboardFilters";
 import { useDashboardExport } from "@/hooks/useDashboardExport";
 import { toast } from "sonner";
@@ -80,12 +81,13 @@ export const AdminDashboard = ({ operadorNiveles }: AdminDashboardProps) => {
       </div>
       
       <Tabs defaultValue="usuarios" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
           <TabsTrigger value="emprendimientos">Emprendimientos</TabsTrigger>
           <TabsTrigger value="equipos">Equipos</TabsTrigger>
           <TabsTrigger value="financiamiento">Financiamiento</TabsTrigger>
           <TabsTrigger value="proyecciones">Proyecciones</TabsTrigger>
+          <TabsTrigger value="convocatoria">Convocatoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="usuarios">
@@ -106,6 +108,10 @@ export const AdminDashboard = ({ operadorNiveles }: AdminDashboardProps) => {
         
         <TabsContent value="proyecciones">
           <ProyeccionesStats filterType={filterType} nivelFilter={nivelFilter} />
+        </TabsContent>
+        
+        <TabsContent value="convocatoria">
+          <ConvocatoriaStats filterType={filterType} nivelFilter={nivelFilter} />
         </TabsContent>
       </Tabs>
     </div>
