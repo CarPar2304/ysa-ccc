@@ -1552,7 +1552,10 @@ export type Database = {
           apellidos: string | null
           avatar_url: string | null
           biografia: string | null
+          camara_aliada: string | null
           celular: string | null
+          como_se_entero: string | null
+          creador_contenido: string | null
           created_at: string
           departamento: string | null
           direccion: string | null
@@ -1566,8 +1569,11 @@ export type Database = {
           nivel_ingles: string | null
           nombres: string | null
           numero_identificacion: string | null
+          otra_institucion: string | null
+          red_social: string | null
           referido: string | null
           tipo_documento: Database["public"]["Enums"]["tipo_documento"] | null
+          universidad: string | null
           updated_at: string
         }
         Insert: {
@@ -1575,7 +1581,10 @@ export type Database = {
           apellidos?: string | null
           avatar_url?: string | null
           biografia?: string | null
+          camara_aliada?: string | null
           celular?: string | null
+          como_se_entero?: string | null
+          creador_contenido?: string | null
           created_at?: string
           departamento?: string | null
           direccion?: string | null
@@ -1589,8 +1598,11 @@ export type Database = {
           nivel_ingles?: string | null
           nombres?: string | null
           numero_identificacion?: string | null
+          otra_institucion?: string | null
+          red_social?: string | null
           referido?: string | null
           tipo_documento?: Database["public"]["Enums"]["tipo_documento"] | null
+          universidad?: string | null
           updated_at?: string
         }
         Update: {
@@ -1598,7 +1610,10 @@ export type Database = {
           apellidos?: string | null
           avatar_url?: string | null
           biografia?: string | null
+          camara_aliada?: string | null
           celular?: string | null
+          como_se_entero?: string | null
+          creador_contenido?: string | null
           created_at?: string
           departamento?: string | null
           direccion?: string | null
@@ -1612,8 +1627,11 @@ export type Database = {
           nivel_ingles?: string | null
           nombres?: string | null
           numero_identificacion?: string | null
+          otra_institucion?: string | null
+          red_social?: string | null
           referido?: string | null
           tipo_documento?: Database["public"]["Enums"]["tipo_documento"] | null
+          universidad?: string | null
           updated_at?: string
         }
         Relationships: []
