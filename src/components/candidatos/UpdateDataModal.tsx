@@ -39,6 +39,7 @@ const EMPRENDIMIENTO_FIELDS: { key: string; label: string; table: "emprendimient
   { key: "etapa", label: "Etapa", table: "emprendimientos" },
   { key: "pagina_web", label: "Página web", table: "emprendimientos" },
   { key: "industria_vertical", label: "Industria vertical", table: "emprendimientos" },
+  { key: "afiliacion_comfandi", label: "Afiliación Comfandi", table: "emprendimientos" },
 ];
 
 type FieldDef = (typeof USUARIO_FIELDS)[number] | (typeof EMPRENDIMIENTO_FIELDS)[number];
