@@ -58,7 +58,6 @@ export interface CandidatoData {
     pagina_web?: string;
     ano_fundacion?: number;
     nit?: number;
-    como_se_entero?: string;
     ventas_ultimo_ano?: string;
     valor_ventas?: number;
     nivel_innovacion?: string;
