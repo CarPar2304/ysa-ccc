@@ -7,6 +7,7 @@ import { EmprendimientosStats } from "./stats/EmprendimientosStats";
 import { EquiposStats } from "./stats/EquiposStats";
 import { FinanciamientosStats } from "./stats/FinanciamientosStats";
 import { ProyeccionesStats } from "./stats/ProyeccionesStats";
+import { ConvocatoriaStats } from "./stats/ConvocatoriaStats";
 import { DashboardFilters, FilterType, NivelFilter } from "./DashboardFilters";
 import { useDashboardExport } from "@/hooks/useDashboardExport";
 import { toast } from "sonner";
