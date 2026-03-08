@@ -259,7 +259,6 @@ const Candidatos = () => {
             pagina_web: emprendimiento.pagina_web || undefined,
             ano_fundacion: emprendimiento.ano_fundacion || undefined,
             nit: emprendimiento.nit || undefined,
-            como_se_entero: emprendimiento.como_se_entero || undefined,
             ventas_ultimo_ano: emprendimiento.ventas_ultimo_ano || undefined,
             nivel_innovacion: emprendimiento.nivel_innovacion || undefined,
             integracion_tecnologia: emprendimiento.integracion_tecnologia || undefined,

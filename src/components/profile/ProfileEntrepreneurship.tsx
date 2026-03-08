@@ -153,7 +153,6 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
             <InfoItem icon={Calendar} label="Año de Fundación" value={formData.ano_fundacion} />
             <InfoItem icon={FileText} label="NIT" value={formData.nit} />
             <InfoItem icon={DollarSign} label="Valor de las Ventas" value={formData.valor_ventas ? `$${Number(formData.valor_ventas).toLocaleString('es-CO')}` : ""} />
-            <InfoItem icon={FileText} label="¿Por dónde se enteró?" value={formData.como_se_entero} />
           </div>
 
           {/* Afiliación Comfandi */}
