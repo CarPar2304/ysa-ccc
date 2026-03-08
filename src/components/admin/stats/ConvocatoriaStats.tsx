@@ -2,10 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Megaphone } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { FilterType, NivelFilter } from "../DashboardFilters";
 import { CHART_COLORS, getColorByIndex } from "@/lib/chartColors";
 import { filterEmprendimientos, buildEvaluacionesMap } from "@/hooks/useDashboardFilter";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ChartData {
   name: string;
@@ -35,11 +37,10 @@ export const ConvocatoriaStats = ({ filterType, nivelFilter }: ConvocatoriaStats
   const [loading, setLoading] = useState(true);
   const [totalUsuarios, setTotalUsuarios] = useState(0);
   const [comoSeEnteroData, setComoSeEnteroData] = useState<ChartData[]>([]);
-  const [camaraAliadaData, setCamaraAliadaData] = useState<ChartData[]>([]);
-  const [universidadData, setUniversidadData] = useState<ChartData[]>([]);
-  const [otraInstitucionData, setOtraInstitucionData] = useState<ChartData[]>([]);
   const [redSocialData, setRedSocialData] = useState<ChartData[]>([]);
   const [creadorContenidoData, setCreadorContenidoData] = useState<ChartData[]>([]);
+  const [camaraAliadaData, setCamaraAliadaData] = useState<ChartData[]>([]);
+  const [institucionesData, setInstitucionesData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     fetchStats();
@@ -90,24 +91,46 @@ export const ConvocatoriaStats = ({ filterType, nivelFilter }: ConvocatoriaStats
         .select("como_se_entero, camara_aliada, universidad, otra_institucion, red_social, creador_contenido")
         .in("id", filteredUserIds.length > 0 ? filteredUserIds : ["__none__"]);
 
-      const countField = (field: string) => {
+      const countValidField = (field: string, excludeVals: string[] = []) => {
         const counts: Record<string, number> = {};
+        let totalValidos = 0;
         (usuarios || []).forEach((u: any) => {
-          const val = u[field] || "Sin especificar";
-          counts[val] = (counts[val] || 0) + 1;
+          const val = u[field];
+          if (val && val !== "Sin especificar" && val.trim() !== "" && !excludeVals.includes(val)) {
+            counts[val] = (counts[val] || 0) + 1;
+            totalValidos++;
+          }
         });
-        const total = usuarios?.length || 1;
+        const total = totalValidos || 1;
         return Object.entries(counts)
           .map(([name, value]) => ({ name, value, percentage: (value / total) * 100 }))
           .sort((a, b) => b.value - a.value);
       };
 
-      setComoSeEnteroData(countField("como_se_entero"));
-      setCamaraAliadaData(countField("camara_aliada"));
-      setUniversidadData(countField("universidad"));
-      setOtraInstitucionData(countField("otra_institucion"));
-      setRedSocialData(countField("red_social"));
-      setCreadorContenidoData(countField("creador_contenido"));
+      const countValidCombinedFields = (fields: string[], excludeVals: string[] = []) => {
+        const counts: Record<string, number> = {};
+        let totalValidos = 0;
+        (usuarios || []).forEach((u: any) => {
+          fields.forEach(field => {
+            const val = u[field];
+            if (val && val !== "Sin especificar" && val.trim() !== "" && !excludeVals.includes(val)) {
+              counts[val] = (counts[val] || 0) + 1;
+              totalValidos++;
+            }
+          });
+        });
+        const total = totalValidos || 1;
+        return Object.entries(counts)
+          .map(([name, value]) => ({ name, value, percentage: (value / total) * 100 }))
+          .sort((a, b) => b.value - a.value);
+      };
+
+      setComoSeEnteroData(countValidField("como_se_entero"));
+      setRedSocialData(countValidField("red_social"));
+      setCreadorContenidoData(countValidField("creador_contenido"));
+      setCamaraAliadaData(countValidField("camara_aliada"));
+      setInstitucionesData(countValidCombinedFields(["universidad", "otra_institucion"], ["Otra universidad o institución educativa"]));
+
     } catch (error) {
       console.error("Error fetching convocatoria stats:", error);
     } finally {
@@ -118,8 +141,8 @@ export const ConvocatoriaStats = ({ filterType, nivelFilter }: ConvocatoriaStats
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
+        {[...Array(5)].map((_, i) => (
+          <Card key={i} className="animate-pulse col-span-1 md:col-span-2">
             <CardHeader><div className="h-5 bg-muted rounded w-40" /></CardHeader>
             <CardContent><div className="h-64 bg-muted rounded" /></CardContent>
           </Card>
@@ -128,59 +151,89 @@ export const ConvocatoriaStats = ({ filterType, nivelFilter }: ConvocatoriaStats
     );
   }
 
-  const renderDonutChart = (data: ChartData[], title: string) => (
-    <Card>
+  const renderChartWithTable = (data: ChartData[], title: string, type: 'donut' | 'bar' = 'donut') => (
+    <Card className="col-span-1 md:col-span-2">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        {data.length === 0 || totalUsuarios === 0 ? (
+        {data.length === 0 ? (
           <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">Sin datos disponibles</div>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={100}
-                paddingAngle={2}
-                dataKey="value"
-                labelLine={false}
-                label={renderCustomizedLabel}
-              >
-                {data.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: number) => [value, "Usuarios"]} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  const renderBarChart = (data: ChartData[], title: string) => (
-    <Card className="md:col-span-2">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {data.length === 0 || totalUsuarios === 0 ? (
-          <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">Sin datos disponibles</div>
-        ) : (
-          <ResponsiveContainer width="100%" height={Math.max(280, data.length * 40)}>
-            <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="name" width={180} tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(value: number) => [value, "Usuarios"]} />
-              <Bar dataKey="value" fill={CHART_COLORS.categorical[0]} radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="space-y-4">
+            <ResponsiveContainer width="100%" height={type === 'donut' ? 300 : Math.max(280, data.length * 40)}>
+              {type === 'donut' ? (
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={110}
+                    paddingAngle={2}
+                    dataKey="value"
+                    labelLine={false}
+                    label={renderCustomizedLabel}
+                  >
+                    {data.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [value, "Usuarios"]} />
+                </PieChart>
+              ) : (
+                <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="name" width={180} tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value: number) => [value, "Usuarios"]} />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {data.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={getColorByIndex(index)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              )}
+            </ResponsiveContainer>
+            
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="data" className="border-b-0">
+                <AccordionTrigger className="text-sm py-2 hover:no-underline">
+                  <div className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
+                    Ver datos detallados
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="rounded-md border mt-2 overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead>Categoría</TableHead>
+                          <TableHead className="text-right">Recuento</TableHead>
+                          <TableHead className="text-right">%</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full shrink-0" 
+                                style={{ backgroundColor: getColorByIndex(index) }} 
+                              />
+                              {item.name}
+                            </TableCell>
+                            <TableCell className="text-right">{item.value}</TableCell>
+                            <TableCell className="text-right">{item.percentage?.toFixed(1)}%</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -203,12 +256,11 @@ export const ConvocatoriaStats = ({ filterType, nivelFilter }: ConvocatoriaStats
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {renderDonutChart(comoSeEnteroData, "¿Por dónde se enteró?")}
-        {renderDonutChart(redSocialData, "Red Social")}
-        {renderDonutChart(camaraAliadaData, "Cámara Aliada")}
-        {renderDonutChart(creadorContenidoData, "Creador de Contenido")}
-        {renderBarChart(universidadData, "Universidad")}
-        {renderBarChart(otraInstitucionData, "Otra Institución")}
+        {renderChartWithTable(comoSeEnteroData, "¿Por dónde se enteró?", "donut")}
+        {renderChartWithTable(redSocialData, "Red Social", "donut")}
+        {renderChartWithTable(creadorContenidoData, "Creador de Contenido", "donut")}
+        {renderChartWithTable(camaraAliadaData, "Cámara Aliada", "donut")}
+        {renderChartWithTable(institucionesData, "Institución Educativa (Universidad u otra)", "bar")}
       </div>
     </div>
   );
