@@ -1,0 +1,1 @@
+ALTER TABLE public.emprendimientos DROP COLUMN IF EXISTS como_se_entero;
