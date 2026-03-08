@@ -23,6 +23,12 @@ const USUARIO_FIELDS: { key: string; label: string; table: "usuarios" }[] = [
   { key: "genero", label: "Género", table: "usuarios" },
   { key: "direccion", label: "Dirección", table: "usuarios" },
   { key: "ano_nacimiento", label: "Año de nacimiento", table: "usuarios" },
+  { key: "como_se_entero", label: "Por dónde se enteró", table: "usuarios" },
+  { key: "camara_aliada", label: "Cámara aliada", table: "usuarios" },
+  { key: "universidad", label: "Universidad", table: "usuarios" },
+  { key: "otra_institucion", label: "Otra institución", table: "usuarios" },
+  { key: "red_social", label: "Red social", table: "usuarios" },
+  { key: "creador_contenido", label: "Creador de contenido", table: "usuarios" },
 ];
 
 const EMPRENDIMIENTO_FIELDS: { key: string; label: string; table: "emprendimientos" }[] = [
