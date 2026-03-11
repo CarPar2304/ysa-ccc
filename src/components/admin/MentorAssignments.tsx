@@ -67,6 +67,7 @@ export const MentorAssignments = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
   const [tipoFilter, setTipoFilter] = useState<string>("todos"); // todos | beneficiario | candidato
+  const [estadoCupoFilter, setEstadoCupoFilter] = useState<string>("todos"); // todos | aprobado | pendiente | rechazado | sin_cupo
   const [assignmentSearch, setAssignmentSearch] = useState("");
 
   const { toast } = useToast();
