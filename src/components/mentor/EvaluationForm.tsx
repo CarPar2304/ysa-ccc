@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Send } from "lucide-react";
+import { Loader2, Save, Send, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -373,6 +373,25 @@ export const EvaluationForm = ({ emprendimientoId, cccEvaluation, onSuccess }: E
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {/* Botón Ver TDR */}
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            asChild
+          >
+            <a
+              href="https://surveygizmolibrary.s3.amazonaws.com/library/330964/TDR_convocatoria_YSA_Pacifico_2_0.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <FileText className="h-4 w-4" />
+              Ver TDR
+            </a>
+          </Button>
+        </div>
         {existingEvaluation?.estado === 'enviada' && !isEditing && (
           <div className="bg-muted p-4 rounded-lg flex items-center justify-between gap-4">
             <p className="text-sm font-medium text-muted-foreground">

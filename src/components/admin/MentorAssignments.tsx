@@ -29,6 +29,7 @@ interface Emprendimiento {
     apellidos: string;
   };
   tieneAprobacion?: boolean;
+  estadoCupo?: string | null;
   nivelCupo?: string | null;
   puntajeMax?: number | null;
 }
@@ -67,6 +68,7 @@ export const MentorAssignments = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
   const [tipoFilter, setTipoFilter] = useState<string>("todos"); // todos | beneficiario | candidato
+  const [estadoCupoFilter, setEstadoCupoFilter] = useState<string>("todos"); // todos | aprobado | pendiente | rechazado | sin_cupo
   const [assignmentSearch, setAssignmentSearch] = useState("");
 
   const { toast } = useToast();
@@ -101,13 +103,12 @@ export const MentorAssignments = () => {
 
     if (error) { console.error("Error fetching emprendimientos:", error); return; }
 
-    // Cupos aprobados con nivel
+    // Cupos (todos los estados)
     const { data: cuposData } = await supabase
       .from("asignacion_cupos")
-      .select("emprendimiento_id, nivel")
-      .eq("estado", "aprobado");
+      .select("emprendimiento_id, nivel, estado");
 
-    const cuposMap = new Map(cuposData?.map(c => [c.emprendimiento_id, c.nivel]) || []);
+    const cuposMap = new Map(cuposData?.map(c => [c.emprendimiento_id, { nivel: c.nivel, estado: c.estado }]) || []);
 
     // Evaluaciones para calcular nivel teórico de candidatos
     const { data: evalData } = await supabase
@@ -122,12 +123,16 @@ export const MentorAssignments = () => {
       }
     });
 
-    const result: Emprendimiento[] = empData?.map((emp: any) => ({
-      ...emp,
-      tieneAprobacion: cuposMap.has(emp.id),
-      nivelCupo: cuposMap.get(emp.id) ?? null,
-      puntajeMax: maxPuntajeMap.get(emp.id) ?? null,
-    })) || [];
+    const result: Emprendimiento[] = empData?.map((emp: any) => {
+      const cupo = cuposMap.get(emp.id);
+      return {
+        ...emp,
+        tieneAprobacion: cupo?.estado === 'aprobado',
+        estadoCupo: cupo?.estado ?? null,
+        nivelCupo: cupo?.nivel ?? null,
+        puntajeMax: maxPuntajeMap.get(emp.id) ?? null,
+      };
+    }) || [];
 
     setEmprendimientos(result);
   };
@@ -156,6 +161,12 @@ export const MentorAssignments = () => {
       if (tipoFilter === "beneficiario" && !esBeneficiario) return false;
       if (tipoFilter === "candidato" && !esCandidato) return false;
 
+      // Filtro estado de cupo
+      if (estadoCupoFilter !== "todos") {
+        if (estadoCupoFilter === "sin_cupo" && emp.estadoCupo !== null) return false;
+        if (estadoCupoFilter !== "sin_cupo" && emp.estadoCupo !== estadoCupoFilter) return false;
+      }
+
       // Filtro nivel
       if (nivelFilter !== "todos") {
         const nivelEfectivo = esBeneficiario
@@ -174,7 +185,7 @@ export const MentorAssignments = () => {
 
       return true;
     });
-  }, [emprendimientos, tipoFilter, nivelFilter, searchTerm]);
+  }, [emprendimientos, tipoFilter, estadoCupoFilter, nivelFilter, searchTerm]);
 
   // Todos seleccionados en la vista filtrada
   const allFilteredSelected =
@@ -328,7 +339,7 @@ export const MentorAssignments = () => {
               <Filter className="w-4 h-4" />
               Filtros de emprendimientos
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Tipo */}
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Tipo</Label>
@@ -340,6 +351,23 @@ export const MentorAssignments = () => {
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="beneficiario">Beneficiarios (cupo aprobado)</SelectItem>
                     <SelectItem value="candidato">Candidatos (sin cupo)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Estado de cupo */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Estado de cupo</Label>
+                <Select value={estadoCupoFilter} onValueChange={(v) => { setEstadoCupoFilter(v); setSelectedEmprendimientos([]); }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="aprobado">Aprobado</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="rechazado">Rechazado</SelectItem>
+                    <SelectItem value="sin_cupo">Sin cupo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
