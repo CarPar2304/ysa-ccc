@@ -29,6 +29,7 @@ interface Emprendimiento {
     apellidos: string;
   };
   tieneAprobacion?: boolean;
+  estadoCupo?: string | null;
   nivelCupo?: string | null;
   puntajeMax?: number | null;
 }
