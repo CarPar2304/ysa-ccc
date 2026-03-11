@@ -102,13 +102,12 @@ export const MentorAssignments = () => {
 
     if (error) { console.error("Error fetching emprendimientos:", error); return; }
 
-    // Cupos aprobados con nivel
+    // Cupos (todos los estados)
     const { data: cuposData } = await supabase
       .from("asignacion_cupos")
-      .select("emprendimiento_id, nivel")
-      .eq("estado", "aprobado");
+      .select("emprendimiento_id, nivel, estado");
 
-    const cuposMap = new Map(cuposData?.map(c => [c.emprendimiento_id, c.nivel]) || []);
+    const cuposMap = new Map(cuposData?.map(c => [c.emprendimiento_id, { nivel: c.nivel, estado: c.estado }]) || []);
 
     // Evaluaciones para calcular nivel teórico de candidatos
     const { data: evalData } = await supabase
