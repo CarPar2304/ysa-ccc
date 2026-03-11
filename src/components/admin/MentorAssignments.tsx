@@ -122,12 +122,16 @@ export const MentorAssignments = () => {
       }
     });
 
-    const result: Emprendimiento[] = empData?.map((emp: any) => ({
-      ...emp,
-      tieneAprobacion: cuposMap.has(emp.id),
-      nivelCupo: cuposMap.get(emp.id) ?? null,
-      puntajeMax: maxPuntajeMap.get(emp.id) ?? null,
-    })) || [];
+    const result: Emprendimiento[] = empData?.map((emp: any) => {
+      const cupo = cuposMap.get(emp.id);
+      return {
+        ...emp,
+        tieneAprobacion: cupo?.estado === 'aprobado',
+        estadoCupo: cupo?.estado ?? null,
+        nivelCupo: cupo?.nivel ?? null,
+        puntajeMax: maxPuntajeMap.get(emp.id) ?? null,
+      };
+    }) || [];
 
     setEmprendimientos(result);
   };
