@@ -339,7 +339,7 @@ export const MentorAssignments = () => {
               <Filter className="w-4 h-4" />
               Filtros de emprendimientos
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Tipo */}
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Tipo</Label>
@@ -351,6 +351,23 @@ export const MentorAssignments = () => {
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="beneficiario">Beneficiarios (cupo aprobado)</SelectItem>
                     <SelectItem value="candidato">Candidatos (sin cupo)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Estado de cupo */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Estado de cupo</Label>
+                <Select value={estadoCupoFilter} onValueChange={(v) => { setEstadoCupoFilter(v); setSelectedEmprendimientos([]); }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="aprobado">Aprobado</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="rechazado">Rechazado</SelectItem>
+                    <SelectItem value="sin_cupo">Sin cupo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
