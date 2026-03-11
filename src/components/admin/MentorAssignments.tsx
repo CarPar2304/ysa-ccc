@@ -161,6 +161,12 @@ export const MentorAssignments = () => {
       if (tipoFilter === "beneficiario" && !esBeneficiario) return false;
       if (tipoFilter === "candidato" && !esCandidato) return false;
 
+      // Filtro estado de cupo
+      if (estadoCupoFilter !== "todos") {
+        if (estadoCupoFilter === "sin_cupo" && emp.estadoCupo !== null) return false;
+        if (estadoCupoFilter !== "sin_cupo" && emp.estadoCupo !== estadoCupoFilter) return false;
+      }
+
       // Filtro nivel
       if (nivelFilter !== "todos") {
         const nivelEfectivo = esBeneficiario
@@ -179,7 +185,7 @@ export const MentorAssignments = () => {
 
       return true;
     });
-  }, [emprendimientos, tipoFilter, nivelFilter, searchTerm]);
+  }, [emprendimientos, tipoFilter, estadoCupoFilter, nivelFilter, searchTerm]);
 
   // Todos seleccionados en la vista filtrada
   const allFilteredSelected =
