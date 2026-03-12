@@ -179,10 +179,14 @@ const Estudiantes = () => {
     enabled: hasAccess && !nivelesLoading && allowedNiveles.length > 0,
   });
 
+  const [selectedExportNiveles, setSelectedExportNiveles] = useState<NivelEmprendimiento[]>([]);
+
   // Build export data for operators
-  const { data: exportData } = useQuery({
-    queryKey: ["estudiantes-export-data", allowedNiveles],
+  const { data: exportData, refetch: refetchExport } = useQuery({
+    queryKey: ["estudiantes-export-data", selectedExportNiveles],
     queryFn: async () => {
+      const nivelesParaExportar = selectedExportNiveles.length > 0 ? selectedExportNiveles : allowedNiveles;
+      
       const { data: cupos } = await supabase
         .from("asignacion_cupos")
         .select(`
@@ -197,15 +201,16 @@ const Estudiantes = () => {
           )
         `)
         .eq("estado", "aprobado")
-        .in("nivel", allowedNiveles);
+        .in("nivel", nivelesParaExportar);
 
       if (!cupos) return [];
 
       const userIds = cupos.map((c: any) => c.emprendimientos?.user_id).filter(Boolean);
       
-      const [{ data: autorizaciones }, { data: evaluaciones }] = await Promise.all([
+      const [{ data: autorizaciones }, { data: evaluaciones }, { data: acudientes }] = await Promise.all([
         supabase.from("autorizaciones").select("*").in("user_id", userIds),
         supabase.from("evaluaciones").select("*").in("emprendimiento_id", cupos.map(c => c.emprendimiento_id)),
+        supabase.from("acudientes").select("*").in("menor_id", userIds),
       ]);
 
       const allModulos = modulosData || { Starter: [], Growth: [], Scale: [] };
@@ -215,6 +220,7 @@ const Estudiantes = () => {
         if (!emp || !emp.usuarios) return null;
         const usuario = emp.usuarios;
         const autorizacion = autorizaciones?.find((a) => a.user_id === usuario.id);
+        const acudiente = acudientes?.find((a) => a.menor_id === usuario.id);
         const equipo = emp.equipos?.[0];
         const proyeccion = emp.proyecciones?.[0];
         const financiamiento = emp.financiamientos?.[0];
@@ -255,13 +261,35 @@ const Estudiantes = () => {
             correo: autorizacion.correo,
             celular: autorizacion.celular,
           } : undefined,
+          acudiente: acudiente ? {
+            nombres: acudiente.nombres || "",
+            apellidos: acudiente.apellidos || "",
+            email: acudiente.email || "",
+            celular: acudiente.celular || "",
+            relacion_con_menor: acudiente.relacion_con_menor || "",
+            tipo_documento: acudiente.tipo_documento || undefined,
+            numero_identificacion: acudiente.numero_identificacion || undefined,
+          } : undefined,
           emprendimiento: {
             id: emp.id,
-            nombre: emp.nombre,
+            nombre: emp.nombre || "",
             descripcion: emp.descripcion || "",
             categoria: emp.categoria || "",
             etapa: emp.etapa || "",
             nivel_definitivo: emp.nivel_definitivo || "",
+            industria_vertical: emp.industria_vertical || undefined,
+            alcance_mercado: emp.alcance_mercado || undefined,
+            tipo_cliente: emp.tipo_cliente || undefined,
+            pagina_web: emp.pagina_web || undefined,
+            ano_fundacion: emp.ano_fundacion || undefined,
+            nit: emp.nit || undefined,
+            ventas_ultimo_ano: emp.ventas_ultimo_ano || undefined,
+            valor_ventas: emp.valor_ventas || undefined,
+            nivel_innovacion: emp.nivel_innovacion || undefined,
+            integracion_tecnologia: emp.integracion_tecnologia || undefined,
+            plan_negocios: emp.plan_negocios || undefined,
+            formalizacion: emp.formalizacion ?? undefined,
+            estado_unidad_productiva: emp.estado_unidad_productiva || undefined,
           },
           cupo: {
             id: cupo.id,
@@ -276,16 +304,27 @@ const Estudiantes = () => {
             fundadoras: equipo.fundadoras || 0,
             colaboradoras: equipo.colaboradoras || 0,
             equipo_tecnico: equipo.equipo_tecnico || false,
+            personas_full_time: equipo.personas_full_time || undefined,
+            colaboradores_jovenes: equipo.colaboradores_jovenes || undefined,
+            tipo_decisiones: equipo.tipo_decisiones || undefined,
+            organigrama: equipo.organigrama || undefined,
           } : undefined,
           proyecciones: proyeccion ? {
             principales_objetivos: proyeccion.principales_objetivos || "",
             desafios: proyeccion.desafios || "",
             impacto: proyeccion.impacto || "",
+            acciones_crecimiento: proyeccion.acciones_crecimiento || undefined,
+            decisiones_acciones_crecimiento: proyeccion.decisiones_acciones_crecimiento ?? undefined,
+            intencion_internacionalizacion: proyeccion.intencion_internacionalizacion ?? undefined,
           } : undefined,
           financiamiento: financiamiento ? {
             busca_financiamiento: financiamiento.busca_financiamiento || "",
             monto_buscado: financiamiento.monto_buscado || "",
             financiamiento_previo: financiamiento.financiamiento_previo,
+            monto_recibido: financiamiento.monto_recibido || undefined,
+            tipo_actor: financiamiento.tipo_actor || undefined,
+            tipo_inversion: financiamiento.tipo_inversion || undefined,
+            etapa: financiamiento.etapa || undefined,
           } : undefined,
           diagnostico: diagnostico ? {
             contenido: diagnostico.contenido || "",
@@ -319,7 +358,7 @@ const Estudiantes = () => {
         } as CandidatoData & { _progreso_promedio?: number };
       }).filter(Boolean) as CandidatoData[];
     },
-    enabled: hasAccess && isOperador && !!modulosData,
+    enabled: hasAccess && isOperador && !!modulosData && exportModalOpen,
   });
 
   if (loading || isLoading || nivelesLoading) {
