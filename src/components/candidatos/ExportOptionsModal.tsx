@@ -30,7 +30,7 @@ interface ExportSection {
   checked: boolean;
 }
 
-export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, includeProgress }: ExportOptionsModalProps) => {
+export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, includeProgress, allowedNiveles, selectedNiveles, onNivelesChange }: ExportOptionsModalProps) => {
   const baseSections: ExportSection[] = [
     { key: "personal", label: "Información Personal", checked: true },
     { key: "contacto", label: "Contacto y Ubicación", checked: true },
