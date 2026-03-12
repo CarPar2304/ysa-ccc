@@ -509,6 +509,11 @@ const Estudiantes = () => {
             open={exportModalOpen}
             onClose={() => setExportModalOpen(false)}
             includeProgress
+            allowedNiveles={allowedNiveles}
+            selectedNiveles={selectedExportNiveles}
+            onNivelesChange={(niveles) => {
+              setSelectedExportNiveles(niveles);
+            }}
           />
         )}
       </div>
