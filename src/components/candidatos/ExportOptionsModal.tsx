@@ -19,6 +19,9 @@ interface ExportOptionsModalProps {
   open: boolean;
   onClose: () => void;
   includeProgress?: boolean;
+  allowedNiveles?: string[];
+  selectedNiveles?: string[];
+  onNivelesChange?: (niveles: string[]) => void;
 }
 
 interface ExportSection {
@@ -27,7 +30,7 @@ interface ExportSection {
   checked: boolean;
 }
 
-export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, includeProgress }: ExportOptionsModalProps) => {
+export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, includeProgress, allowedNiveles, selectedNiveles, onNivelesChange }: ExportOptionsModalProps) => {
   const baseSections: ExportSection[] = [
     { key: "personal", label: "Información Personal", checked: true },
     { key: "contacto", label: "Contacto y Ubicación", checked: true },
@@ -403,6 +406,32 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, inclu
         </DialogHeader>
 
         <div className="space-y-4">
+          {allowedNiveles && allowedNiveles.length > 1 && onNivelesChange && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Niveles a exportar</p>
+              <div className="flex gap-3">
+                {allowedNiveles.map((nivel) => (
+                  <div key={nivel} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`nivel-${nivel}`}
+                      checked={!selectedNiveles || selectedNiveles.length === 0 || selectedNiveles.includes(nivel)}
+                      onCheckedChange={(checked) => {
+                        const current = (!selectedNiveles || selectedNiveles.length === 0) ? [...allowedNiveles] : [...selectedNiveles];
+                        if (checked) {
+                          onNivelesChange([...current, nivel].filter((v, i, a) => a.indexOf(v) === i));
+                        } else {
+                          const next = current.filter(n => n !== nivel);
+                          onNivelesChange(next.length > 0 ? next : []);
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`nivel-${nivel}`} className="cursor-pointer text-sm">{nivel}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-between items-center">
             <p className="text-sm text-muted-foreground">
               {selectedCount} de {sections.length} secciones seleccionadas
