@@ -512,7 +512,7 @@ const Estudiantes = () => {
             allowedNiveles={allowedNiveles}
             selectedNiveles={selectedExportNiveles}
             onNivelesChange={(niveles) => {
-              setSelectedExportNiveles(niveles);
+              setSelectedExportNiveles(niveles as NivelEmprendimiento[]);
             }}
           />
         )}
