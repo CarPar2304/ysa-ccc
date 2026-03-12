@@ -19,6 +19,9 @@ interface ExportOptionsModalProps {
   open: boolean;
   onClose: () => void;
   includeProgress?: boolean;
+  allowedNiveles?: string[];
+  selectedNiveles?: string[];
+  onNivelesChange?: (niveles: string[]) => void;
 }
 
 interface ExportSection {
