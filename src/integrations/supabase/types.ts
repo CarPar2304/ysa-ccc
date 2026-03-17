@@ -1777,7 +1777,7 @@ export type Database = {
         | "Tarjeta de identidad"
         | "Cédula de extranjería"
         | "Pasaporte"
-        | "Permiso de Protección Temporal (PPT)"
+        | "Permiso por Protección Temporal (PPT)"
       tipo_evaluacion: "ccc" | "jurado"
       ubicacion_principal: "Zona urbana" | "Zona rural" | "Zona rural dispersa"
       ventas_ultimo_ano:
@@ -1986,7 +1986,7 @@ export const Constants = {
         "Tarjeta de identidad",
         "Cédula de extranjería",
         "Pasaporte",
-        "Permiso de Protección Temporal (PPT)",
+        "Permiso por Protección Temporal (PPT)",
       ],
       tipo_evaluacion: ["ccc", "jurado"],
       ubicacion_principal: ["Zona urbana", "Zona rural", "Zona rural dispersa"],
