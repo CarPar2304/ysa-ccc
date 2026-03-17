@@ -186,6 +186,8 @@ const LabClassView = () => {
                     {clase.recursos_url.map((recurso, index) => {
                       const isArchivo = recurso.tipo === "archivo";
                       
+                      const isPdf = recurso.url?.toLowerCase().endsWith('.pdf') || recurso.titulo?.toLowerCase().endsWith('.pdf');
+
                       const handleClick = async (e: React.MouseEvent) => {
                         if (!isArchivo) return;
                         e.preventDefault();
@@ -194,18 +196,31 @@ const LabClassView = () => {
                           const pathMatch = url.pathname.match(/\/object\/public\/lab-images\/(.+)$/);
                           if (!pathMatch) { window.open(recurso.url, '_blank'); return; }
                           const storagePath = decodeURIComponent(pathMatch[1]);
-                          const { data, error } = await supabase.storage.from('lab-images').download(storagePath);
-                          if (error) throw error;
-                          const blobUrl = URL.createObjectURL(data);
-                          const a = document.createElement('a');
-                          a.href = blobUrl;
-                          a.download = recurso.titulo || storagePath.split('/').pop() || 'archivo';
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(blobUrl);
+                          
+                          if (isPdf) {
+                            // For PDFs, get a signed URL and open in new tab
+                            const { data: signedData, error: signedError } = await supabase.storage
+                              .from('lab-images')
+                              .createSignedUrl(storagePath, 300);
+                            if (signedError) throw signedError;
+                            if (signedData?.signedUrl) {
+                              window.open(signedData.signedUrl, '_blank');
+                            }
+                          } else {
+                            // For other files, download
+                            const { data, error } = await supabase.storage.from('lab-images').download(storagePath);
+                            if (error) throw error;
+                            const blobUrl = URL.createObjectURL(data);
+                            const a = document.createElement('a');
+                            a.href = blobUrl;
+                            a.download = recurso.titulo || storagePath.split('/').pop() || 'archivo';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(blobUrl);
+                          }
                         } catch (err) {
-                          console.error("Error downloading file:", err);
+                          console.error("Error handling file:", err);
                           window.open(recurso.url, '_blank');
                         }
                       };
