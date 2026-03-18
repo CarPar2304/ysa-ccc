@@ -10,13 +10,32 @@ interface EntregaFileLinkProps {
 export const EntregaFileLink = ({ archivo, className }: EntregaFileLinkProps) => {
   const [loading, setLoading] = useState(false);
 
+  const isPdf = archivo.name.toLowerCase().endsWith(".pdf");
+
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const signedUrl = await getEntregaSignedUrl(archivo.url);
-      if (signedUrl) {
-        window.open(signedUrl, "_blank");
+      if (isPdf) {
+        // Open PDFs inline in a new tab (no download disposition)
+        const signedUrl = await getEntregaSignedUrl(archivo.url);
+        if (signedUrl) {
+          window.open(signedUrl, "_blank");
+        }
+      } else {
+        // For non-PDF files, force download with the original filename
+        const signedUrl = await getEntregaSignedUrl(archivo.url, 3600, {
+          download: archivo.name,
+        });
+        if (signedUrl) {
+          // Use an anchor element to trigger proper download
+          const a = document.createElement("a");
+          a.href = signedUrl;
+          a.download = archivo.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
       }
     } catch (error) {
       console.error("Error opening file:", error);
