@@ -26,12 +26,16 @@ export function extractEntregaPath(urlOrPath: string): string {
  * Generates a signed URL for a file in the entregas bucket.
  * Works with both old public URLs and raw storage paths.
  */
-export async function getEntregaSignedUrl(urlOrPath: string, expiresIn = 3600): Promise<string | null> {
+export async function getEntregaSignedUrl(
+  urlOrPath: string,
+  expiresIn = 3600,
+  options?: { download?: string | boolean }
+): Promise<string | null> {
   const path = extractEntregaPath(urlOrPath);
 
   const { data, error } = await supabase.storage
     .from(ENTREGAS_BUCKET)
-    .createSignedUrl(path, expiresIn);
+    .createSignedUrl(path, expiresIn, options ? { download: options.download } : undefined);
 
   if (error) {
     console.error("Error creating signed URL:", error);
