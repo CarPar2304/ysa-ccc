@@ -40,6 +40,7 @@ const Lab = () => {
   const [loading, setLoading] = useState(true);
   const [userNivel, setUserNivel] = useState<string | null>(null);
   const [editableModules, setEditableModules] = useState<Set<string>>(new Set());
+  const [moduleProgress, setModuleProgress] = useState<Record<string, { completed: number; total: number }>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
   const { userId, isAdmin, isBeneficiario, isMentor, isStakeholder } = useUserRole();
