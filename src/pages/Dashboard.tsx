@@ -265,6 +265,7 @@ const Dashboard = () => {
               onRefresh={fetchPosts}
               currentUserId={userId}
               userQuota={userQuotaMap[post.user_id]}
+              userRole={userRoleMap[post.user_id]}
             />
           ))}
 
