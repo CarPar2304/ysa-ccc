@@ -65,6 +65,12 @@ const Lab = () => {
   }, [userId, isAdmin, isBeneficiario, userNivel]);
 
   useEffect(() => {
+    if (isBeneficiario && userId && modulos.length > 0) {
+      fetchModuleProgress();
+    }
+  }, [isBeneficiario, userId, modulos]);
+
+  useEffect(() => {
     if (isMentor && userId && modulos.length > 0) {
       checkEditableModules();
     }
