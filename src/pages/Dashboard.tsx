@@ -120,6 +120,33 @@ const Dashboard = () => {
     }
   };
 
+  const fetchUserRoles = async (userIds: string[]) => {
+    if (userIds.length === 0) return;
+    try {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds);
+
+      const { data: operadores } = await supabase
+        .from("mentor_operadores")
+        .select("mentor_id")
+        .in("mentor_id", userIds)
+        .eq("activo", true);
+
+      const operadorSet = new Set((operadores || []).map(o => o.mentor_id));
+      const map: UserRoleMap = {};
+      for (const r of (roles || [])) {
+        map[r.user_id] = {
+          role: r.role,
+          isOperador: operadorSet.has(r.user_id),
+        };
+      }
+      setUserRoleMap(map);
+    } catch (error) {
+      console.error("Error fetching user roles:", error);
+    }
+
   const fetchPosts = async () => {
     try {
       const { data: postsData, error: postsError } = await supabase
