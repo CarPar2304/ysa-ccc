@@ -105,6 +105,53 @@ const Lab = () => {
     }
   };
 
+  const fetchModuleProgress = async () => {
+    if (!userId) return;
+    try {
+      const modIds = modulos.map(m => m.id);
+      
+      const { data: clases } = await supabase
+        .from("clases")
+        .select("id, modulo_id")
+        .in("modulo_id", modIds);
+
+      if (!clases || clases.length === 0) return;
+
+      const totalPerModule: Record<string, number> = {};
+      const claseIds: string[] = [];
+      for (const c of clases) {
+        totalPerModule[c.modulo_id] = (totalPerModule[c.modulo_id] || 0) + 1;
+        claseIds.push(c.id);
+      }
+
+      const { data: progreso } = await supabase
+        .from("progreso_usuario")
+        .select("clase_id")
+        .eq("user_id", userId)
+        .eq("completado", true)
+        .in("clase_id", claseIds);
+
+      const completedPerModule: Record<string, number> = {};
+      for (const p of (progreso || [])) {
+        const clase = clases.find(c => c.id === p.clase_id);
+        if (clase) {
+          completedPerModule[clase.modulo_id] = (completedPerModule[clase.modulo_id] || 0) + 1;
+        }
+      }
+
+      const progressMap: Record<string, { completed: number; total: number }> = {};
+      for (const modId of modIds) {
+        progressMap[modId] = {
+          completed: completedPerModule[modId] || 0,
+          total: totalPerModule[modId] || 0,
+        };
+      }
+      setModuleProgress(progressMap);
+    } catch (error) {
+      console.error("Error fetching module progress:", error);
+    }
+  };
+
   const fetchModulos = async () => {
     try {
       let query = supabase
