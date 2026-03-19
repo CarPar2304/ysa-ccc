@@ -46,7 +46,7 @@ interface PostCardProps {
   };
 }
 
-export const PostCard = ({ post, onRefresh, currentUserId, userQuota }: PostCardProps) => {
+export const PostCard = ({ post, onRefresh, currentUserId, userQuota, userRole }: PostCardProps) => {
   const getInitials = (nombres: string | null, apellidos: string | null) => {
     const n = nombres?.charAt(0) || "";
     const a = apellidos?.charAt(0) || "";
