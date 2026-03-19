@@ -58,6 +58,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
   const [userQuotaMap, setUserQuotaMap] = useState<UserQuotaMap>({});
+  const [userRoleMap, setUserRoleMap] = useState<UserRoleMap>({});
   const { toast } = useToast();
 
   useEffect(() => {
