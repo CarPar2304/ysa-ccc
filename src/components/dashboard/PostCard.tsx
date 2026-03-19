@@ -5,7 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { EmojiReactions } from "./EmojiReactions";
 import { PostComments } from "./PostComments";
-import { GraduationCap, Award } from "lucide-react";
+import { GraduationCap, Award, Shield, Users } from "lucide-react";
 
 interface PostCardProps {
   post: {
