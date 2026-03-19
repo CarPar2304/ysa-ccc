@@ -186,6 +186,7 @@ const Dashboard = () => {
       // Fetch quota status for all unique post authors
       const uniqueUserIds = [...new Set(postsWithTags.map(p => p.user_id))];
       fetchUserQuotas(uniqueUserIds);
+      fetchUserRoles(uniqueUserIds);
     } catch (error) {
       console.error("Error fetching posts:", error);
       toast({
