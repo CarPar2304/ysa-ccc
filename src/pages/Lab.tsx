@@ -390,6 +390,18 @@ const Lab = () => {
             </Badge>
           )}
         </div>
+        {isBeneficiario && moduleProgress[modulo.id] && moduleProgress[modulo.id].total > 0 && (
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Asistencia</span>
+              <span>{moduleProgress[modulo.id].completed}/{moduleProgress[modulo.id].total} clases</span>
+            </div>
+            <Progress 
+              value={(moduleProgress[modulo.id].completed / moduleProgress[modulo.id].total) * 100} 
+              className="h-2"
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
