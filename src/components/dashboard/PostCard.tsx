@@ -40,6 +40,10 @@ interface PostCardProps {
     nivel: string | null;
     cohorte: number | null;
   };
+  userRole?: {
+    role: string | null;
+    isOperador: boolean;
+  };
 }
 
 export const PostCard = ({ post, onRefresh, currentUserId, userQuota }: PostCardProps) => {
