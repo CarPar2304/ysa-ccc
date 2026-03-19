@@ -5,7 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { EmojiReactions } from "./EmojiReactions";
 import { PostComments } from "./PostComments";
-import { GraduationCap, Award } from "lucide-react";
+import { GraduationCap, Award, Shield, Users } from "lucide-react";
 
 interface PostCardProps {
   post: {
@@ -40,9 +40,13 @@ interface PostCardProps {
     nivel: string | null;
     cohorte: number | null;
   };
+  userRole?: {
+    role: string | null;
+    isOperador: boolean;
+  };
 }
 
-export const PostCard = ({ post, onRefresh, currentUserId, userQuota }: PostCardProps) => {
+export const PostCard = ({ post, onRefresh, currentUserId, userQuota, userRole }: PostCardProps) => {
   const getInitials = (nombres: string | null, apellidos: string | null) => {
     const n = nombres?.charAt(0) || "";
     const a = apellidos?.charAt(0) || "";
@@ -75,8 +79,41 @@ export const PostCard = ({ post, onRefresh, currentUserId, userQuota }: PostCard
               <h3 className="font-semibold text-foreground text-sm leading-tight">
                 {post.usuarios?.nombres} {post.usuarios?.apellidos}
               </h3>
-              {/* Student status badge */}
-              {userQuota && (
+              {/* Role-based badges */}
+              {userRole?.role === "admin" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-400">
+                  <Shield className="h-3 w-3" />
+                  CCC - Admin
+                </span>
+              )}
+              {userRole?.role === "mentor" && !userRole?.isOperador && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:text-indigo-400">
+                  <Users className="h-3 w-3" />
+                  Mentor
+                </span>
+              )}
+              {userRole?.role === "mentor" && userRole?.isOperador && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-rose-500/15 text-rose-700 border-rose-500/30 dark:text-rose-400">
+                  <Shield className="h-3 w-3" />
+                  Operador
+                </span>
+              )}
+              {/* Student status badge (beneficiarios only) */}
+              {userRole?.role === "beneficiario" && userQuota && (
+                userQuota.isApproved ? (
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getNivelColor(userQuota.nivel)}`}>
+                    <Award className="h-3 w-3" />
+                    {userQuota.nivel} · C{userQuota.cohorte}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-muted text-muted-foreground border-border">
+                    <GraduationCap className="h-3 w-3" />
+                    Candidato
+                  </span>
+                )
+              )}
+              {/* Fallback for beneficiarios without role data yet */}
+              {!userRole && userQuota && (
                 userQuota.isApproved ? (
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getNivelColor(userQuota.nivel)}`}>
                     <Award className="h-3 w-3" />

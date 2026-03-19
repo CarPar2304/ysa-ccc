@@ -1,6 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Clock, Loader2, BookOpen, Pencil, Trash2, Lock, Edit, FileText } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -39,6 +40,7 @@ const Lab = () => {
   const [loading, setLoading] = useState(true);
   const [userNivel, setUserNivel] = useState<string | null>(null);
   const [editableModules, setEditableModules] = useState<Set<string>>(new Set());
+  const [moduleProgress, setModuleProgress] = useState<Record<string, { completed: number; total: number }>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
   const { userId, isAdmin, isBeneficiario, isMentor, isStakeholder } = useUserRole();
@@ -61,6 +63,12 @@ const Lab = () => {
   useEffect(() => {
     fetchModulos();
   }, [userId, isAdmin, isBeneficiario, userNivel]);
+
+  useEffect(() => {
+    if (isBeneficiario && userId && modulos.length > 0) {
+      fetchModuleProgress();
+    }
+  }, [isBeneficiario, userId, modulos]);
 
   useEffect(() => {
     if (isMentor && userId && modulos.length > 0) {
@@ -94,6 +102,53 @@ const Lab = () => {
       }
     } catch (error) {
       console.error("Error fetching user nivel:", error);
+    }
+  };
+
+  const fetchModuleProgress = async () => {
+    if (!userId) return;
+    try {
+      const modIds = modulos.map(m => m.id);
+      
+      const { data: clases } = await supabase
+        .from("clases")
+        .select("id, modulo_id")
+        .in("modulo_id", modIds);
+
+      if (!clases || clases.length === 0) return;
+
+      const totalPerModule: Record<string, number> = {};
+      const claseIds: string[] = [];
+      for (const c of clases) {
+        totalPerModule[c.modulo_id] = (totalPerModule[c.modulo_id] || 0) + 1;
+        claseIds.push(c.id);
+      }
+
+      const { data: progreso } = await supabase
+        .from("progreso_usuario")
+        .select("clase_id")
+        .eq("user_id", userId)
+        .eq("completado", true)
+        .in("clase_id", claseIds);
+
+      const completedPerModule: Record<string, number> = {};
+      for (const p of (progreso || [])) {
+        const clase = clases.find(c => c.id === p.clase_id);
+        if (clase) {
+          completedPerModule[clase.modulo_id] = (completedPerModule[clase.modulo_id] || 0) + 1;
+        }
+      }
+
+      const progressMap: Record<string, { completed: number; total: number }> = {};
+      for (const modId of modIds) {
+        progressMap[modId] = {
+          completed: completedPerModule[modId] || 0,
+          total: totalPerModule[modId] || 0,
+        };
+      }
+      setModuleProgress(progressMap);
+    } catch (error) {
+      console.error("Error fetching module progress:", error);
     }
   };
 
@@ -335,6 +390,18 @@ const Lab = () => {
             </Badge>
           )}
         </div>
+        {isBeneficiario && moduleProgress[modulo.id] && moduleProgress[modulo.id].total > 0 && (
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Asistencia</span>
+              <span>{moduleProgress[modulo.id].completed}/{moduleProgress[modulo.id].total} clases</span>
+            </div>
+            <Progress 
+              value={(moduleProgress[modulo.id].completed / moduleProgress[modulo.id].total) * 100} 
+              className="h-2"
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
