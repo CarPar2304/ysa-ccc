@@ -44,6 +44,13 @@ export interface UserQuotaMap {
   };
 }
 
+export interface UserRoleMap {
+  [userId: string]: {
+    role: string | null;
+    isOperador: boolean;
+  };
+}
+
 const Dashboard = () => {
   const { isBeneficiario, isAdmin, isStakeholder, isOperador, loading: roleLoading, userId } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
