@@ -146,6 +146,7 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error fetching user roles:", error);
     }
+  };
 
   const fetchPosts = async () => {
     try {
