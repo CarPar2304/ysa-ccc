@@ -43,6 +43,7 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, inclu
     { key: "diagnostico", label: "Diagnóstico", checked: true },
     { key: "evaluaciones", label: "Evaluaciones", checked: true },
     { key: "cupo", label: "Estado del Cupo", checked: true },
+    { key: "cofundadores", label: "Co-fundadores", checked: true },
   ];
 
   if (includeProgress) {
