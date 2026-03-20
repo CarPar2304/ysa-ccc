@@ -224,6 +224,24 @@ const Candidatos = () => {
         const acudiente = acudientes?.find(a => a.menor_id === usuario.id);
         const userEvaluaciones = evaluaciones?.filter(ev => ev.emprendimiento_id === emprendimiento?.id) || [];
 
+        // Get co-founders for this emprendimiento
+        const empMiembros = emprendimiento ? miembros?.filter(m => m.emprendimiento_id === emprendimiento.id) || [] : [];
+        const cofundadoresList = empMiembros
+          .map(m => {
+            // Check if co-founder is one of the main usuarios
+            const mainUser = usuarios?.find(u => u.id === m.user_id && u.id !== usuario.id);
+            const cofUser = cofundadorUsuarios.find(u => u.id === m.user_id);
+            const u = mainUser || cofUser;
+            if (!u) return null;
+            return {
+              nombres: u.nombres || "",
+              apellidos: u.apellidos || "",
+              email: u.email || "",
+              celular: u.celular || "",
+            };
+          })
+          .filter(Boolean) as Array<{ nombres: string; apellidos: string; email: string; celular: string }>;
+
         return {
           id: usuario.id,
           nombres: usuario.nombres || "",
