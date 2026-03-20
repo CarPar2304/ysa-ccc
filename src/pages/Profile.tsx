@@ -270,6 +270,13 @@ const Profile = () => {
             <ProfileBasicInfo readOnly />
             <ProfileAuthorizations readOnly />
             <ProfileGuardian readOnly />
+            {emprendimiento && (
+              <ProfileCoFounders
+                emprendimientoId={emprendimiento.id}
+                emprendimientoNombre={emprendimiento.nombre}
+                isOwner={true}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="emprendimiento">
