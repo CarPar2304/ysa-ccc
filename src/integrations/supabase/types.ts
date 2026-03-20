@@ -1725,6 +1725,14 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_beneficiario: { Args: { _user_id: string }; Returns: boolean }
+      is_emprendimiento_member: {
+        Args: { _emprendimiento_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_emprendimiento_owner: {
+        Args: { _emprendimiento_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_mentor: { Args: { _user_id: string }; Returns: boolean }
       is_operador: { Args: { _user_id: string }; Returns: boolean }
       is_stakeholder: { Args: { _user_id: string }; Returns: boolean }
