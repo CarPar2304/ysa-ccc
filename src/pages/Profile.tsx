@@ -11,6 +11,7 @@ import { ProfileFinancing } from "@/components/profile/ProfileFinancing";
 import { ProfileEvaluation } from "@/components/profile/ProfileEvaluation";
 import { ProfilePosts } from "@/components/profile/ProfilePosts";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
+import { ProfileCoFounders } from "@/components/profile/ProfileCoFounders";
 import { Lock, Upload, User as UserIcon, Briefcase, Award, MessageSquare, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
