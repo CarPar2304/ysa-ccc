@@ -43,6 +43,7 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, inclu
     { key: "diagnostico", label: "Diagnóstico", checked: true },
     { key: "evaluaciones", label: "Evaluaciones", checked: true },
     { key: "cupo", label: "Estado del Cupo", checked: true },
+    { key: "cofundadores", label: "Co-fundadores", checked: true },
   ];
 
   if (includeProgress) {
@@ -206,6 +207,21 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, inclu
         "Nivel Última Evaluación": evalCount > 0 
           ? c.evaluaciones_detalle![evalCount - 1].nivel || "N/A" 
           : "N/A",
+      });
+    }
+
+    if (selectedSections.includes("cofundadores")) {
+      const cofs = (c as any).cofundadores || [];
+      Object.assign(row, {
+        "Cantidad Co-fundadores": cofs.length,
+      });
+      cofs.forEach((cf: any, i: number) => {
+        Object.assign(row, {
+          [`Co-fundador ${i + 1} - Nombres`]: cf.nombres || "N/A",
+          [`Co-fundador ${i + 1} - Apellidos`]: cf.apellidos || "N/A",
+          [`Co-fundador ${i + 1} - Email`]: cf.email || "N/A",
+          [`Co-fundador ${i + 1} - Celular`]: cf.celular || "N/A",
+        });
       });
     }
 

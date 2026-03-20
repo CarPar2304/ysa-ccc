@@ -18,7 +18,6 @@ export interface CandidatoData {
   numero_identificacion: string;
   departamento: string;
   municipio: string;
-  // Campos adicionales de usuario
   tipo_documento?: string;
   genero?: string;
   direccion?: string;
@@ -27,14 +26,12 @@ export interface CandidatoData {
   biografia?: string;
   nivel_ingles?: string;
   menor_de_edad?: boolean;
-  // Autorizaciones
   autorizaciones?: {
     tratamiento_datos: boolean;
     datos_sensibles: boolean;
     correo: boolean;
     celular: boolean;
   };
-  // Acudiente
   acudiente?: {
     nombres: string;
     apellidos: string;
@@ -44,7 +41,6 @@ export interface CandidatoData {
     tipo_documento?: string;
     numero_identificacion?: string;
   };
-  // Emprendimiento expandido
   emprendimiento?: {
     id: string;
     nombre: string;
@@ -66,7 +62,6 @@ export interface CandidatoData {
     formalizacion?: boolean;
     estado_unidad_productiva?: string;
   };
-  // Cupo expandido
   cupo?: {
     id: string;
     nivel: string;
@@ -75,7 +70,6 @@ export interface CandidatoData {
     fecha_asignacion: string;
     notas?: string;
   };
-  // Equipo expandido
   equipo?: {
     equipo_total: number;
     fundadoras: number;
@@ -86,7 +80,6 @@ export interface CandidatoData {
     tipo_decisiones?: string;
     organigrama?: string;
   };
-  // Proyecciones expandidas
   proyecciones?: {
     principales_objetivos: string;
     desafios: string;
@@ -95,7 +88,6 @@ export interface CandidatoData {
     decisiones_acciones_crecimiento?: boolean;
     intencion_internacionalizacion?: boolean;
   };
-  // Financiamiento expandido
   financiamiento?: {
     busca_financiamiento: string;
     monto_buscado: string;
@@ -105,12 +97,10 @@ export interface CandidatoData {
     tipo_inversion?: string;
     etapa?: string;
   };
-  // Diagnóstico
   diagnostico?: {
     contenido: string;
     updated_at: string;
   };
-  // Evaluaciones detalladas
   evaluaciones?: number;
   evaluaciones_detalle?: Array<{
     id: string;
@@ -135,6 +125,14 @@ export interface CandidatoData {
     cumple_interes: boolean;
     created_at: string;
   }>;
+  // Co-founders linked to same emprendimiento
+  cofundadores?: Array<{
+    nombres: string;
+    apellidos: string;
+    email: string;
+    celular: string;
+  }>;
+  es_cofundador?: boolean;
 }
 
 const Candidatos = () => {
@@ -189,7 +187,8 @@ const Candidatos = () => {
         { data: evaluaciones },
         { data: diagnosticos },
         { data: autorizaciones },
-        { data: acudientes }
+        { data: acudientes },
+        { data: miembros }
       ] = await Promise.all([
         supabase.from("asignacion_cupos").select("*").in("emprendimiento_id", emprendimientoIds),
         supabase.from("equipos").select("*").in("emprendimiento_id", emprendimientoIds),
@@ -198,8 +197,20 @@ const Candidatos = () => {
         supabase.from("evaluaciones").select("*").in("emprendimiento_id", emprendimientoIds),
         supabase.from("diagnosticos").select("*").in("emprendimiento_id", emprendimientoIds),
         supabase.from("autorizaciones").select("*").in("user_id", userIds),
-        supabase.from("acudientes").select("*").in("menor_id", userIds)
+        supabase.from("acudientes").select("*").in("menor_id", userIds),
+        supabase.from("emprendimiento_miembros").select("*").in("emprendimiento_id", emprendimientoIds)
       ]);
+
+      // Fetch co-founder usuario details
+      const cofundadorUserIds = miembros?.map(m => m.user_id).filter(id => !userIds.includes(id)) || [];
+      let cofundadorUsuarios: any[] = [];
+      if (cofundadorUserIds.length > 0) {
+        const { data: cofUsers } = await supabase
+          .from("usuarios")
+          .select("id, nombres, apellidos, email, celular")
+          .in("id", cofundadorUserIds);
+        cofundadorUsuarios = cofUsers || [];
+      }
 
       // Combinar datos
       const candidatosData: CandidatoData[] = usuarios.map(usuario => {
@@ -212,6 +223,24 @@ const Candidatos = () => {
         const autorizacion = autorizaciones?.find(a => a.user_id === usuario.id);
         const acudiente = acudientes?.find(a => a.menor_id === usuario.id);
         const userEvaluaciones = evaluaciones?.filter(ev => ev.emprendimiento_id === emprendimiento?.id) || [];
+
+        // Get co-founders for this emprendimiento
+        const empMiembros = emprendimiento ? miembros?.filter(m => m.emprendimiento_id === emprendimiento.id) || [] : [];
+        const cofundadoresList = empMiembros
+          .map(m => {
+            // Check if co-founder is one of the main usuarios
+            const mainUser = usuarios?.find(u => u.id === m.user_id && u.id !== usuario.id);
+            const cofUser = cofundadorUsuarios.find(u => u.id === m.user_id);
+            const u = mainUser || cofUser;
+            if (!u) return null;
+            return {
+              nombres: u.nombres || "",
+              apellidos: u.apellidos || "",
+              email: u.email || "",
+              celular: u.celular || "",
+            };
+          })
+          .filter(Boolean) as Array<{ nombres: string; apellidos: string; email: string; celular: string }>;
 
         return {
           id: usuario.id,
@@ -329,6 +358,7 @@ const Candidatos = () => {
             cumple_interes: ev.cumple_interes ?? false,
             created_at: ev.created_at,
           })),
+          cofundadores: cofundadoresList.length > 0 ? cofundadoresList : undefined,
         };
       });
 

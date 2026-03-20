@@ -11,6 +11,7 @@ import { ProfileFinancing } from "@/components/profile/ProfileFinancing";
 import { ProfileEvaluation } from "@/components/profile/ProfileEvaluation";
 import { ProfilePosts } from "@/components/profile/ProfilePosts";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
+import { ProfileCoFounders } from "@/components/profile/ProfileCoFounders";
 import { Lock, Upload, User as UserIcon, Briefcase, Award, MessageSquare, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -26,7 +27,7 @@ const Profile = () => {
   const { toast } = useToast();
 
   const [asignacion, setAsignacion] = useState<any>(null);
-
+  const [emprendimiento, setEmprendimiento] = useState<any>(null);
   useEffect(() => {
     const fetchUsuario = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -38,18 +39,39 @@ const Profile = () => {
           .single();
         setUsuario(data);
 
-        // Obtener asignación de cupo si es beneficiario
+        // Obtener emprendimiento y asignación de cupo si es beneficiario
         const { data: empData } = await supabase
           .from('emprendimientos')
-          .select('id')
+          .select('id, nombre')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (empData) {
+        // Also check if user is a co-founder member
+        let empInfo = empData;
+        if (!empInfo) {
+          const { data: memberData } = await supabase
+            .from('emprendimiento_miembros')
+            .select('emprendimiento_id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .maybeSingle();
+          
+          if (memberData) {
+            const { data: empMember } = await supabase
+              .from('emprendimientos')
+              .select('id, nombre')
+              .eq('id', memberData.emprendimiento_id)
+              .single();
+            empInfo = empMember;
+          }
+        }
+
+        if (empInfo) {
+          setEmprendimiento(empInfo);
           const { data: asignacionData } = await supabase
             .from('asignacion_cupos')
             .select('*')
-            .eq('emprendimiento_id', empData.id)
+            .eq('emprendimiento_id', empInfo.id)
             .eq('estado', 'aprobado')
             .single();
           
@@ -248,6 +270,13 @@ const Profile = () => {
             <ProfileBasicInfo readOnly />
             <ProfileAuthorizations readOnly />
             <ProfileGuardian readOnly />
+            {emprendimiento && (
+              <ProfileCoFounders
+                emprendimientoId={emprendimiento.id}
+                emprendimientoNombre={emprendimiento.nombre}
+                isOwner={true}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="emprendimiento">

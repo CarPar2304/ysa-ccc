@@ -436,6 +436,45 @@ export type Database = {
         }
         Relationships: []
       }
+      emprendimiento_miembros: {
+        Row: {
+          created_at: string
+          emprendimiento_id: string
+          id: string
+          rol: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emprendimiento_id: string
+          id?: string
+          rol?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emprendimiento_id?: string
+          id?: string
+          rol?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emprendimiento_miembros_emprendimiento_id_fkey"
+            columns: ["emprendimiento_id"]
+            isOneToOne: false
+            referencedRelation: "emprendimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emprendimiento_miembros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emprendimientos: {
         Row: {
           actividades_id: boolean | null
