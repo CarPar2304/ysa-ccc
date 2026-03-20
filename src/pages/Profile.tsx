@@ -27,7 +27,7 @@ const Profile = () => {
   const { toast } = useToast();
 
   const [asignacion, setAsignacion] = useState<any>(null);
-
+  const [emprendimiento, setEmprendimiento] = useState<any>(null);
   useEffect(() => {
     const fetchUsuario = async () => {
       const { data: { user } } = await supabase.auth.getUser();
