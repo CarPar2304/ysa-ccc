@@ -438,7 +438,7 @@ const Lab = () => {
         {(isStakeholder || isAdmin) ? (
           <div className="space-y-10">
             {niveles.map(({ key, label }) => {
-              const nivelModulos = modulos.filter((m) => m.nivel === key);
+              const nivelModulos = modulos.filter((m) => m.nivel === key && (isAdmin || m.activo));
               return (
                 <div key={key} className="space-y-4">
                   <div className="flex items-center gap-2">
