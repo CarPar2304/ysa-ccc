@@ -435,7 +435,7 @@ const Lab = () => {
         </div>
 
         {/* Stakeholder: sections by level */}
-        {isStakeholder ? (
+        {(isStakeholder || isAdmin) ? (
           <div className="space-y-10">
             {niveles.map(({ key, label }) => {
               const nivelModulos = modulos.filter((m) => m.nivel === key);
