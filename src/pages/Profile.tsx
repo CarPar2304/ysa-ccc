@@ -39,18 +39,39 @@ const Profile = () => {
           .single();
         setUsuario(data);
 
-        // Obtener asignación de cupo si es beneficiario
+        // Obtener emprendimiento y asignación de cupo si es beneficiario
         const { data: empData } = await supabase
           .from('emprendimientos')
-          .select('id')
+          .select('id, nombre')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (empData) {
+        // Also check if user is a co-founder member
+        let empInfo = empData;
+        if (!empInfo) {
+          const { data: memberData } = await supabase
+            .from('emprendimiento_miembros')
+            .select('emprendimiento_id')
+            .eq('user_id', user.id)
+            .limit(1)
+            .maybeSingle();
+          
+          if (memberData) {
+            const { data: empMember } = await supabase
+              .from('emprendimientos')
+              .select('id, nombre')
+              .eq('id', memberData.emprendimiento_id)
+              .single();
+            empInfo = empMember;
+          }
+        }
+
+        if (empInfo) {
+          setEmprendimiento(empInfo);
           const { data: asignacionData } = await supabase
             .from('asignacion_cupos')
             .select('*')
-            .eq('emprendimiento_id', empData.id)
+            .eq('emprendimiento_id', empInfo.id)
             .eq('estado', 'aprobado')
             .single();
           
