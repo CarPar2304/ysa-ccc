@@ -204,10 +204,20 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
                               <p className="text-sm text-muted-foreground">
                                 {candidato.email}
                               </p>
+                              {candidato.es_cofundador && (
+                                <Badge variant="outline" className="mt-1 text-xs">Co-fundador</Badge>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            {candidato.emprendimiento?.nombre || "N/A"}
+                            <div>
+                              <p>{candidato.emprendimiento?.nombre || "N/A"}</p>
+                              {candidato.cofundadores && candidato.cofundadores.length > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  + {candidato.cofundadores.length} co-fundador{candidato.cofundadores.length > 1 ? "es" : ""}
+                                </p>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>{getStatusBadge(candidato)}</TableCell>
                           <TableCell>
