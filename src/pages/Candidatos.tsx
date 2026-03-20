@@ -187,7 +187,8 @@ const Candidatos = () => {
         { data: evaluaciones },
         { data: diagnosticos },
         { data: autorizaciones },
-        { data: acudientes }
+        { data: acudientes },
+        { data: miembros }
       ] = await Promise.all([
         supabase.from("asignacion_cupos").select("*").in("emprendimiento_id", emprendimientoIds),
         supabase.from("equipos").select("*").in("emprendimiento_id", emprendimientoIds),
@@ -196,8 +197,20 @@ const Candidatos = () => {
         supabase.from("evaluaciones").select("*").in("emprendimiento_id", emprendimientoIds),
         supabase.from("diagnosticos").select("*").in("emprendimiento_id", emprendimientoIds),
         supabase.from("autorizaciones").select("*").in("user_id", userIds),
-        supabase.from("acudientes").select("*").in("menor_id", userIds)
+        supabase.from("acudientes").select("*").in("menor_id", userIds),
+        supabase.from("emprendimiento_miembros").select("*").in("emprendimiento_id", emprendimientoIds)
       ]);
+
+      // Fetch co-founder usuario details
+      const cofundadorUserIds = miembros?.map(m => m.user_id).filter(id => !userIds.includes(id)) || [];
+      let cofundadorUsuarios: any[] = [];
+      if (cofundadorUserIds.length > 0) {
+        const { data: cofUsers } = await supabase
+          .from("usuarios")
+          .select("id, nombres, apellidos, email, celular")
+          .in("id", cofundadorUserIds);
+        cofundadorUsuarios = cofUsers || [];
+      }
 
       // Combinar datos
       const candidatosData: CandidatoData[] = usuarios.map(usuario => {
