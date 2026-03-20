@@ -210,6 +210,21 @@ export const ExportOptionsModal = ({ candidato, candidatos, open, onClose, inclu
       });
     }
 
+    if (selectedSections.includes("cofundadores")) {
+      const cofs = (c as any).cofundadores || [];
+      Object.assign(row, {
+        "Cantidad Co-fundadores": cofs.length,
+      });
+      cofs.forEach((cf: any, i: number) => {
+        Object.assign(row, {
+          [`Co-fundador ${i + 1} - Nombres`]: cf.nombres || "N/A",
+          [`Co-fundador ${i + 1} - Apellidos`]: cf.apellidos || "N/A",
+          [`Co-fundador ${i + 1} - Email`]: cf.email || "N/A",
+          [`Co-fundador ${i + 1} - Celular`]: cf.celular || "N/A",
+        });
+      });
+    }
+
     if (selectedSections.includes("progreso")) {
       const withProgress = c as CandidatoData & { _progreso_promedio?: number };
       Object.assign(row, {
