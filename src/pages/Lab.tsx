@@ -435,10 +435,10 @@ const Lab = () => {
         </div>
 
         {/* Stakeholder: sections by level */}
-        {isStakeholder ? (
+        {(isStakeholder || isAdmin) ? (
           <div className="space-y-10">
             {niveles.map(({ key, label }) => {
-              const nivelModulos = modulos.filter((m) => m.nivel === key);
+              const nivelModulos = modulos.filter((m) => m.nivel === key && (isAdmin || m.activo));
               return (
                 <div key={key} className="space-y-4">
                   <div className="flex items-center gap-2">
@@ -460,11 +460,11 @@ const Lab = () => {
               );
             })}
             {/* Modules without level */}
-            {modulos.filter((m) => !m.nivel).length > 0 && (
+            {modulos.filter((m) => !m.nivel && (isAdmin || m.activo)).length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-foreground">General</h2>
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {modulos.filter((m) => !m.nivel).map(renderModuleCard)}
+                  {modulos.filter((m) => !m.nivel && (isAdmin || m.activo)).map(renderModuleCard)}
                 </div>
               </div>
             )}
