@@ -18,7 +18,6 @@ export interface CandidatoData {
   numero_identificacion: string;
   departamento: string;
   municipio: string;
-  // Campos adicionales de usuario
   tipo_documento?: string;
   genero?: string;
   direccion?: string;
@@ -27,14 +26,12 @@ export interface CandidatoData {
   biografia?: string;
   nivel_ingles?: string;
   menor_de_edad?: boolean;
-  // Autorizaciones
   autorizaciones?: {
     tratamiento_datos: boolean;
     datos_sensibles: boolean;
     correo: boolean;
     celular: boolean;
   };
-  // Acudiente
   acudiente?: {
     nombres: string;
     apellidos: string;
@@ -44,7 +41,6 @@ export interface CandidatoData {
     tipo_documento?: string;
     numero_identificacion?: string;
   };
-  // Emprendimiento expandido
   emprendimiento?: {
     id: string;
     nombre: string;
@@ -66,7 +62,6 @@ export interface CandidatoData {
     formalizacion?: boolean;
     estado_unidad_productiva?: string;
   };
-  // Cupo expandido
   cupo?: {
     id: string;
     nivel: string;
@@ -75,7 +70,6 @@ export interface CandidatoData {
     fecha_asignacion: string;
     notas?: string;
   };
-  // Equipo expandido
   equipo?: {
     equipo_total: number;
     fundadoras: number;
@@ -86,7 +80,6 @@ export interface CandidatoData {
     tipo_decisiones?: string;
     organigrama?: string;
   };
-  // Proyecciones expandidas
   proyecciones?: {
     principales_objetivos: string;
     desafios: string;
@@ -95,7 +88,6 @@ export interface CandidatoData {
     decisiones_acciones_crecimiento?: boolean;
     intencion_internacionalizacion?: boolean;
   };
-  // Financiamiento expandido
   financiamiento?: {
     busca_financiamiento: string;
     monto_buscado: string;
@@ -105,12 +97,10 @@ export interface CandidatoData {
     tipo_inversion?: string;
     etapa?: string;
   };
-  // Diagnóstico
   diagnostico?: {
     contenido: string;
     updated_at: string;
   };
-  // Evaluaciones detalladas
   evaluaciones?: number;
   evaluaciones_detalle?: Array<{
     id: string;
@@ -135,6 +125,14 @@ export interface CandidatoData {
     cumple_interes: boolean;
     created_at: string;
   }>;
+  // Co-founders linked to same emprendimiento
+  cofundadores?: Array<{
+    nombres: string;
+    apellidos: string;
+    email: string;
+    celular: string;
+  }>;
+  es_cofundador?: boolean;
 }
 
 const Candidatos = () => {
