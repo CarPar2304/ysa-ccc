@@ -402,18 +402,6 @@ export const MentorEntregas = () => {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
         <Filter className="h-4 w-4 text-muted-foreground" />
-        <div className="ml-auto">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-2"
-            onClick={handleExportExcel}
-            disabled={exporting || filtered.length === 0}
-          >
-            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            Exportar Excel
-          </Button>
-        </div>
         <Select value={filtroEstado} onValueChange={setFiltroEstado}>
           <SelectTrigger className="w-[160px] h-9 text-sm">
             <SelectValue placeholder="Estado" />
@@ -440,6 +428,18 @@ export const MentorEntregas = () => {
         {(filtroEstado !== "todos" || filtroModulo !== "todos") && (
           <Badge variant="secondary">{filtered.length} resultado(s)</Badge>
         )}
+        <div className="ml-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={handleExportExcel}
+            disabled={exporting || filtered.length === 0}
+          >
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            Exportar Excel
+          </Button>
+        </div>
       </div>
 
       {/* Entregas list */}
