@@ -207,6 +207,7 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
   const [entregas, setEntregas] = useState<Record<string, Entrega>>({});
   const [allEntregas, setAllEntregas] = useState<Record<string, Entrega[]>>({});
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
   const { userId, isBeneficiario } = useUserRole();
 
