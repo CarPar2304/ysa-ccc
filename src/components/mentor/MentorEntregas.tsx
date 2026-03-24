@@ -20,6 +20,7 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -302,6 +303,59 @@ export const MentorEntregas = () => {
   });
 
   const pendientes = entregas.filter((e) => e.estado === "entregado").length;
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    if (filtered.length === 0) return;
+    setExporting(true);
+    try {
+      const { getEntregaSignedUrl } = await import("@/lib/entregaStorage");
+      const XLSX = await import("xlsx");
+
+      const rows = await Promise.all(
+        filtered.map(async (e) => {
+          const links = await Promise.all(
+            e.archivos_urls.map(async (a) => {
+              const url = await getEntregaSignedUrl(a.url, 604800);
+              return url || a.url;
+            })
+          );
+
+          return {
+            Módulo: e.modulo_titulo || "—",
+            Tarea: e.tarea?.titulo || "—",
+            Estudiante: `${e.usuario?.nombres || ""} ${e.usuario?.apellidos || ""}`.trim(),
+            "Fecha entrega": format(new Date(e.fecha_entrega), "yyyy-MM-dd HH:mm", { locale: es }),
+            "Fecha límite": e.tarea?.fecha_limite
+              ? format(new Date(e.tarea.fecha_limite), "yyyy-MM-dd HH:mm", { locale: es })
+              : "—",
+            Estado: estadoMap[e.estado]?.label || e.estado,
+            Nota: e.nota !== null && e.nota !== undefined ? e.nota : "—",
+            Feedback: e.feedback || "",
+            Comentario: e.comentario || "",
+            "Archivos (links)": links.join("\n"),
+          };
+        })
+      );
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      // Auto-width columns
+      const colWidths = Object.keys(rows[0] || {}).map((key) => ({
+        wch: Math.max(key.length, ...rows.map((r) => String((r as any)[key] || "").length).slice(0, 50), 12),
+      }));
+      ws["!cols"] = colWidths;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Entregas");
+      XLSX.writeFile(wb, `entregas_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+      toast({ title: "Exportación exitosa", description: `${rows.length} entregas exportadas` });
+    } catch (error: any) {
+      console.error("Export error:", error);
+      toast({ title: "Error al exportar", description: error.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -374,6 +428,18 @@ export const MentorEntregas = () => {
         {(filtroEstado !== "todos" || filtroModulo !== "todos") && (
           <Badge variant="secondary">{filtered.length} resultado(s)</Badge>
         )}
+        <div className="ml-auto">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={handleExportExcel}
+            disabled={exporting || filtered.length === 0}
+          >
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            Exportar Excel
+          </Button>
+        </div>
       </div>
 
       {/* Entregas list */}
