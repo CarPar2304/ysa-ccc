@@ -26,8 +26,27 @@ export const ResourceLink = ({ recurso }: { recurso: Recurso }) => {
     recurso.url?.toLowerCase().endsWith(".pdf") ||
     recurso.titulo?.toLowerCase().endsWith(".pdf");
 
+  const openUrl = (url: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const downloadFile = (url: string, filename: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   const handleClick = async (e: React.MouseEvent) => {
-    if (!isArchivo) return; // let default <a> behaviour handle links
+    if (!isArchivo) return;
     e.preventDefault();
     if (loading) return;
     setLoading(true);
@@ -36,58 +55,31 @@ export const ResourceLink = ({ recurso }: { recurso: Recurso }) => {
       const storagePath = extractStoragePath(recurso.url);
 
       if (!storagePath) {
-        // Not a storage URL – just open it directly
-        window.open(recurso.url, "_blank");
+        openUrl(recurso.url);
         return;
       }
 
+      // Since lab-images is a public bucket, build the public URL directly
+      const publicUrl = `https://aqfpzlrpqszoxbjojavc.supabase.co/storage/v1/object/public/lab-images/${encodeURIComponent(storagePath).replace(/%2F/g, "/")}`;
+
       if (isPdf) {
-        // Try signed URL first, fallback to public URL
-        const { data, error } = await supabase.storage
-          .from("lab-images")
-          .createSignedUrl(storagePath, 300);
-        if (!error && data?.signedUrl) {
-          window.open(data.signedUrl, "_blank");
-        } else {
-          // Fallback: open the original public URL
-          window.open(recurso.url, "_blank");
-        }
+        openUrl(publicUrl);
       } else {
-        // Try signed download URL first
+        // For non-PDF files, try signed URL with download disposition first
         const { data, error } = await supabase.storage
           .from("lab-images")
           .createSignedUrl(storagePath, 300, { download: recurso.titulo || true });
 
         if (!error && data?.signedUrl) {
-          const a = document.createElement("a");
-          a.href = data.signedUrl;
-          a.download = recurso.titulo || storagePath.split("/").pop() || "archivo";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          downloadFile(data.signedUrl, recurso.titulo || storagePath.split("/").pop() || "archivo");
         } else {
-          // Fallback: try blob download
-          const { data: blob, error: blobErr } = await supabase.storage
-            .from("lab-images")
-            .download(storagePath);
-          if (blobErr) {
-            // Last resort: open original URL
-            window.open(recurso.url, "_blank");
-            return;
-          }
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = blobUrl;
-          a.download = recurso.titulo || storagePath.split("/").pop() || "archivo";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(blobUrl);
+          // Fallback: use public URL
+          downloadFile(publicUrl, recurso.titulo || storagePath.split("/").pop() || "archivo");
         }
       }
     } catch (err) {
       console.error("Error handling file:", err);
-      window.open(recurso.url, "_blank");
+      openUrl(recurso.url);
     } finally {
       setLoading(false);
     }
