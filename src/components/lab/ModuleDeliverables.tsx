@@ -340,6 +340,59 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
 
   const isExpired = (fecha: string) => new Date(fecha) < new Date();
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // Collect all entregas across all tareas
+      const allEntregasList: { tarea: Tarea; entrega: Entrega }[] = [];
+      for (const tarea of tareas) {
+        const list = allEntregas[tarea.id] || [];
+        for (const entrega of list) {
+          allEntregasList.push({ tarea, entrega });
+        }
+      }
+
+      if (allEntregasList.length === 0) {
+        toast({ title: "Sin datos", description: "No hay entregas para exportar", variant: "destructive" });
+        setExporting(false);
+        return;
+      }
+
+      const rows: Record<string, string | number | null>[] = [];
+      for (const { tarea, entrega } of allEntregasList) {
+        const links: string[] = [];
+        for (const archivo of entrega.archivos_urls || []) {
+          const url = await getEntregaSignedUrl(archivo.url, 604800);
+          links.push(url || archivo.url);
+        }
+        rows.push({
+          Estudiante: `${entrega.usuario?.nombres || ""} ${entrega.usuario?.apellidos || ""}`.trim(),
+          Tarea: tarea.titulo,
+          "Fecha Límite": format(new Date(tarea.fecha_limite), "PPP p", { locale: es }),
+          "Fecha Entrega": format(new Date(entrega.fecha_entrega), "PPP p", { locale: es }),
+          Estado: entrega.estado,
+          Nota: entrega.nota,
+          Feedback: entrega.feedback || "",
+          Comentario: entrega.comentario || "",
+          "Links Archivos": links.join("\n"),
+        });
+      }
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const colWidths = Object.keys(rows[0] || {}).map((k) => ({ wch: Math.max(k.length, 20) }));
+      ws["!cols"] = colWidths;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Entregas");
+      XLSX.writeFile(wb, `entregas_modulo_${moduloId.slice(0, 8)}.xlsx`);
+
+      toast({ title: "Exportación exitosa", description: `Se exportaron ${rows.length} entregas` });
+    } catch (error: any) {
+      toast({ title: "Error al exportar", description: error.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
