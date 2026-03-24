@@ -1,7 +1,8 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List, FileDown } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, List } from "lucide-react";
+import { ResourceLink } from "@/components/lab/ResourceLink";
 import { useUserRole } from "@/hooks/useUserRole";
 import AttendanceManager from "@/components/lab/AttendanceManager";
 import { useState, useEffect } from "react";
