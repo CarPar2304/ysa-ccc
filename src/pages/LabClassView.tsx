@@ -1,7 +1,8 @@
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, List, FileDown } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, List } from "lucide-react";
+import { ResourceLink } from "@/components/lab/ResourceLink";
 import { useUserRole } from "@/hooks/useUserRole";
 import AttendanceManager from "@/components/lab/AttendanceManager";
 import { useState, useEffect } from "react";
@@ -183,69 +184,9 @@ const LabClassView = () => {
                 <CardContent className="p-6">
                   <h2 className="text-xl font-bold mb-4">Recursos</h2>
                   <div className="space-y-2">
-                    {clase.recursos_url.map((recurso, index) => {
-                      const isArchivo = recurso.tipo === "archivo";
-                      
-                      const isPdf = recurso.url?.toLowerCase().endsWith('.pdf') || recurso.titulo?.toLowerCase().endsWith('.pdf');
-
-                      const handleClick = async (e: React.MouseEvent) => {
-                        if (!isArchivo) return;
-                        e.preventDefault();
-                        try {
-                          const url = new URL(recurso.url);
-                          const pathMatch = url.pathname.match(/\/object\/public\/lab-images\/(.+)$/);
-                          if (!pathMatch) { window.open(recurso.url, '_blank'); return; }
-                          const storagePath = decodeURIComponent(pathMatch[1]);
-                          
-                          if (isPdf) {
-                            // For PDFs, get a signed URL and open in new tab
-                            const { data: signedData, error: signedError } = await supabase.storage
-                              .from('lab-images')
-                              .createSignedUrl(storagePath, 300);
-                            if (signedError) throw signedError;
-                            if (signedData?.signedUrl) {
-                              window.open(signedData.signedUrl, '_blank');
-                            }
-                          } else {
-                            // For other files, download
-                            const { data, error } = await supabase.storage.from('lab-images').download(storagePath);
-                            if (error) throw error;
-                            const blobUrl = URL.createObjectURL(data);
-                            const a = document.createElement('a');
-                            a.href = blobUrl;
-                            a.download = recurso.titulo || storagePath.split('/').pop() || 'archivo';
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(blobUrl);
-                          }
-                        } catch (err) {
-                          console.error("Error handling file:", err);
-                          window.open(recurso.url, '_blank');
-                        }
-                      };
-
-                      return (
-                        <a
-                          key={index}
-                          href={recurso.url}
-                          target={isArchivo ? undefined : "_blank"}
-                          rel={isArchivo ? undefined : "noopener noreferrer"}
-                          onClick={isArchivo ? handleClick : undefined}
-                          className="flex items-center gap-2 p-3 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
-                        >
-                          {isArchivo ? (
-                            <FileDown className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                          )}
-                          <span className="text-foreground flex-1">{recurso.titulo}</span>
-                          {isArchivo && (
-                            <span className="text-xs text-muted-foreground">Descargar</span>
-                          )}
-                        </a>
-                      );
-                    })}
+                    {clase.recursos_url.map((recurso, index) => (
+                      <ResourceLink key={index} recurso={recurso} />
+                    ))}
                   </div>
                 </CardContent>
               </Card>
