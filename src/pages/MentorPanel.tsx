@@ -32,11 +32,13 @@ const MentorPanel = () => {
         </div>
 
         <Tabs defaultValue="evaluaciones" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="evaluaciones">Evaluaciones</TabsTrigger>
-            <TabsTrigger value="entregas">Entregas</TabsTrigger>
-            <TabsTrigger value="asesorias">Mis Asesorías</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between gap-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="evaluaciones">Evaluaciones</TabsTrigger>
+              <TabsTrigger value="entregas">Entregas</TabsTrigger>
+              <TabsTrigger value="asesorias">Mis Asesorías</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="evaluaciones">
             <AssignedEntrepreneurships />
