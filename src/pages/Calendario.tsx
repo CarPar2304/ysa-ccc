@@ -46,7 +46,8 @@ const Calendario = () => {
   // Entrega status map: tareaId -> boolean (delivered)
   const [entregaStatusMap, setEntregaStatusMap] = useState<Record<string, boolean>>({});
 
-  // Entregable filter
+  // Filters
+  const [eventTypeFilter, setEventTypeFilter] = useState<"all" | "clase" | "entregable" | "evento">("all");
   const [entregableFilter, setEntregableFilter] = useState<"all" | "pending" | "delivered">("all");
 
   const canManage = isAdmin || isOperador;
