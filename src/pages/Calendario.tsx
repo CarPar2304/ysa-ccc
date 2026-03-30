@@ -12,7 +12,10 @@ import { format } from "date-fns";
 
 const Calendario = () => {
   const { isAdmin, isOperador, isMentor, isBeneficiario, isStakeholder, loading: roleLoading } = useUserRole();
-  const { nivel, cohorte, loading: quotaLoading } = useQuotaStatus();
+  const { userId } = useUserRole();
+  const { quotaInfo, loading: quotaLoading } = useQuotaStatus(userId);
+  const nivel = quotaInfo?.nivel || null;
+  const cohorte = quotaInfo?.cohorte || null;
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
