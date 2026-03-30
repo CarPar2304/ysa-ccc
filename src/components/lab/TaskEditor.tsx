@@ -213,13 +213,24 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fechaLimite">Fecha límite *</Label>
+              <Label htmlFor="fechaInicio">Fecha de inicio</Label>
               <Input
-                id="fechaLimite"
+                id="fechaInicio"
                 type="datetime-local"
-                value={fechaLimite}
-                onChange={(e) => setFechaLimite(e.target.value)}
-                required
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="fechaLimite">Fecha de cierre / límite *</Label>
+            <Input
+              id="fechaLimite"
+              type="datetime-local"
+              value={fechaLimite}
+              onChange={(e) => setFechaLimite(e.target.value)}
+              required
               />
             </div>
           </div>
