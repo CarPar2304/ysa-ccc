@@ -262,7 +262,7 @@ const Calendario = () => {
     fetchEvents();
   };
 
-  if (roleLoading || quotaLoading) {
+  if (roleLoading || quotaLoading || operadorLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
