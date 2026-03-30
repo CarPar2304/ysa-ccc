@@ -8,8 +8,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { Plus, Upload, X, Link, FileUp } from "lucide-react";
+import { Plus, Upload, X, Link, FileUp, Video, MapPin, Globe } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { InlineDatePicker } from "@/components/calendario/InlineDatePicker";
+import { cn } from "@/lib/utils";
 
 interface Recurso {
   titulo: string;
