@@ -287,42 +287,79 @@ const Calendario = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Entregable filter */}
-            {(
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Filter className="h-3.5 w-3.5" />
-                    Entregables
-                    {entregableFilter !== "all" && (
-                      <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">
-                        {entregableFilter === "pending" ? "Pendientes" : "Entregados"}
-                      </Badge>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuCheckboxItem
-                    checked={entregableFilter === "all"}
-                    onCheckedChange={() => setEntregableFilter("all")}
-                  >
-                    Todos
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={entregableFilter === "pending"}
-                    onCheckedChange={() => setEntregableFilter("pending")}
-                  >
-                    Pendientes
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={entregableFilter === "delivered"}
-                    onCheckedChange={() => setEntregableFilter("delivered")}
-                  >
-                    Entregados
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            {/* Event type filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Filter className="h-3.5 w-3.5" />
+                  Tipo
+                  {eventTypeFilter !== "all" && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1 capitalize">
+                      {eventTypeFilter === "clase" ? "Clases" : eventTypeFilter === "entregable" ? "Entregables" : "Eventos"}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuCheckboxItem
+                  checked={eventTypeFilter === "all"}
+                  onCheckedChange={() => setEventTypeFilter("all")}
+                >
+                  Todos
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={eventTypeFilter === "clase"}
+                  onCheckedChange={() => setEventTypeFilter("clase")}
+                >
+                  Clases
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={eventTypeFilter === "entregable"}
+                  onCheckedChange={() => setEventTypeFilter("entregable")}
+                >
+                  Entregables
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={eventTypeFilter === "evento"}
+                  onCheckedChange={() => setEventTypeFilter("evento")}
+                >
+                  Eventos
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* Entregable status filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  Entregables
+                  {entregableFilter !== "all" && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">
+                      {entregableFilter === "pending" ? "Pendientes" : "Entregados"}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuCheckboxItem
+                  checked={entregableFilter === "all"}
+                  onCheckedChange={() => setEntregableFilter("all")}
+                >
+                  Todos
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={entregableFilter === "pending"}
+                  onCheckedChange={() => setEntregableFilter("pending")}
+                >
+                  Pendientes
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={entregableFilter === "delivered"}
+                  onCheckedChange={() => setEntregableFilter("delivered")}
+                >
+                  Entregados
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="ghost"
               size="icon"
