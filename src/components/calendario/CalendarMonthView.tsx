@@ -241,7 +241,7 @@ export function CalendarMonthView({
               {/* Multi-day event bars overlaid on top */}
               {segments.length > 0 && (
                 <div className="absolute top-7 left-0 right-0 z-10 pointer-events-none">
-                  {segments.map((seg, segIdx) => {
+                  {segments.slice(0, 4).map((seg, segIdx) => {
                     const colors = EVENT_COLORS[seg.event.tipo];
                     const leftPercent = (seg.startCol / 7) * 100;
                     const widthPercent = (seg.span / 7) * 100;
