@@ -7,8 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown, Search, Filter } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown, Search, Filter, ArrowRightLeft } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
@@ -40,6 +50,8 @@ type EstadoFilter = "todos" | "pendiente" | "aprobado" | "rechazado";
 type RecomendacionFilter = "todos" | "recomendado" | "no_recomendado" | "sin_datos";
 type EvalCountFilter = "todos" | "0" | "1" | "2" | "3+";
 
+const ALL_NIVELES: NivelEmprendimiento[] = ["Starter", "Growth", "Scale"];
+
 export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: QuotaLevelTabProps) => {
   const [loading, setLoading] = useState(true);
   const [emprendimientos, setEmprendimientos] = useState<EmprendimientoElegible[]>([]);
@@ -54,6 +66,13 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
   const [cohorteFilter, setCohorteFilter] = useState<string>("todos");
   const [recomendacionFilter, setRecomendacionFilter] = useState<RecomendacionFilter>("todos");
   const [evalCountFilter, setEvalCountFilter] = useState<EvalCountFilter>("todos");
+
+  // Over-quota confirmation dialog
+  const [pendingOverQuotaApproval, setPendingOverQuotaApproval] = useState<EmprendimientoElegible | null>(null);
+  const [overQuotaCohorte, setOverQuotaCohorte] = useState<number>(1);
+
+  // Move level confirmation dialog
+  const [pendingLevelMove, setPendingLevelMove] = useState<{ emp: EmprendimientoElegible; nuevoNivel: NivelEmprendimiento } | null>(null);
   
   const { toast } = useToast();
 
@@ -226,30 +245,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
     }
   };
 
-  const handleAprobar = async (emprendimiento: EmprendimientoElegible) => {
-    if (emprendimiento.mentores_asignados > emprendimiento.evaluaciones_completadas) {
-      toast({
-        title: "Evaluaciones pendientes",
-        description: `Este emprendimiento tiene ${emprendimiento.mentores_asignados} mentor(es) asignado(s) pero solo ${emprendimiento.evaluaciones_completadas} evaluación(es) completada(s). Todas las evaluaciones deben estar completadas antes de aprobar el cupo.`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const cohorte = selectedCohortes[emprendimiento.id] || 1;
-
-    if (cuposUsados >= maxCupos) {
-      toast({ title: "Límite alcanzado", description: `Ya se han asignado los ${maxCupos} cupos disponibles para ${nivel}`, variant: "destructive" });
-      return;
-    }
-
-    if (tieneCohorts && maxPorCohorte) {
-      if (cuposPorCohorte[cohorte as 1 | 2] >= maxPorCohorte) {
-        toast({ title: "Límite de cohorte alcanzado", description: `Ya se han asignado los ${maxPorCohorte} cupos de la cohorte ${cohorte}`, variant: "destructive" });
-        return;
-      }
-    }
-
+  const executeApproval = async (emprendimiento: EmprendimientoElegible, cohorte: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -275,6 +271,68 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
       sendWebhookNotification("Aprobada", emprendimiento, cohorte);
 
       toast({ title: "Cupo aprobado", description: `${emprendimiento.nombre} ha sido aprobado para ${nivel} - Cohorte ${cohorte}. Las evaluaciones ahora son visibles para el usuario.` });
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleAprobar = async (emprendimiento: EmprendimientoElegible) => {
+    if (emprendimiento.mentores_asignados > emprendimiento.evaluaciones_completadas) {
+      toast({
+        title: "Evaluaciones pendientes",
+        description: `Este emprendimiento tiene ${emprendimiento.mentores_asignados} mentor(es) asignado(s) pero solo ${emprendimiento.evaluaciones_completadas} evaluación(es) completada(s). Todas las evaluaciones deben estar completadas antes de aprobar el cupo.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const cohorte = selectedCohortes[emprendimiento.id] || 1;
+
+    const isOverQuota = cuposUsados >= maxCupos;
+    const isOverCohorte = tieneCohorts && maxPorCohorte && cuposPorCohorte[cohorte as 1 | 2] >= maxPorCohorte;
+
+    if (isOverQuota || isOverCohorte) {
+      setPendingOverQuotaApproval(emprendimiento);
+      setOverQuotaCohorte(cohorte);
+      return;
+    }
+
+    await executeApproval(emprendimiento, cohorte);
+  };
+
+  const confirmOverQuotaApproval = async () => {
+    if (!pendingOverQuotaApproval) return;
+    await executeApproval(pendingOverQuotaApproval, overQuotaCohorte);
+    setPendingOverQuotaApproval(null);
+  };
+
+  const handleMoverNivel = async () => {
+    if (!pendingLevelMove) return;
+    const { emp, nuevoNivel } = pendingLevelMove;
+
+    try {
+      // Update emprendimientos.nivel_definitivo
+      const { error: empError } = await supabase
+        .from("emprendimientos")
+        .update({ nivel_definitivo: nuevoNivel })
+        .eq("id", emp.id);
+      if (empError) throw empError;
+
+      // If there's an existing asignacion_cupos, update its nivel too
+      if (emp.asignacion_id) {
+        const { error: cupoError } = await supabase
+          .from("asignacion_cupos")
+          .update({ nivel: nuevoNivel })
+          .eq("id", emp.asignacion_id);
+        if (cupoError) throw cupoError;
+      }
+
+      toast({
+        title: "Nivel actualizado",
+        description: `${emp.nombre} ha sido movido de ${nivel} a ${nuevoNivel}.`,
+      });
+      setPendingLevelMove(null);
       fetchData();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -368,7 +426,8 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
   }
 
   const cuposDisponibles = maxCupos - cuposUsados;
-  const porcentajeUsado = (cuposUsados / maxCupos) * 100;
+  const porcentajeUsado = Math.min((cuposUsados / maxCupos) * 100, 100);
+  const otrosNiveles = ALL_NIVELES.filter(n => n !== nivel);
 
   return (
     <div className="space-y-4">
@@ -387,14 +446,19 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           </CardHeader>
           <CardContent>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary transition-all" style={{ width: `${porcentajeUsado}%` }} />
+              <div
+                className={`h-full transition-all ${cuposUsados > maxCupos ? 'bg-destructive' : 'bg-primary'}`}
+                style={{ width: `${porcentajeUsado}%` }}
+              />
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Cupos Disponibles</CardDescription>
-            <CardTitle className="text-3xl text-green-600">{cuposDisponibles}</CardTitle>
+            <CardTitle className={`text-3xl ${cuposDisponibles <= 0 ? 'text-destructive' : 'text-green-600'}`}>
+              {cuposDisponibles}
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -404,13 +468,17 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Cohorte 1</CardDescription>
-              <CardTitle className="text-2xl">{cuposPorCohorte[1]} / {maxPorCohorte}</CardTitle>
+              <CardTitle className={`text-2xl ${cuposPorCohorte[1] >= maxPorCohorte ? 'text-destructive' : ''}`}>
+                {cuposPorCohorte[1]} / {maxPorCohorte}
+              </CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Cohorte 2</CardDescription>
-              <CardTitle className="text-2xl">{cuposPorCohorte[2]} / {maxPorCohorte}</CardTitle>
+              <CardTitle className={`text-2xl ${cuposPorCohorte[2] >= maxPorCohorte ? 'text-destructive' : ''}`}>
+                {cuposPorCohorte[2]} / {maxPorCohorte}
+              </CardTitle>
             </CardHeader>
           </Card>
         </div>
@@ -541,107 +609,187 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                   <TableHead className="text-center">Recomendación</TableHead>
                   <TableHead className="text-center">Estado</TableHead>
                   {tieneCohorts && <TableHead className="text-center">Cohorte</TableHead>}
+                  <TableHead className="text-center">Mover Nivel</TableHead>
                   <TableHead className="text-center">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEmprendimientos.map((emp) => (
-                  <TableRow key={emp.id}>
-                    <TableCell className="font-medium">{emp.nombre}</TableCell>
-                    <TableCell>{emp.beneficiario_nombre} {emp.beneficiario_apellido}</TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <TrendingUp className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{emp.puntaje_promedio}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary">{emp.total_evaluaciones}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline">{emp.mentores_asignados}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={emp.mentores_asignados === emp.evaluaciones_completadas ? "default" : "destructive"}>
-                        {emp.evaluaciones_completadas}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {emp.recomendaciones.total > 0 ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="flex items-center gap-1 text-green-600">
-                            <ThumbsUp className="h-3.5 w-3.5" />
-                            {emp.recomendaciones.si}
-                          </span>
-                          <span className="flex items-center gap-1 text-destructive">
-                            <ThumbsDown className="h-3.5 w-3.5" />
-                            {emp.recomendaciones.no}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">Sin datos</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {emp.asignacion_estado === "aprobado" && <Badge className="bg-green-500">Aprobado</Badge>}
-                      {emp.asignacion_estado === "rechazado" && <Badge variant="destructive">Rechazado</Badge>}
-                      {!emp.asignacion_estado && <Badge variant="outline">Pendiente</Badge>}
-                    </TableCell>
-                    {tieneCohorts && (
+                {filteredEmprendimientos.map((emp) => {
+                  const isAprobado = emp.asignacion_estado === "aprobado";
+                  return (
+                    <TableRow key={emp.id}>
+                      <TableCell className="font-medium">{emp.nombre}</TableCell>
+                      <TableCell>{emp.beneficiario_nombre} {emp.beneficiario_apellido}</TableCell>
                       <TableCell className="text-center">
-                        {emp.asignacion_estado === "aprobado" ? (
-                          <Badge>{emp.asignacion_cohorte}</Badge>
+                        <div className="flex items-center justify-center gap-1">
+                          <TrendingUp className="h-4 w-4 text-primary" />
+                          <span className="font-semibold">{emp.puntaje_promedio}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary">{emp.total_evaluaciones}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">{emp.mentores_asignados}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={emp.mentores_asignados === emp.evaluaciones_completadas ? "default" : "destructive"}>
+                          {emp.evaluaciones_completadas}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {emp.recomendaciones.total > 0 ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="flex items-center gap-1 text-green-600">
+                              <ThumbsUp className="h-3.5 w-3.5" />
+                              {emp.recomendaciones.si}
+                            </span>
+                            <span className="flex items-center gap-1 text-destructive">
+                              <ThumbsDown className="h-3.5 w-3.5" />
+                              {emp.recomendaciones.no}
+                            </span>
+                          </div>
                         ) : (
-                          <Select
-                            value={selectedCohortes[emp.id]?.toString() || "1"}
-                            onValueChange={(value) => setSelectedCohortes(prev => ({ ...prev, [emp.id]: parseInt(value) }))}
-                          >
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">1</SelectItem>
-                              <SelectItem value="2">2</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <span className="text-muted-foreground text-xs">Sin datos</span>
                         )}
                       </TableCell>
-                    )}
-                    <TableCell className="text-center">
-                      <div className="flex gap-2 justify-center">
-                        {emp.asignacion_estado !== "aprobado" && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAprobar(emp)}
-                            className="gap-1"
-                            disabled={emp.mentores_asignados > emp.evaluaciones_completadas}
-                            title={emp.mentores_asignados > emp.evaluaciones_completadas ? "Faltan evaluaciones por completar" : "Aprobar cupo"}
+                      <TableCell className="text-center">
+                        {emp.asignacion_estado === "aprobado" && <Badge className="bg-green-500">Aprobado</Badge>}
+                        {emp.asignacion_estado === "rechazado" && <Badge variant="destructive">Rechazado</Badge>}
+                        {!emp.asignacion_estado && <Badge variant="outline">Pendiente</Badge>}
+                      </TableCell>
+                      {tieneCohorts && (
+                        <TableCell className="text-center">
+                          {isAprobado ? (
+                            <Badge>{emp.asignacion_cohorte}</Badge>
+                          ) : (
+                            <Select
+                              value={selectedCohortes[emp.id]?.toString() || "1"}
+                              onValueChange={(value) => setSelectedCohortes(prev => ({ ...prev, [emp.id]: parseInt(value) }))}
+                            >
+                              <SelectTrigger className="w-24">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1</SelectItem>
+                                <SelectItem value="2">2</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                      )}
+                      <TableCell className="text-center">
+                        {!isAprobado ? (
+                          <Select
+                            value=""
+                            onValueChange={(nuevoNivel) => {
+                              setPendingLevelMove({ emp, nuevoNivel: nuevoNivel as NivelEmprendimiento });
+                            }}
                           >
-                            <CheckCircle className="h-4 w-4" />
-                            Aprobar
-                          </Button>
+                            <SelectTrigger className="w-28">
+                              <div className="flex items-center gap-1 text-xs">
+                                <ArrowRightLeft className="h-3 w-3" />
+                                <span>Mover</span>
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {otrosNiveles.map(n => (
+                                <SelectItem key={n} value={n}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
                         )}
-                        {emp.asignacion_estado !== "rechazado" && emp.asignacion_estado !== "aprobado" && (
-                          <Button size="sm" variant="destructive" onClick={() => handleRechazar(emp)} className="gap-1">
-                            <XCircle className="h-4 w-4" />
-                            Rechazar
-                          </Button>
-                        )}
-                        {(emp.asignacion_estado === "aprobado" || emp.asignacion_estado === "rechazado") && (
-                          <Button size="sm" variant="outline" onClick={() => handleRevertir(emp)} className="gap-1" title="Volver al estado pendiente">
-                            <RotateCcw className="h-4 w-4" />
-                            Revertir
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex gap-2 justify-center">
+                          {emp.asignacion_estado !== "aprobado" && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleAprobar(emp)}
+                              className="gap-1"
+                              disabled={emp.mentores_asignados > emp.evaluaciones_completadas}
+                              title={emp.mentores_asignados > emp.evaluaciones_completadas ? "Faltan evaluaciones por completar" : "Aprobar cupo"}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Aprobar
+                            </Button>
+                          )}
+                          {emp.asignacion_estado !== "rechazado" && emp.asignacion_estado !== "aprobado" && (
+                            <Button size="sm" variant="destructive" onClick={() => handleRechazar(emp)} className="gap-1">
+                              <XCircle className="h-4 w-4" />
+                              Rechazar
+                            </Button>
+                          )}
+                          {(emp.asignacion_estado === "aprobado" || emp.asignacion_estado === "rechazado") && (
+                            <Button size="sm" variant="outline" onClick={() => handleRevertir(emp)} className="gap-1" title="Volver al estado pendiente">
+                              <RotateCcw className="h-4 w-4" />
+                              Revertir
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
+
+      {/* Over-quota confirmation dialog */}
+      <AlertDialog open={!!pendingOverQuotaApproval} onOpenChange={(open) => { if (!open) setPendingOverQuotaApproval(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">⚠️ Cupos agotados</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Se han utilizado los <strong>{maxCupos} cupos disponibles</strong> para el nivel <strong>{nivel}</strong>.
+                Actualmente hay <strong>{cuposUsados}</strong> cupos aprobados.
+              </p>
+              {tieneCohorts && maxPorCohorte && cuposPorCohorte[overQuotaCohorte as 1 | 2] >= maxPorCohorte && (
+                <p>
+                  Además, la <strong>Cohorte {overQuotaCohorte}</strong> ya tiene <strong>{cuposPorCohorte[overQuotaCohorte as 1 | 2]}</strong> de {maxPorCohorte} cupos asignados.
+                </p>
+              )}
+              <p className="font-medium text-foreground">
+                Estás aprobando solicitudes por encima del límite establecido. ¿Deseas continuar?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmOverQuotaApproval} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Aprobar de todas formas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Move level confirmation dialog */}
+      <AlertDialog open={!!pendingLevelMove} onOpenChange={(open) => { if (!open) setPendingLevelMove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mover de nivel</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Vas a mover <strong>{pendingLevelMove?.emp.nombre}</strong> del nivel <strong>{nivel}</strong> al nivel <strong>{pendingLevelMove?.nuevoNivel}</strong>.
+              </p>
+              <p>
+                Este cambio es independiente del puntaje. Al aprobar el cupo en el nuevo nivel, todo funcionará como si el emprendimiento siempre hubiera pertenecido a ese nivel.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMoverNivel}>
+              Confirmar movimiento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
