@@ -131,7 +131,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
           "rounded-lg border border-border bg-background p-3.5 cursor-pointer",
           "hover:shadow-md hover:border-primary/30 transition-all duration-200",
           "flex flex-col gap-2.5",
-          isCompact ? "w-full" : "flex-shrink-0 w-[230px] min-h-[220px]"
+          isCompact ? "w-full" : "flex-shrink-0 w-[230px]"
         )}
         onClick={() => onEventClick?.(event)}
       >
@@ -287,7 +287,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           <motion.div
-            className="flex gap-3 px-4 pt-4 pb-5"
+            className="flex gap-3 px-4 py-3"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -301,7 +301,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
               <motion.div variants={itemVariants}>
                 <button
                   onClick={() => setShowAllDialog(true)}
-                  className="flex-shrink-0 w-[120px] min-h-[220px] rounded-lg border border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex-shrink-0 w-[120px] rounded-lg border border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
                 >
                   <span className="text-xs text-muted-foreground font-medium">
                     +{upcomingEvents.length - 12} más
