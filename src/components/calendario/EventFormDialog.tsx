@@ -117,9 +117,15 @@ export function EventFormDialog({
   };
 
   const toggleNivel = (nivel: string) => {
-    setNivelesAcceso((prev) =>
-      prev.includes(nivel) ? prev.filter((n) => n !== nivel) : [...prev, nivel]
-    );
+    setNivelesAcceso((prev) => {
+      const next = prev.includes(nivel) ? prev.filter((n) => n !== nivel) : [...prev, nivel];
+      // If only Scale remains, clear cohortes since Scale has a single cohorte
+      const hasStarterOrGrowth = next.includes("Starter") || next.includes("Growth");
+      if (!hasStarterOrGrowth) {
+        setCohortesAcceso([]);
+      }
+      return next;
+    });
   };
 
   const toggleCohorte = (cohorte: number) => {
