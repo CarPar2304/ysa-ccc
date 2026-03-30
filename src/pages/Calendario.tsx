@@ -49,6 +49,8 @@ const Calendario = () => {
   // Filters
   const [eventTypeFilter, setEventTypeFilter] = useState<"all" | "clase" | "entregable" | "evento">("all");
   const [entregableFilter, setEntregableFilter] = useState<"all" | "pending" | "delivered">("all");
+  const [nivelFilter, setNivelFilter] = useState<"all" | string>("all");
+  const [cohorteFilter, setCohorteFilter] = useState<"all" | string>("all");
 
   const canManage = isAdmin || isOperador;
 
