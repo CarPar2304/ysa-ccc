@@ -22,6 +22,7 @@ const navigation = [
   { name: "YSA Conecta", href: "/", icon: Home },
   { name: "Noticias", href: "/news", icon: Newspaper },
   { name: "Classroom", href: "/lab", icon: BookOpen },
+  { name: "Calendario", href: "/calendario", icon: CalendarDays },
   { name: "Mentorías", href: "/mentorias", icon: User },
 ];
 
