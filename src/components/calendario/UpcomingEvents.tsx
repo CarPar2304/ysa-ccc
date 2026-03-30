@@ -96,7 +96,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring", stiffness: 120, damping: 16 },
+      transition: { type: "spring" as const, stiffness: 120, damping: 16 },
     },
   };
 
