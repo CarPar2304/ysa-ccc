@@ -31,6 +31,12 @@ interface ClassEditorProps {
     recursos_url: Recurso[];
     imagen_url?: string;
     cohorte?: number[];
+    fecha?: string;
+    hora_inicio?: string;
+    hora_fin?: string;
+    modalidad?: string;
+    lugar?: string;
+    link_virtual?: string;
   };
   moduloId: string;
   nivelModulo?: string | null;
