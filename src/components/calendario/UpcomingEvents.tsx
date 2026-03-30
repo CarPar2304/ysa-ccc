@@ -301,7 +301,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
               <motion.div variants={itemVariants}>
                 <button
                   onClick={() => setShowAllDialog(true)}
-                  className="flex-shrink-0 w-[120px] min-h-[220px] rounded-lg border border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex-shrink-0 w-[120px] rounded-lg border border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
                 >
                   <span className="text-xs text-muted-foreground font-medium">
                     +{upcomingEvents.length - 12} más
