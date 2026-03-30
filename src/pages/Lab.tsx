@@ -247,7 +247,7 @@ const Lab = () => {
     }
   };
 
-  if (loading || (isBeneficiario && quotaLoading)) {
+  if (roleLoading || loading || (isBeneficiario && quotaLoading)) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
