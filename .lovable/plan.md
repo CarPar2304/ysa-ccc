@@ -1,80 +1,37 @@
 
 
-# Plan: Botón de Actualización de Datos en Candidatos
+## Plan: Mejoras en Cupos - Sobre-cupo y Mover Nivel
 
-## Resumen
-Crear un sistema de actualización de datos con dos modos (masivo e individual) y una función especial para actualizar correo/contraseña via edge function con service_role.
+### Cambio 1: Aprobar por encima del límite de cupos
 
-## Componentes a crear
+**Archivo:** `src/components/admin/QuotaLevelTab.tsx`
 
-### 1. `UpdateDataModal.tsx` (nuevo componente en `src/components/candidatos/`)
-Modal principal con dos tabs:
-- **Masiva**: Seleccionar campos a actualizar → descargar plantilla Excel (siempre con columna email + campos seleccionados) → cargar Excel con datos → validar emails contra BD → mostrar cuáles cruzaron/no cruzaron → confirmar actualización solo de los que cruzaron
-- **Individual**: Buscar/seleccionar un candidato → editar los campos seleccionados directamente en un formulario → guardar
+- Reemplazar el bloqueo duro en `handleAprobar` (líneas 241-251) que impide aprobar cuando se excede el límite.
+- Agregar estado `pendingOverQuotaApproval` para almacenar temporalmente el emprendimiento que se quiere aprobar.
+- Mostrar un `AlertDialog` de confirmación con disclaimer: "Se han agotado los X cupos disponibles para [Nivel]. Estás aprobando solicitudes por encima del límite."
+- Si confirma, ejecutar la aprobación normalmente.
+- En la card "Cupos Disponibles", mostrar el número en rojo cuando es negativo o cero.
 
-**Campos disponibles para actualización masiva/individual:**
-- Datos de usuario: nombres, apellidos, celular, numero_identificacion, departamento, municipio, genero, direccion, ano_nacimiento, etc.
-- Datos de emprendimiento: nombre, nit, como_se_entero, categoria, etapa, pagina_web, industria_vertical, etc.
+### Cambio 2: Mover nivel para usuarios sin cupo aprobado
 
-### 2. `UpdateCredentialsModal.tsx` (nuevo componente en `src/components/candidatos/`)
-Modal separado para actualizar email y/o contraseña de un usuario:
-- Buscar usuario por email actual
-- Campos: nuevo email, nueva contraseña (opcionales, al menos uno)
-- Al guardar, llama a una edge function que usa `service_role` para:
-  - `supabase.auth.admin.updateUserById()` para actualizar email/contraseña en auth sin enviar notificación
-  - Actualizar el campo `email` en la tabla `usuarios` si se cambió el correo
+**Archivo:** `src/components/admin/QuotaLevelTab.tsx`
 
-### 3. Edge Function `update-user-credentials` (nuevo)
-- Recibe: `user_id`, `new_email?`, `new_password?`
-- Valida que el caller sea admin (verifica JWT + role)
-- Usa `supabase.auth.admin.updateUserById(user_id, { email, password, email_confirm: true })` con `email_confirm: true` para que no envíe correo de confirmación
-- Si se cambió email, también hace `UPDATE usuarios SET email = new_email WHERE id = user_id`
+- Agregar columna "Mover nivel" en la tabla, visible **solo** para emprendimientos **sin cupo aprobado** (pendiente o sin asignación).
+- La columna muestra un `Select` con los otros dos niveles (ej. si está en Growth, muestra Starter y Scale).
+- Al seleccionar un nuevo nivel:
+  1. Actualizar `emprendimientos.nivel_definitivo` al nuevo nivel.
+  2. Si existe una `asignacion_cupos`, actualizar también `asignacion_cupos.nivel`.
+  3. Refrescar datos (el emprendimiento desaparece del tab actual y aparece en el tab del nuevo nivel).
+- El emprendimiento queda en el nuevo nivel como si siempre hubiera estado ahí. Al aprobar el cupo en ese tab, todo funciona normalmente: el webhook envía el nivel del tab, la BD queda con el nivel correcto, las exportaciones reflejan el nivel asignado.
+- Agregar `AlertDialog` de confirmación: "Vas a mover [Emprendimiento] de [Nivel actual] a [Nuevo nivel]. Esto cambiará su nivel independientemente de su puntaje."
 
-### 4. Integración en `CandidatosList.tsx`
-- Agregar botón "Actualizar Datos" junto a los botones existentes (Actualizar, Exportar)
-- Dropdown o modal que permita elegir: "Actualización masiva", "Actualización individual", "Cambiar correo/contraseña"
+### Detalle técnico
 
-## Flujo de actualización masiva
+**Archivo a modificar:** `src/components/admin/QuotaLevelTab.tsx`
 
-```text
-1. Admin abre modal → selecciona campos (ej: NIT, como_se_entero)
-2. Descarga plantilla Excel con columnas: Email, NIT, Por dónde se enteró
-3. Llena la plantilla con datos
-4. Carga el Excel
-5. Sistema lee emails, cruza contra tabla usuarios
-6. Muestra: X emails encontrados, Y no encontrados (lista de ambos)
-7. Admin confirma → se actualizan solo los registros que cruzaron
-8. Resultado: X actualizados, Y ignorados
-```
-
-## Flujo de actualización de credenciales
-
-```text
-1. Admin busca usuario por email
-2. Ingresa nuevo email y/o nueva contraseña
-3. Confirma → edge function actualiza auth + BD
-4. No se envía ningún correo al usuario
-```
-
-## Archivos a crear/modificar
-1. **Crear** `src/components/candidatos/UpdateDataModal.tsx` -- modal con tabs masiva/individual
-2. **Crear** `src/components/candidatos/UpdateCredentialsModal.tsx` -- modal para email/contraseña
-3. **Crear** `supabase/functions/update-user-credentials/index.ts` -- edge function con service_role
-4. **Modificar** `supabase/config.toml` -- agregar config para la nueva edge function con `verify_jwt = false`
-5. **Modificar** `src/components/candidatos/CandidatosList.tsx` -- agregar botón y estados para los nuevos modales
-
-## Detalles técnicos
-
-### Edge function `update-user-credentials`
-- Verificación manual de JWT del caller
-- Verificación de que el caller tiene rol admin via query a `user_roles`
-- Usa `SUPABASE_SERVICE_ROLE_KEY` (ya existe como secret)
-- `updateUserById` con `email_confirm: true` evita envío de correo de confirmación
-
-### Actualización masiva - lógica de cruce
-- Lee Excel con `xlsx` (ya instalado)
-- Normaliza emails (lowercase, trim)
-- Query a `usuarios` para encontrar IDs por email
-- Para campos de `usuarios`: update directo
-- Para campos de `emprendimientos`: buscar emprendimiento por user_id, luego update
+- Importar `AlertDialog` components.
+- Nuevos estados: `pendingOverQuotaApproval`, `pendingLevelMove` (con emprendimiento + nuevo nivel).
+- Función `handleMoverNivel`: update a `emprendimientos.nivel_definitivo` + update condicional a `asignacion_cupos.nivel` + `fetchData()`.
+- Modificar `handleAprobar` para mostrar diálogo en vez de bloquear cuando excede límite.
+- No requiere migración de base de datos.
 
