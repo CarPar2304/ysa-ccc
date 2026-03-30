@@ -1241,8 +1241,16 @@ export type Database = {
           contenido: string | null
           created_at: string
           descripcion: string | null
+          es_evento: boolean
+          evento_calendario_id: string | null
+          fecha_evento: string | null
+          hora_fin_evento: string | null
+          hora_inicio_evento: string | null
           id: string
           imagen_url: string | null
+          link_virtual_evento: string | null
+          lugar_evento: string | null
+          modalidad_evento: string | null
           niveles_acceso: string[] | null
           publicado: boolean
           titulo: string
@@ -1257,8 +1265,16 @@ export type Database = {
           contenido?: string | null
           created_at?: string
           descripcion?: string | null
+          es_evento?: boolean
+          evento_calendario_id?: string | null
+          fecha_evento?: string | null
+          hora_fin_evento?: string | null
+          hora_inicio_evento?: string | null
           id?: string
           imagen_url?: string | null
+          link_virtual_evento?: string | null
+          lugar_evento?: string | null
+          modalidad_evento?: string | null
           niveles_acceso?: string[] | null
           publicado?: boolean
           titulo: string
@@ -1273,8 +1289,16 @@ export type Database = {
           contenido?: string | null
           created_at?: string
           descripcion?: string | null
+          es_evento?: boolean
+          evento_calendario_id?: string | null
+          fecha_evento?: string | null
+          hora_fin_evento?: string | null
+          hora_inicio_evento?: string | null
           id?: string
           imagen_url?: string | null
+          link_virtual_evento?: string | null
+          lugar_evento?: string | null
+          modalidad_evento?: string | null
           niveles_acceso?: string[] | null
           publicado?: boolean
           titulo?: string
@@ -1286,6 +1310,13 @@ export type Database = {
             columns: ["autor_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "noticias_evento_calendario_id_fkey"
+            columns: ["evento_calendario_id"]
+            isOneToOne: false
+            referencedRelation: "eventos_calendario"
             referencedColumns: ["id"]
           },
         ]

@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Upload, X, Loader2 as LoaderIcon } from "lucide-react";
+import { Plus, Upload, X, Loader2 as LoaderIcon, CalendarDays } from "lucide-react";
 import { MarkdownToolbar } from "./MarkdownToolbar";
 
 interface NewsEditorProps {
@@ -43,6 +44,13 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
     boton_url: "",
     niveles_acceso: [] as string[],
     cohortes_acceso: [] as number[],
+    es_evento: false,
+    fecha_evento: "",
+    hora_inicio_evento: "",
+    hora_fin_evento: "",
+    lugar_evento: "",
+    link_virtual_evento: "",
+    modalidad_evento: "Virtual",
   });
 
   useEffect(() => {
@@ -58,6 +66,13 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
         boton_url: (noticia as any).boton_url || "",
         niveles_acceso: (noticia as any).niveles_acceso || [],
         cohortes_acceso: (noticia as any).cohortes_acceso || [],
+        es_evento: (noticia as any).es_evento || false,
+        fecha_evento: (noticia as any).fecha_evento || "",
+        hora_inicio_evento: (noticia as any).hora_inicio_evento || "",
+        hora_fin_evento: (noticia as any).hora_fin_evento || "",
+        lugar_evento: (noticia as any).lugar_evento || "",
+        link_virtual_evento: (noticia as any).link_virtual_evento || "",
+        modalidad_evento: (noticia as any).modalidad_evento || "Virtual",
       });
       setImagePreview(noticia.imagen_url || null);
     }
@@ -137,31 +152,88 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
         return;
       }
 
-      const payload = {
-        ...formData,
-        niveles_acceso: formData.niveles_acceso.length > 0 ? formData.niveles_acceso : null,
-        cohortes_acceso: formData.cohortes_acceso.length > 0 ? formData.cohortes_acceso : null,
+      if (formData.es_evento && !formData.fecha_evento) {
+        toast({ title: "Error", description: "Debes indicar la fecha del evento", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      const { es_evento, fecha_evento, hora_inicio_evento, hora_fin_evento, lugar_evento, link_virtual_evento, modalidad_evento, ...rest } = formData;
+
+      const noticiaPayload: any = {
+        ...rest,
+        es_evento,
+        fecha_evento: es_evento && fecha_evento ? fecha_evento : null,
+        hora_inicio_evento: es_evento && hora_inicio_evento ? hora_inicio_evento : null,
+        hora_fin_evento: es_evento && hora_fin_evento ? hora_fin_evento : null,
+        lugar_evento: es_evento && lugar_evento ? lugar_evento : null,
+        link_virtual_evento: es_evento && link_virtual_evento ? link_virtual_evento : null,
+        modalidad_evento: es_evento ? modalidad_evento : null,
+        niveles_acceso: rest.niveles_acceso.length > 0 ? rest.niveles_acceso : null,
+        cohortes_acceso: rest.cohortes_acceso.length > 0 ? rest.cohortes_acceso : null,
       };
+
+      let noticiaId = noticia?.id;
 
       if (noticia) {
         const { error } = await supabase
           .from("noticias")
-          .update({ ...payload, updated_at: new Date().toISOString() })
+          .update({ ...noticiaPayload, updated_at: new Date().toISOString() })
           .eq("id", noticia.id);
         if (error) throw error;
-        toast({ title: "Noticia actualizada" });
       } else {
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from("noticias")
-          .insert({ ...payload, autor_id: user.id });
+          .insert({ ...noticiaPayload, autor_id: user.id })
+          .select("id")
+          .single();
         if (error) throw error;
-        toast({ title: "Noticia creada" });
+        noticiaId = inserted.id;
       }
 
+      // Sync calendar event
+      if (es_evento && fecha_evento && noticiaId) {
+        const existingEventoId = (noticia as any)?.evento_calendario_id;
+        const calPayload = {
+          titulo: `📰 ${rest.titulo}`,
+          descripcion: rest.descripcion || null,
+          fecha: fecha_evento,
+          hora_inicio: hora_inicio_evento || null,
+          hora_fin: hora_fin_evento || null,
+          lugar: lugar_evento || null,
+          link_virtual: link_virtual_evento || null,
+          modalidad: modalidad_evento || null,
+          tipo: "evento",
+          niveles_acceso: rest.niveles_acceso.length > 0 ? rest.niveles_acceso : null,
+          cohortes_acceso: rest.cohortes_acceso.length > 0 ? rest.cohortes_acceso : null,
+          created_by: user.id,
+        };
+
+        if (existingEventoId) {
+          await supabase
+            .from("eventos_calendario")
+            .update({ ...calPayload, updated_at: new Date().toISOString() })
+            .eq("id", existingEventoId);
+        } else {
+          const { data: calEvt } = await supabase
+            .from("eventos_calendario")
+            .insert(calPayload)
+            .select("id")
+            .single();
+          if (calEvt) {
+            await supabase
+              .from("noticias")
+              .update({ evento_calendario_id: calEvt.id })
+              .eq("id", noticiaId);
+          }
+        }
+      }
+
+      toast({ title: noticia ? "Noticia actualizada" : "Noticia creada" });
       setOpen(false);
       onSuccess();
       if (!noticia) {
-        setFormData({ titulo: "", descripcion: "", contenido: "", categoria: "", imagen_url: "", publicado: false, boton_texto: "", boton_url: "", niveles_acceso: [], cohortes_acceso: [] });
+        setFormData({ titulo: "", descripcion: "", contenido: "", categoria: "", imagen_url: "", publicado: false, boton_texto: "", boton_url: "", niveles_acceso: [], cohortes_acceso: [], es_evento: false, fecha_evento: "", hora_inicio_evento: "", hora_fin_evento: "", lugar_evento: "", link_virtual_evento: "", modalidad_evento: "Virtual" });
         setImagePreview(null);
       }
     } catch (error: any) {
@@ -284,6 +356,88 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
                 />
               </div>
             </div>
+          </div>
+
+          {/* Evento / Cronograma */}
+          <div className="space-y-3 rounded-md border border-border p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Anclar al cronograma
+              </Label>
+              <Switch
+                checked={formData.es_evento}
+                onCheckedChange={(checked) => setFormData({ ...formData, es_evento: checked })}
+              />
+            </div>
+            {formData.es_evento && (
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Fecha del evento *</Label>
+                    <Input
+                      type="date"
+                      value={formData.fecha_evento}
+                      onChange={(e) => setFormData({ ...formData, fecha_evento: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Modalidad</Label>
+                    <Select
+                      value={formData.modalidad_evento}
+                      onValueChange={(v) => setFormData({ ...formData, modalidad_evento: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Virtual">Virtual</SelectItem>
+                        <SelectItem value="Presencial">Presencial</SelectItem>
+                        <SelectItem value="Híbrido">Híbrido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Hora inicio</Label>
+                    <Input
+                      type="time"
+                      value={formData.hora_inicio_evento}
+                      onChange={(e) => setFormData({ ...formData, hora_inicio_evento: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Hora fin</Label>
+                    <Input
+                      type="time"
+                      value={formData.hora_fin_evento}
+                      onChange={(e) => setFormData({ ...formData, hora_fin_evento: e.target.value })}
+                    />
+                  </div>
+                </div>
+                {(formData.modalidad_evento === "Presencial" || formData.modalidad_evento === "Híbrido") && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Lugar</Label>
+                    <Input
+                      value={formData.lugar_evento}
+                      onChange={(e) => setFormData({ ...formData, lugar_evento: e.target.value })}
+                      placeholder="Dirección o nombre del lugar"
+                    />
+                  </div>
+                )}
+                {(formData.modalidad_evento === "Virtual" || formData.modalidad_evento === "Híbrido") && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Link virtual</Label>
+                    <Input
+                      value={formData.link_virtual_evento}
+                      onChange={(e) => setFormData({ ...formData, link_virtual_evento: e.target.value })}
+                      placeholder="https://meet.google.com/..."
+                    />
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground">Al publicar, se creará automáticamente un evento en el cronograma.</p>
+              </div>
+            )}
           </div>
 
           {/* Público objetivo */}
