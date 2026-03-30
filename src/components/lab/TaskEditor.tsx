@@ -109,6 +109,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
           num_documentos: numDocumentos,
           documentos_obligatorios: documentosObligatorios,
           fecha_limite: new Date(fechaLimite).toISOString(),
+          fecha_inicio: fechaInicio ? new Date(fechaInicio).toISOString() : null,
           activo,
           created_by: user.id,
         };
