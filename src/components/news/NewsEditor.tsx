@@ -44,6 +44,13 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
     boton_url: "",
     niveles_acceso: [] as string[],
     cohortes_acceso: [] as number[],
+    es_evento: false,
+    fecha_evento: "",
+    hora_inicio_evento: "",
+    hora_fin_evento: "",
+    lugar_evento: "",
+    link_virtual_evento: "",
+    modalidad_evento: "Virtual",
   });
 
   useEffect(() => {
