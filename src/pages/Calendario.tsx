@@ -300,7 +300,83 @@ const Calendario = () => {
               Clases, entregables y eventos del programa
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Admin nivel filter */}
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Nivel
+                    {nivelFilter !== "all" && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1 capitalize">
+                        {nivelFilter}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuCheckboxItem
+                    checked={nivelFilter === "all"}
+                    onCheckedChange={() => setNivelFilter("all")}
+                  >
+                    Todos
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={nivelFilter === "Starter"}
+                    onCheckedChange={() => setNivelFilter("Starter")}
+                  >
+                    Starter
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={nivelFilter === "Growth"}
+                    onCheckedChange={() => setNivelFilter("Growth")}
+                  >
+                    Growth
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={nivelFilter === "Scale"}
+                    onCheckedChange={() => setNivelFilter("Scale")}
+                  >
+                    Scale
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {/* Admin cohorte filter */}
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    Cohorte
+                    {cohorteFilter !== "all" && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">
+                        Cohorte {cohorteFilter}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuCheckboxItem
+                    checked={cohorteFilter === "all"}
+                    onCheckedChange={() => setCohorteFilter("all")}
+                  >
+                    Todas
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={cohorteFilter === "1"}
+                    onCheckedChange={() => setCohorteFilter("1")}
+                  >
+                    Cohorte 1
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={cohorteFilter === "2"}
+                    onCheckedChange={() => setCohorteFilter("2")}
+                  >
+                    Cohorte 2
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             {/* Event type filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
