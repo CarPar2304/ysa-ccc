@@ -291,36 +291,36 @@ export function CalendarMonthView({
                   const dayEvents = getSingleEventsForDay(day);
                   const isCurrentMonth = isSameMonth(day, currentMonth);
                   const isToday = isSameDay(day, today);
-                  // Reserve space for multi-day bars
-                  const multiDaySlots = segments.length;
+                   // Reserve space for multi-day bars (capped at 4)
+                   const multiDaySlots = Math.min(segments.length, 4);
 
-                  return (
-                    <div
-                      key={dayIdx}
-                      className={cn(
-                        "min-h-[100px] border-b border-r border-border p-1.5 transition-colors relative group",
-                        isCurrentMonth ? "bg-background" : "bg-muted/30",
-                        onDayClick && "cursor-pointer hover:bg-accent/30"
-                      )}
-                      onClick={() => onDayClick?.(day)}
-                    >
-                      {/* Day number */}
-                      <div className="flex items-center justify-between mb-1">
-                        <span
-                          className={cn(
-                            "text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full",
-                            isToday && "bg-primary text-primary-foreground font-bold",
-                            !isCurrentMonth && "text-muted-foreground/50"
-                          )}
-                        >
-                          {format(day, "d")}
-                        </span>
-                      </div>
+                   return (
+                     <div
+                       key={dayIdx}
+                       className={cn(
+                         "min-h-[100px] border-b border-r border-border p-1.5 transition-colors relative group",
+                         isCurrentMonth ? "bg-background" : "bg-muted/30",
+                         onDayClick && "cursor-pointer hover:bg-accent/30"
+                       )}
+                       onClick={() => onDayClick?.(day)}
+                     >
+                       {/* Day number */}
+                       <div className="flex items-center justify-between mb-1">
+                         <span
+                           className={cn(
+                             "text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full",
+                             isToday && "bg-primary text-primary-foreground font-bold",
+                             !isCurrentMonth && "text-muted-foreground/50"
+                           )}
+                         >
+                           {format(day, "d")}
+                         </span>
+                       </div>
 
-                      {/* Spacer for multi-day bars */}
-                      {multiDaySlots > 0 && (
-                        <div style={{ height: `${multiDaySlots * 22 + 4}px` }} />
-                      )}
+                       {/* Spacer for multi-day bars */}
+                       {multiDaySlots > 0 && (
+                         <div style={{ height: `${multiDaySlots * 22 + 4}px` }} />
+                       )}
 
                       {/* Single-day events */}
                       {(() => {
