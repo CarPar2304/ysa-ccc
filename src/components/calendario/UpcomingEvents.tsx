@@ -131,7 +131,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
           "rounded-lg border border-border bg-background p-3.5 cursor-pointer",
           "hover:shadow-md hover:border-primary/30 transition-all duration-200",
           "flex flex-col gap-2.5",
-          isCompact ? "w-full" : "flex-shrink-0 w-[230px] min-h-[220px]"
+          isCompact ? "w-full" : "flex-shrink-0 w-[230px]"
         )}
         onClick={() => onEventClick?.(event)}
       >
