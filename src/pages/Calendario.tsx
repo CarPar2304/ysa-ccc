@@ -8,6 +8,7 @@ import { DayDetailSheet } from "@/components/calendario/DayDetailSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
+import { useOperadorNiveles } from "@/hooks/useOperadorNiveles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Loader2, Filter } from "lucide-react";
