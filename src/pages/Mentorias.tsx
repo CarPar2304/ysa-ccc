@@ -302,7 +302,7 @@ const Mentorias = () => {
   const availableSlots = getAvailableSlots();
   const isExternalCalendar = selectedPerfil?.tipo_disponibilidad === "calendario_externo";
 
-  if (loadingQuota) {
+  if (roleLoading || loadingQuota) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
