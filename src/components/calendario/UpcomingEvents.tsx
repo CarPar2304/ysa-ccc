@@ -161,9 +161,9 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
                 key={event.id}
                 variants={itemVariants}
                 className={cn(
-                  "flex-shrink-0 w-[220px] rounded-lg border border-border bg-background p-3.5 cursor-pointer",
+                  "flex-shrink-0 w-[220px] min-h-[160px] rounded-lg border border-border bg-background p-3.5 cursor-pointer",
                   "hover:shadow-md hover:border-primary/30 transition-all duration-200",
-                  "flex flex-col gap-2.5"
+                  "flex flex-col gap-2"
                 )}
                 onClick={() => onEventClick?.(event)}
               >
