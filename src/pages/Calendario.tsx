@@ -23,6 +23,7 @@ import {
 const Calendario = () => {
   const { isAdmin, isOperador, isMentor, isBeneficiario, isStakeholder, loading: roleLoading, userId } = useUserRole();
   const { quotaInfo, loading: quotaLoading } = useQuotaStatus(userId);
+  const { niveles: operadorNiveles, loading: operadorLoading } = useOperadorNiveles();
   const nivel = quotaInfo?.nivel || null;
   const cohorte = quotaInfo?.cohorte || null;
 
