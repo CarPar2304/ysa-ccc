@@ -89,6 +89,12 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
       setRecursos(clase.recursos_url || []);
       setImagePreview(clase.imagen_url || null);
       setCohortes(clase.cohorte || [1]);
+      setFechaClase(clase.fecha || "");
+      setHoraInicioClase(clase.hora_inicio || "");
+      setHoraFinClase(clase.hora_fin || "");
+      setModalidadClase(clase.modalidad || "virtual");
+      setLugarClase(clase.lugar || "");
+      setLinkVirtualClase(clase.link_virtual || "");
     }
   }, [clase]);
 
