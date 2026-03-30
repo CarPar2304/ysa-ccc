@@ -133,6 +133,7 @@ const Calendario = () => {
         for (const t of tareas) {
           const modulo = t.modulos as any;
           if (isBeneficiario && modulo?.nivel && nivel && modulo.nivel !== nivel) continue;
+          if (isOperador && !isAdmin && modulo?.nivel && !operadorNiveles.includes(modulo.nivel)) continue;
 
           const fechaInicio = t.fecha_inicio
             ? format(new Date(t.fecha_inicio), "yyyy-MM-dd")
