@@ -234,7 +234,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
     <>
       <div
         className={cn(
-          "rounded-xl border border-border bg-card overflow-hidden",
+          "rounded-xl border border-border bg-card",
           className
         )}
       >
