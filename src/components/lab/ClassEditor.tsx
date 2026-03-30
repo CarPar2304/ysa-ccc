@@ -221,6 +221,12 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             imagen_url: finalImagenUrl || null,
             orden: orden ? parseInt(orden) : null,
             cohorte: cohortes,
+            fecha: fechaClase || null,
+            hora_inicio: horaInicioClase || null,
+            hora_fin: horaFinClase || null,
+            modalidad: modalidadClase || null,
+            lugar: (modalidadClase === "presencial" || modalidadClase === "hibrido") ? lugarClase || null : null,
+            link_virtual: (modalidadClase === "virtual" || modalidadClase === "hibrido") ? linkVirtualClase || null : null,
           })
           .select()
           .single();
