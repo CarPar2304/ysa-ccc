@@ -31,12 +31,27 @@ interface ProfileCoFoundersProps {
 }
 
 const tipoDocOptions = [
-  { value: "cc", label: "Cédula de Ciudadanía" },
-  { value: "ce", label: "Cédula de Extranjería" },
-  { value: "ti", label: "Tarjeta de Identidad" },
-  { value: "pasaporte", label: "Pasaporte" },
-  { value: "pep", label: "PEP" },
-  { value: "ppt", label: "PPT" },
+  { value: "Cédula de ciudadanía", label: "Cédula de Ciudadanía" },
+  { value: "Cédula de extranjería", label: "Cédula de Extranjería" },
+  { value: "Tarjeta de identidad", label: "Tarjeta de Identidad" },
+  { value: "Pasaporte", label: "Pasaporte" },
+  { value: "Permiso por Protección Temporal (PPT)", label: "PPT" },
+];
+
+const generoOptions = [
+  { value: "Femenino", label: "Femenino" },
+  { value: "Masculino", label: "Masculino" },
+  { value: "Otro", label: "Otro" },
+  { value: "Prefiero no decir", label: "Prefiero no decir" },
+];
+
+const identificacionEtnicaOptions = [
+  { value: "Ninguna", label: "Ninguna" },
+  { value: "Afrodescendiente", label: "Afrodescendiente" },
+  { value: "Indígena", label: "Indígena" },
+  { value: "Raizal", label: "Raizal" },
+  { value: "Palenquero/a", label: "Palenquero/a" },
+  { value: "Rom/Gitano", label: "Rom/Gitano" },
 ];
 
 export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOwner }: ProfileCoFoundersProps) => {
@@ -58,6 +73,7 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
     municipio: "",
     direccion: "",
     ano_nacimiento: "",
+    identificacion_etnica: "",
   });
 
   useEffect(() => {
@@ -96,8 +112,8 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
   };
 
   const handleSubmit = async () => {
-    if (!form.nombres || !form.apellidos || !form.email) {
-      toast({ title: "Error", description: "Nombres, apellidos y email son obligatorios", variant: "destructive" });
+    if (!form.nombres || !form.apellidos || !form.email || !form.numero_identificacion) {
+      toast({ title: "Error", description: "Nombres, apellidos, email y número de identificación son obligatorios", variant: "destructive" });
       return;
     }
 
@@ -115,7 +131,7 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
 
       toast({ title: "Co-fundador creado", description: data.message });
       setDialogOpen(false);
-      setForm({ nombres: "", apellidos: "", email: "", celular: "", tipo_documento: "", numero_identificacion: "", genero: "", departamento: "", municipio: "", direccion: "", ano_nacimiento: "" });
+      setForm({ nombres: "", apellidos: "", email: "", celular: "", tipo_documento: "", numero_identificacion: "", genero: "", departamento: "", municipio: "", direccion: "", ano_nacimiento: "", identificacion_etnica: "" });
       fetchCoFounders();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -202,6 +218,7 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
             <DialogHeader>
               <DialogTitle>Registrar Co-fundador</DialogTitle>
             </DialogHeader>
+            <p className="text-xs text-muted-foreground">La contraseña del co-fundador será su número de identificación.</p>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -219,16 +236,6 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Celular</Label>
-                  <Input value={form.celular} onChange={e => setForm(f => ({ ...f, celular: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Año de Nacimiento</Label>
-                  <Input value={form.ano_nacimiento} onChange={e => setForm(f => ({ ...f, ano_nacimiento: e.target.value }))} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
                   <Label>Tipo de Documento</Label>
                   <Select value={form.tipo_documento} onValueChange={v => setForm(f => ({ ...f, tipo_documento: v }))}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
@@ -240,8 +247,18 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Número de Identificación</Label>
+                  <Label>Número de Identificación *</Label>
                   <Input value={form.numero_identificacion} onChange={e => setForm(f => ({ ...f, numero_identificacion: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Celular</Label>
+                  <Input value={form.celular} onChange={e => setForm(f => ({ ...f, celular: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Año de Nacimiento</Label>
+                  <Input value={form.ano_nacimiento} onChange={e => setForm(f => ({ ...f, ano_nacimiento: e.target.value }))} placeholder="Ej: 1995" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -250,27 +267,37 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
                   <Select value={form.genero} onValueChange={v => setForm(f => ({ ...f, genero: v }))}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Femenino">Femenino</SelectItem>
-                      <SelectItem value="Masculino">Masculino</SelectItem>
-                      <SelectItem value="Otro">Otro</SelectItem>
-                      <SelectItem value="Prefiero no decir">Prefiero no decir</SelectItem>
+                      {generoOptions.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Departamento</Label>
-                  <Input value={form.departamento} onChange={e => setForm(f => ({ ...f, departamento: e.target.value }))} />
+                  <Label>Identificación Étnica</Label>
+                  <Select value={form.identificacion_etnica} onValueChange={v => setForm(f => ({ ...f, identificacion_etnica: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                    <SelectContent>
+                      {identificacionEtnicaOptions.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label>Departamento</Label>
+                  <Input value={form.departamento} onChange={e => setForm(f => ({ ...f, departamento: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
                   <Label>Municipio</Label>
                   <Input value={form.municipio} onChange={e => setForm(f => ({ ...f, municipio: e.target.value }))} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Dirección</Label>
-                  <Input value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))} />
-                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Dirección</Label>
+                <Input value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))} />
               </div>
             </div>
             <DialogFooter>

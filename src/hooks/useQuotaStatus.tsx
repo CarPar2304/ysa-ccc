@@ -17,37 +17,61 @@ export const useQuotaStatus = (userId: string | null) => {
       }
 
       try {
-        // Obtener el emprendimiento del usuario
+        // 1. Check if user owns an emprendimiento
         const { data: emprendimiento } = await supabase
           .from("emprendimientos")
           .select("id")
           .eq("user_id", userId)
           .maybeSingle();
 
-        if (!emprendimiento) {
-          setIsApproved(false);
-          setLoading(false);
-          return;
+        if (emprendimiento) {
+          // Check quota for own emprendimiento
+          const { data: asignacion } = await supabase
+            .from("asignacion_cupos")
+            .select("estado, nivel, cohorte")
+            .eq("emprendimiento_id", emprendimiento.id)
+            .eq("estado", "aprobado")
+            .maybeSingle();
+
+          if (asignacion) {
+            setIsApproved(true);
+            setQuotaInfo({
+              nivel: asignacion.nivel,
+              cohorte: asignacion.cohorte,
+            });
+            setLoading(false);
+            return;
+          }
         }
 
-        // Verificar si tiene un cupo aprobado
-        const { data: asignacion } = await supabase
-          .from("asignacion_cupos")
-          .select("estado, nivel, cohorte")
-          .eq("emprendimiento_id", emprendimiento.id)
-          .eq("estado", "aprobado")
-          .maybeSingle();
+        // 2. Check if user is a co-founder linked to an emprendimiento with approved quota
+        const { data: memberships } = await supabase
+          .from("emprendimiento_miembros")
+          .select("emprendimiento_id")
+          .eq("user_id", userId);
 
-        if (asignacion) {
-          setIsApproved(true);
-          setQuotaInfo({
-            nivel: asignacion.nivel,
-            cohorte: asignacion.cohorte,
-          });
-        } else {
-          setIsApproved(false);
-          setQuotaInfo(null);
+        if (memberships && memberships.length > 0) {
+          const empIds = memberships.map(m => m.emprendimiento_id);
+          const { data: asignacion } = await supabase
+            .from("asignacion_cupos")
+            .select("estado, nivel, cohorte")
+            .in("emprendimiento_id", empIds)
+            .eq("estado", "aprobado")
+            .maybeSingle();
+
+          if (asignacion) {
+            setIsApproved(true);
+            setQuotaInfo({
+              nivel: asignacion.nivel,
+              cohorte: asignacion.cohorte,
+            });
+            setLoading(false);
+            return;
+          }
         }
+
+        setIsApproved(false);
+        setQuotaInfo(null);
       } catch (error) {
         console.error("Error checking quota status:", error);
         setIsApproved(false);
