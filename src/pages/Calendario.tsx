@@ -1,15 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { CalendarMonthView, CalendarEvent } from "@/components/calendario/CalendarMonthView";
 import { UpcomingEvents } from "@/components/calendario/UpcomingEvents";
 import { EventFormDialog } from "@/components/calendario/EventFormDialog";
 import { EventDetailDialog } from "@/components/calendario/EventDetailDialog";
+import { DayDetailSheet } from "@/components/calendario/DayDetailSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Plus, RefreshCw, Loader2, Filter } from "lucide-react";
+import { format, parseISO, isSameDay, isWithinInterval } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Calendario = () => {
   const { isAdmin, isOperador, isMentor, isBeneficiario, isStakeholder, loading: roleLoading, userId } = useUserRole();
@@ -28,11 +36,21 @@ const Calendario = () => {
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Day detail sheet for beneficiarios
+  const [daySheetOpen, setDaySheetOpen] = useState(false);
+  const [daySheetDate, setDaySheetDate] = useState<Date | null>(null);
+  const [daySheetEvents, setDaySheetEvents] = useState<CalendarEvent[]>([]);
+
+  // Entrega status map: tareaId -> boolean (delivered)
+  const [entregaStatusMap, setEntregaStatusMap] = useState<Record<string, boolean>>({});
+
+  // Entregable filter
+  const [entregableFilter, setEntregableFilter] = useState<"all" | "pending" | "delivered">("all");
+
   const canManage = isAdmin || isOperador;
 
   const fetchEvents = useCallback(async () => {
     try {
-      // Fetch calendar events, tareas, and clases with dates in parallel
       const [calRes, tareasRes, clasesRes] = await Promise.all([
         supabase.from("eventos_calendario").select("*, modulos(titulo)").order("fecha"),
         supabase.from("tareas").select("*, modulos(titulo, nivel)").eq("activo", true),
@@ -45,7 +63,6 @@ const Calendario = () => {
 
       const mapped: CalendarEvent[] = [];
 
-      // Map calendar events
       if (calEvents) {
         for (const ev of calEvents) {
           if (isBeneficiario && ev.tipo === "clase") {
@@ -74,13 +91,11 @@ const Calendario = () => {
         }
       }
 
-      // Map clases with fecha as calendar events
       if (clases) {
         for (const cl of clases) {
           const modulo = cl.modulos as any;
           const clCohortes = cl.cohorte || [];
 
-          // Visibility filtering for beneficiarios
           if (isBeneficiario) {
             if (modulo?.nivel && nivel && modulo.nivel !== nivel) continue;
             if (clCohortes.length > 0 && cohorte && !clCohortes.includes(cohorte)) continue;
@@ -105,7 +120,6 @@ const Calendario = () => {
         }
       }
 
-      // Map tareas as entregables
       if (tareas) {
         for (const t of tareas) {
           const modulo = t.modulos as any;
@@ -131,13 +145,31 @@ const Calendario = () => {
       }
 
       setEvents(mapped);
+
+      // Fetch entrega status for beneficiarios
+      if (isBeneficiario && userId && tareas) {
+        const tareaIds = tareas.map((t) => t.id);
+        if (tareaIds.length > 0) {
+          const { data: entregas } = await supabase
+            .from("entregas")
+            .select("tarea_id")
+            .eq("user_id", userId)
+            .in("tarea_id", tareaIds);
+          
+          const statusMap: Record<string, boolean> = {};
+          tareaIds.forEach((id) => {
+            statusMap[id] = entregas?.some((e) => e.tarea_id === id) || false;
+          });
+          setEntregaStatusMap(statusMap);
+        }
+      }
     } catch (error) {
       console.error("Error fetching calendar events:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isBeneficiario, nivel, cohorte]);
+  }, [isBeneficiario, nivel, cohorte, userId]);
 
   useEffect(() => {
     if (!roleLoading && !quotaLoading) {
@@ -145,20 +177,62 @@ const Calendario = () => {
     }
   }, [roleLoading, quotaLoading, fetchEvents]);
 
+  // Filter events based on entregable filter
+  const filteredEvents = useMemo(() => {
+    if (entregableFilter === "all") return events;
+    return events.filter((ev) => {
+      if (ev.tipo !== "entregable") return true;
+      const tareaId = ev.id.replace("tarea-", "");
+      const isDelivered = entregaStatusMap[tareaId] || false;
+      if (entregableFilter === "delivered") return isDelivered;
+      if (entregableFilter === "pending") return !isDelivered;
+      return true;
+    });
+  }, [events, entregableFilter, entregaStatusMap]);
+
   const handleDayClick = (date: Date) => {
-    if (!canManage) return;
-    setCreateDate(date);
-    setEditEvent(null);
-    setCreateDialogOpen(true);
+    if (canManage) {
+      setCreateDate(date);
+      setEditEvent(null);
+      setCreateDialogOpen(true);
+      return;
+    }
+    // For beneficiarios and other roles, open day detail sheet
+    const dayEvents = filteredEvents.filter((ev) => {
+      const eventDate = parseISO(ev.fecha);
+      if (ev.fechaFin && ev.fechaFin !== ev.fecha) {
+        const endDate = parseISO(ev.fechaFin);
+        return isWithinInterval(date, { start: eventDate, end: endDate });
+      }
+      return isSameDay(date, eventDate);
+    });
+    setDaySheetDate(date);
+    setDaySheetEvents(dayEvents);
+    setDaySheetOpen(true);
   };
 
   const handleEventClick = (event: CalendarEvent) => {
-    setDetailEvent(event);
-    setDetailOpen(true);
+    if (isBeneficiario) {
+      // Open day detail sheet with this event's day
+      const eventDate = parseISO(event.fecha);
+      const dayEvents = filteredEvents.filter((ev) => {
+        const evDate = parseISO(ev.fecha);
+        if (ev.fechaFin && ev.fechaFin !== ev.fecha) {
+          const endDate = parseISO(ev.fechaFin);
+          return isWithinInterval(eventDate, { start: evDate, end: endDate });
+        }
+        return isSameDay(eventDate, evDate);
+      });
+      setDaySheetDate(eventDate);
+      setDaySheetEvents(dayEvents);
+      setDaySheetOpen(true);
+    } else {
+      setDetailEvent(event);
+      setDetailOpen(true);
+    }
   };
 
   const handleEditFromDetail = (event: CalendarEvent) => {
-    // Need to fetch the raw event to edit
     if (event.tipo === "entregable") return;
     supabase
       .from("eventos_calendario")
@@ -200,6 +274,42 @@ const Calendario = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Entregable filter */}
+            {isBeneficiario && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Filter className="h-3.5 w-3.5" />
+                    Entregables
+                    {entregableFilter !== "all" && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1 ml-1">
+                        {entregableFilter === "pending" ? "Pendientes" : "Entregados"}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuCheckboxItem
+                    checked={entregableFilter === "all"}
+                    onCheckedChange={() => setEntregableFilter("all")}
+                  >
+                    Todos
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={entregableFilter === "pending"}
+                    onCheckedChange={() => setEntregableFilter("pending")}
+                  >
+                    Pendientes
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={entregableFilter === "delivered"}
+                    onCheckedChange={() => setEntregableFilter("delivered")}
+                  >
+                    Entregados
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -231,15 +341,15 @@ const Calendario = () => {
         ) : (
           <>
             <UpcomingEvents
-              events={events}
+              events={filteredEvents}
               onEventClick={handleEventClick}
               className="mb-6"
             />
             <CalendarMonthView
-              events={events}
+              events={filteredEvents}
               onDayClick={handleDayClick}
               onEventClick={handleEventClick}
-              canCreate={canManage}
+              canCreate={canManage || isBeneficiario || isMentor || isStakeholder}
             />
           </>
         )}
@@ -259,6 +369,14 @@ const Calendario = () => {
           onEdit={handleEditFromDetail}
           onDelete={fetchEvents}
           canManage={canManage}
+        />
+
+        <DayDetailSheet
+          open={daySheetOpen}
+          onOpenChange={setDaySheetOpen}
+          date={daySheetDate}
+          events={daySheetEvents}
+          entregaStatusMap={entregaStatusMap}
         />
       </div>
     </Layout>
