@@ -234,7 +234,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
     <>
       <div
         className={cn(
-          "rounded-xl border border-border bg-card overflow-hidden",
+          "rounded-xl border border-border bg-card",
           className
         )}
       >
@@ -283,7 +283,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
         {/* Scrollable Events */}
         <div
           ref={scrollContainerRef}
-          className="overflow-x-auto scrollbar-none"
+          className="overflow-x-auto overflow-y-visible scrollbar-none"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           <motion.div
