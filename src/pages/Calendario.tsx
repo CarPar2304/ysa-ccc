@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Layout } from "@/components/Layout";
 import { CalendarMonthView, CalendarEvent } from "@/components/calendario/CalendarMonthView";
+import { UpcomingEvents } from "@/components/calendario/UpcomingEvents";
 import { EventFormDialog } from "@/components/calendario/EventFormDialog";
 import { EventDetailDialog } from "@/components/calendario/EventDetailDialog";
 import { supabase } from "@/integrations/supabase/client";
