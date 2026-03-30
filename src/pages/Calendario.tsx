@@ -11,8 +11,7 @@ import { Plus, RefreshCw, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 const Calendario = () => {
-  const { isAdmin, isOperador, isMentor, isBeneficiario, isStakeholder, loading: roleLoading } = useUserRole();
-  const { userId } = useUserRole();
+  const { isAdmin, isOperador, isMentor, isBeneficiario, isStakeholder, loading: roleLoading, userId } = useUserRole();
   const { quotaInfo, loading: quotaLoading } = useQuotaStatus(userId);
   const nivel = quotaInfo?.nivel || null;
   const cohorte = quotaInfo?.cohorte || null;
