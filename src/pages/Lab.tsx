@@ -43,7 +43,7 @@ const Lab = () => {
   const [moduleProgress, setModuleProgress] = useState<Record<string, { completed: number; total: number }>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userId, isAdmin, isBeneficiario, isMentor, isStakeholder } = useUserRole();
+  const { userId, isAdmin, isBeneficiario, isMentor, isStakeholder, isOperador, loading: roleLoading } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
 
   // Stakeholders can view all modules (all levels), but cannot edit/create anything
