@@ -62,6 +62,18 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [uploadingRecurso, setUploadingRecurso] = useState<number | null>(null);
   const [cohortes, setCohortes] = useState<number[]>([1]);
+  const [fechaClase, setFechaClase] = useState("");
+  const [horaInicioClase, setHoraInicioClase] = useState("");
+  const [horaFinClase, setHoraFinClase] = useState("");
+  const [modalidadClase, setModalidadClase] = useState("virtual");
+  const [lugarClase, setLugarClase] = useState("");
+  const [linkVirtualClase, setLinkVirtualClase] = useState("");
+
+  const MODALIDAD_OPTIONS = [
+    { value: "virtual", label: "Virtual", icon: Video },
+    { value: "presencial", label: "Presencial", icon: MapPin },
+    { value: "hibrido", label: "Híbrido", icon: Globe },
+  ];
 
   const isScale = nivelModulo === "Scale";
 
