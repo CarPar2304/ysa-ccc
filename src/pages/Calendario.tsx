@@ -185,7 +185,7 @@ const Calendario = () => {
     if (!roleLoading && !quotaLoading && !operadorLoading) {
       fetchEvents();
     }
-  }, [roleLoading, quotaLoading, fetchEvents]);
+  }, [roleLoading, quotaLoading, operadorLoading, fetchEvents]);
 
   // Filter events based on entregable filter
   const filteredEvents = useMemo(() => {
