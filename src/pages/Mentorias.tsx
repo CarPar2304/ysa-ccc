@@ -45,7 +45,7 @@ const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Vier
 type ExternalCalendarStep = "link" | "confirm" | "done";
 
 const Mentorias = () => {
-  const { userId, isAdmin, isMentor, isStakeholder } = useUserRole();
+  const { userId, isAdmin, isMentor, isStakeholder, loading: roleLoading } = useUserRole();
   const { isApproved, loading: loadingQuota, quotaInfo } = useQuotaStatus(userId);
   
   const hasAccess = isAdmin || isMentor || isStakeholder || isApproved;
