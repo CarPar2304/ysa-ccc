@@ -137,6 +137,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
       setNumDocumentos(1);
       setDocumentosObligatorios(true);
       setFechaLimite("");
+      setFechaInicio("");
       setActivo(true);
       setGuiaFile(null);
       setExistingGuiaUrl(null);
