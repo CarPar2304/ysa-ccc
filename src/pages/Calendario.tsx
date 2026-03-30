@@ -73,6 +73,11 @@ const Calendario = () => {
             if (evNiveles.length > 0 && nivel && !evNiveles.includes(nivel)) continue;
             if (evCohortes.length > 0 && cohorte && !evCohortes.includes(cohorte)) continue;
           }
+          // Filter operador by assigned levels
+          if (isOperador && !isAdmin) {
+            const evNiveles = ev.niveles_acceso || [];
+            if (evNiveles.length > 0 && !evNiveles.some((n: string) => operadorNiveles.includes(n))) continue;
+          }
 
           mapped.push({
             id: ev.id,
