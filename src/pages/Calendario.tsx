@@ -187,18 +187,21 @@ const Calendario = () => {
     }
   }, [roleLoading, quotaLoading, operadorLoading, fetchEvents]);
 
-  // Filter events based on entregable filter
+  // Filter events based on type and entregable status
   const filteredEvents = useMemo(() => {
-    if (entregableFilter === "all") return events;
     return events.filter((ev) => {
-      if (ev.tipo !== "entregable") return true;
-      const tareaId = ev.id.replace("tarea-", "");
-      const isDelivered = entregaStatusMap[tareaId] || false;
-      if (entregableFilter === "delivered") return isDelivered;
-      if (entregableFilter === "pending") return !isDelivered;
+      // Event type filter
+      if (eventTypeFilter !== "all" && ev.tipo !== eventTypeFilter) return false;
+      // Entregable delivery status filter
+      if (ev.tipo === "entregable" && entregableFilter !== "all") {
+        const tareaId = ev.id.replace("tarea-", "");
+        const isDelivered = entregaStatusMap[tareaId] || false;
+        if (entregableFilter === "delivered" && !isDelivered) return false;
+        if (entregableFilter === "pending" && isDelivered) return false;
+      }
       return true;
     });
-  }, [events, entregableFilter, entregaStatusMap]);
+  }, [events, eventTypeFilter, entregableFilter, entregaStatusMap]);
 
   const handleDayClick = (date: Date) => {
     if (canManage) {
