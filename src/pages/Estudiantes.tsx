@@ -382,6 +382,7 @@ const Estudiantes = () => {
             cumple_interes: ev.cumple_interes ?? false,
             created_at: ev.created_at,
           })),
+          cofundadores: cofundadoresList.length > 0 ? cofundadoresList : undefined,
           _progreso_promedio: avgProgress,
         } as CandidatoData & { _progreso_promedio?: number };
       }).filter(Boolean) as CandidatoData[];
