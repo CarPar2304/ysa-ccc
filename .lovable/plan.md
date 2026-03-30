@@ -1,37 +1,32 @@
 
 
-## Plan: Mejoras en Cupos - Sobre-cupo y Mover Nivel
+## Plan: Limitar eventos por día + Arreglar contenedor de Próximos Eventos
 
-### Cambio 1: Aprobar por encima del límite de cupos
+### Cambio 1: Máximo 4 eventos visibles por celda del calendario
 
-**Archivo:** `src/components/admin/QuotaLevelTab.tsx`
+**Archivo:** `src/components/calendario/CalendarMonthView.tsx`
 
-- Reemplazar el bloqueo duro en `handleAprobar` (líneas 241-251) que impide aprobar cuando se excede el límite.
-- Agregar estado `pendingOverQuotaApproval` para almacenar temporalmente el emprendimiento que se quiere aprobar.
-- Mostrar un `AlertDialog` de confirmación con disclaimer: "Se han agotado los X cupos disponibles para [Nivel]. Estás aprobando solicitudes por encima del límite."
-- Si confirma, ejecutar la aprobación normalmente.
-- En la card "Cupos Disponibles", mostrar el número en rojo cuando es negativo o cero.
+- En las celdas de cada día, cambiar el límite de eventos single-day visibles de 3 a un máximo combinado de 4 (contando multi-day + single-day).
+- Si hay más de 4 eventos en total (multi-day bars + single-day), mostrar solo los primeros 4 y un botón "+N más" que abre un Dialog/popup con todos los eventos de ese día.
+- Para los multi-day bars: limitar a máximo 4 segmentos visibles por semana-celda; los adicionales se incluyen en el conteo del "+N más".
 
-### Cambio 2: Mover nivel para usuarios sin cupo aprobado
+### Cambio 2: Arreglar contenedor de Próximos Eventos
 
-**Archivo:** `src/components/admin/QuotaLevelTab.tsx`
+**Archivo:** `src/components/calendario/UpcomingEvents.tsx`
 
-- Agregar columna "Mover nivel" en la tabla, visible **solo** para emprendimientos **sin cupo aprobado** (pendiente o sin asignación).
-- La columna muestra un `Select` con los otros dos niveles (ej. si está en Growth, muestra Starter y Scale).
-- Al seleccionar un nuevo nivel:
-  1. Actualizar `emprendimientos.nivel_definitivo` al nuevo nivel.
-  2. Si existe una `asignacion_cupos`, actualizar también `asignacion_cupos.nivel`.
-  3. Refrescar datos (el emprendimiento desaparece del tab actual y aparece en el tab del nuevo nivel).
-- El emprendimiento queda en el nuevo nivel como si siempre hubiera estado ahí. Al aprobar el cupo en ese tab, todo funciona normalmente: el webhook envía el nivel del tab, la BD queda con el nivel correcto, las exportaciones reflejan el nivel asignado.
-- Agregar `AlertDialog` de confirmación: "Vas a mover [Emprendimiento] de [Nivel actual] a [Nuevo nivel]. Esto cambiará su nivel independientemente de su puntaje."
+- El problema es que el contenedor con `overflow-hidden` en el wrapper principal corta las tarjetas verticalmente.
+- Cambiar `overflow-hidden` a `overflow-visible` en el wrapper, y mantener `overflow-x-auto` solo en el scroll container.
+- Asegurar que las tarjetas de evento tengan una altura mínima consistente o que el contenedor del scroll se ajuste al alto real de las tarjetas (no las recorte).
+- Agregar `overflow-y-visible` al scroll container para que las tarjetas no se corten verticalmente.
 
 ### Detalle técnico
 
-**Archivo a modificar:** `src/components/admin/QuotaLevelTab.tsx`
+**CalendarMonthView.tsx:**
+- Cambiar `dayEvents.slice(0, 3)` → `dayEvents.slice(0, Math.max(0, 4 - multiDaySlots))` para que el total visible (multi-day + single-day) sea máximo 4.
+- El botón "+N más" calcula: `total = dayEvents.length + multiDaySlots; remaining = total - 4`.
+- Al hacer click en "+N más" se llama `onDayClick?.(day)` para abrir el DayDetailSheet existente.
 
-- Importar `AlertDialog` components.
-- Nuevos estados: `pendingOverQuotaApproval`, `pendingLevelMove` (con emprendimiento + nuevo nivel).
-- Función `handleMoverNivel`: update a `emprendimientos.nivel_definitivo` + update condicional a `asignacion_cupos.nivel` + `fetchData()`.
-- Modificar `handleAprobar` para mostrar diálogo en vez de bloquear cuando excede límite.
-- No requiere migración de base de datos.
+**UpcomingEvents.tsx:**
+- Quitar `overflow-hidden` del div wrapper principal (línea 237).
+- Mantener `overflow-x-auto` en el scroll container pero sin clip vertical.
 
