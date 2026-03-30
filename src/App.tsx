@@ -18,6 +18,7 @@ import RegisterMentor from "./pages/RegisterMentor";
 import NotFound from "./pages/NotFound";
 import Estudiantes from "./pages/Estudiantes";
 import Candidatos from "./pages/Candidatos";
+import Calendario from "./pages/Calendario";
 
 const queryClient = new QueryClient();
 
