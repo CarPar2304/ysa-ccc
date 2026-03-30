@@ -257,8 +257,14 @@ export type Database = {
           created_at: string
           descripcion: string | null
           duracion_minutos: number | null
+          fecha: string | null
+          hora_fin: string | null
+          hora_inicio: string | null
           id: string
           imagen_url: string | null
+          link_virtual: string | null
+          lugar: string | null
+          modalidad: string | null
           modulo_id: string
           orden: number | null
           recursos_url: Json | null
@@ -272,8 +278,14 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           duracion_minutos?: number | null
+          fecha?: string | null
+          hora_fin?: string | null
+          hora_inicio?: string | null
           id?: string
           imagen_url?: string | null
+          link_virtual?: string | null
+          lugar?: string | null
+          modalidad?: string | null
           modulo_id: string
           orden?: number | null
           recursos_url?: Json | null
@@ -287,8 +299,14 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           duracion_minutos?: number | null
+          fecha?: string | null
+          hora_fin?: string | null
+          hora_inicio?: string | null
           id?: string
           imagen_url?: string | null
+          link_virtual?: string | null
+          lugar?: string | null
+          modalidad?: string | null
           modulo_id?: string
           orden?: number | null
           recursos_url?: Json | null
