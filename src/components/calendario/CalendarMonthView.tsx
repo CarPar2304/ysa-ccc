@@ -323,50 +323,59 @@ export function CalendarMonthView({
                       )}
 
                       {/* Single-day events */}
-                      <div className="space-y-0.5">
-                        {dayEvents.slice(0, 3).map((ev) => {
-                          const colors = EVENT_COLORS[ev.tipo];
-                          return (
-                            <HoverCard key={ev.id} openDelay={200} closeDelay={100}>
-                              <HoverCardTrigger asChild>
-                                <button
-                                  className={cn(
-                                    "w-full text-left text-[10px] leading-tight px-1.5 py-0.5 rounded border-l-2 truncate block transition-all hover:opacity-80",
-                                    colors.bg,
-                                    colors.border,
-                                    colors.text
-                                  )}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEventClick?.(ev);
-                                  }}
-                                >
-                                  {ev.horaInicio && (
-                                    <span className="font-semibold mr-1">
-                                      {ev.horaInicio.slice(0, 5)}
-                                    </span>
-                                  )}
-                                  {ev.titulo}
-                                </button>
-                              </HoverCardTrigger>
-                              <HoverCardContent side="right" align="start" className="w-72 p-3 z-[100]">
-                                <EventHoverContent event={ev} />
-                              </HoverCardContent>
-                            </HoverCard>
-                          );
-                        })}
-                        {dayEvents.length > 3 && (
-                          <button
-                            className="text-[10px] text-muted-foreground hover:text-foreground pl-1.5 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDayClick?.(day);
-                            }}
-                          >
-                            +{dayEvents.length - 3} más
-                          </button>
-                        )}
-                      </div>
+                      {(() => {
+                        const maxVisible = Math.max(0, 4 - multiDaySlots);
+                        const visibleEvents = dayEvents.slice(0, maxVisible);
+                        const totalEvents = dayEvents.length + multiDaySlots;
+                        const remaining = totalEvents - 4;
+
+                        return (
+                          <div className="space-y-0.5">
+                            {visibleEvents.map((ev) => {
+                              const colors = EVENT_COLORS[ev.tipo];
+                              return (
+                                <HoverCard key={ev.id} openDelay={200} closeDelay={100}>
+                                  <HoverCardTrigger asChild>
+                                    <button
+                                      className={cn(
+                                        "w-full text-left text-[10px] leading-tight px-1.5 py-0.5 rounded border-l-2 truncate block transition-all hover:opacity-80",
+                                        colors.bg,
+                                        colors.border,
+                                        colors.text
+                                      )}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEventClick?.(ev);
+                                      }}
+                                    >
+                                      {ev.horaInicio && (
+                                        <span className="font-semibold mr-1">
+                                          {ev.horaInicio.slice(0, 5)}
+                                        </span>
+                                      )}
+                                      {ev.titulo}
+                                    </button>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent side="right" align="start" className="w-72 p-3 z-[100]">
+                                    <EventHoverContent event={ev} />
+                                  </HoverCardContent>
+                                </HoverCard>
+                              );
+                            })}
+                            {remaining > 0 && (
+                              <button
+                                className="text-[10px] text-muted-foreground hover:text-foreground pl-1.5 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDayClick?.(day);
+                                }}
+                              >
+                                +{remaining} más
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
