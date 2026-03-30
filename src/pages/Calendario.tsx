@@ -201,12 +201,19 @@ const Calendario = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <CalendarMonthView
-            events={events}
-            onDayClick={handleDayClick}
-            onEventClick={handleEventClick}
-            canCreate={canManage}
-          />
+          <>
+            <UpcomingEvents
+              events={events}
+              onEventClick={handleEventClick}
+              className="mb-6"
+            />
+            <CalendarMonthView
+              events={events}
+              onDayClick={handleDayClick}
+              onEventClick={handleEventClick}
+              canCreate={canManage}
+            />
+          </>
         )}
 
         <EventFormDialog
