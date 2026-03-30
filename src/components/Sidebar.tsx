@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck, GraduationCap, Users } from "lucide-react";
+import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck, GraduationCap, Users, CalendarDays } from "lucide-react";
 import { useThemePreference } from "@/hooks/useThemePreference";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
