@@ -26,7 +26,7 @@ const News = () => {
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { isAdmin, isBeneficiario, isStakeholder, userId } = useUserRole();
+  const { isAdmin, isBeneficiario, isStakeholder, userId, loading: roleLoading } = useUserRole();
   const { isApproved, loading: quotaLoading, quotaInfo } = useQuotaStatus(userId);
   const navigate = useNavigate();
 
