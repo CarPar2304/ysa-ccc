@@ -146,7 +146,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         <motion.div
-          className="flex gap-3 p-4"
+          className="flex gap-3 px-4 pt-3 pb-4"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
