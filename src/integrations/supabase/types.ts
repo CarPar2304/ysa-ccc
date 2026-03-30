@@ -934,6 +934,71 @@ export type Database = {
           },
         ]
       }
+      eventos_calendario: {
+        Row: {
+          cohortes_acceso: number[] | null
+          created_at: string
+          created_by: string
+          descripcion: string | null
+          fecha: string
+          hora_fin: string | null
+          hora_inicio: string | null
+          id: string
+          link_virtual: string | null
+          lugar: string | null
+          modalidad: string | null
+          modulo_id: string | null
+          niveles_acceso: string[] | null
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          cohortes_acceso?: number[] | null
+          created_at?: string
+          created_by: string
+          descripcion?: string | null
+          fecha: string
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          id?: string
+          link_virtual?: string | null
+          lugar?: string | null
+          modalidad?: string | null
+          modulo_id?: string | null
+          niveles_acceso?: string[] | null
+          tipo?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          cohortes_acceso?: number[] | null
+          created_at?: string
+          created_by?: string
+          descripcion?: string | null
+          fecha?: string
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          id?: string
+          link_virtual?: string | null
+          lugar?: string | null
+          modalidad?: string | null
+          modulo_id?: string | null
+          niveles_acceso?: string[] | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_calendario_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financiamientos: {
         Row: {
           busca_financiamiento:
@@ -1511,6 +1576,7 @@ export type Database = {
           descripcion: string | null
           documento_guia_url: string | null
           documentos_obligatorios: boolean
+          fecha_inicio: string | null
           fecha_limite: string
           id: string
           modulo_id: string
@@ -1525,6 +1591,7 @@ export type Database = {
           descripcion?: string | null
           documento_guia_url?: string | null
           documentos_obligatorios?: boolean
+          fecha_inicio?: string | null
           fecha_limite: string
           id?: string
           modulo_id: string
@@ -1539,6 +1606,7 @@ export type Database = {
           descripcion?: string | null
           documento_guia_url?: string | null
           documentos_obligatorios?: boolean
+          fecha_inicio?: string | null
           fecha_limite?: string
           id?: string
           modulo_id?: string

@@ -23,6 +23,7 @@ interface Tarea {
   num_documentos: number;
   documentos_obligatorios: boolean;
   fecha_limite: string;
+  fecha_inicio?: string | null;
   activo: boolean;
   documento_guia_url?: string | null;
 }
@@ -43,6 +44,9 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
   const [documentosObligatorios, setDocumentosObligatorios] = useState(tarea?.documentos_obligatorios ?? true);
   const [fechaLimite, setFechaLimite] = useState(
     tarea?.fecha_limite ? new Date(tarea.fecha_limite).toISOString().slice(0, 16) : ""
+  );
+  const [fechaInicio, setFechaInicio] = useState(
+    tarea?.fecha_inicio ? new Date(tarea.fecha_inicio).toISOString().slice(0, 16) : ""
   );
   const [activo, setActivo] = useState(tarea?.activo ?? true);
   const [guiaFile, setGuiaFile] = useState<File | null>(null);
@@ -85,6 +89,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
           num_documentos: numDocumentos,
           documentos_obligatorios: documentosObligatorios,
           fecha_limite: new Date(fechaLimite).toISOString(),
+          fecha_inicio: fechaInicio ? new Date(fechaInicio).toISOString() : null,
           activo,
         };
         if (guiaUrl !== undefined) updateData.documento_guia_url = guiaUrl;
@@ -104,6 +109,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
           num_documentos: numDocumentos,
           documentos_obligatorios: documentosObligatorios,
           fecha_limite: new Date(fechaLimite).toISOString(),
+          fecha_inicio: fechaInicio ? new Date(fechaInicio).toISOString() : null,
           activo,
           created_by: user.id,
         };
@@ -131,6 +137,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
       setNumDocumentos(1);
       setDocumentosObligatorios(true);
       setFechaLimite("");
+      setFechaInicio("");
       setActivo(true);
       setGuiaFile(null);
       setExistingGuiaUrl(null);
@@ -206,15 +213,25 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fechaLimite">Fecha límite *</Label>
+              <Label htmlFor="fechaInicio">Fecha de inicio</Label>
               <Input
-                id="fechaLimite"
+                id="fechaInicio"
                 type="datetime-local"
-                value={fechaLimite}
-                onChange={(e) => setFechaLimite(e.target.value)}
-                required
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="fechaLimite">Fecha de cierre / límite *</Label>
+            <Input
+              id="fechaLimite"
+              type="datetime-local"
+              value={fechaLimite}
+              onChange={(e) => setFechaLimite(e.target.value)}
+              required
+            />
           </div>
 
           <div className="flex items-center space-x-2">

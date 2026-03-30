@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck, GraduationCap, Users } from "lucide-react";
+import { Home, Newspaper, BookOpen, User, LogOut, Settings, FileCheck, GraduationCap, Users, CalendarDays } from "lucide-react";
 import { useThemePreference } from "@/hooks/useThemePreference";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -22,6 +22,7 @@ const navigation = [
   { name: "YSA Conecta", href: "/", icon: Home },
   { name: "Noticias", href: "/news", icon: Newspaper },
   { name: "Classroom", href: "/lab", icon: BookOpen },
+  { name: "Calendario", href: "/calendario", icon: CalendarDays },
   { name: "Mentorías", href: "/mentorias", icon: User },
 ];
 
