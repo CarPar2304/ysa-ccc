@@ -179,10 +179,10 @@ const Calendario = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isBeneficiario, nivel, cohorte, userId]);
+  }, [isBeneficiario, isOperador, isAdmin, nivel, cohorte, userId, operadorNiveles]);
 
   useEffect(() => {
-    if (!roleLoading && !quotaLoading) {
+    if (!roleLoading && !quotaLoading && !operadorLoading) {
       fetchEvents();
     }
   }, [roleLoading, quotaLoading, fetchEvents]);
