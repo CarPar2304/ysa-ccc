@@ -4,21 +4,30 @@ import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+const VALID_TIPO_DOCUMENTO = [
+  "Cédula de ciudadanía",
+  "Tarjeta de identidad",
+  "Cédula de extranjería",
+  "Pasaporte",
+  "Permiso por Protección Temporal (PPT)",
+] as const;
 
 const cofundadorSchema = z.object({
   nombres: z.string().trim().min(2).max(100),
   apellidos: z.string().trim().min(2).max(100),
   email: z.string().email().max(255),
-  celular: z.string().max(20).optional(),
-  tipo_documento: z.string().max(50).optional(),
-  numero_identificacion: z.string().max(50).optional(),
-  genero: z.string().max(50).optional(),
-  departamento: z.string().max(100).optional(),
-  municipio: z.string().max(100).optional(),
-  direccion: z.string().max(255).optional(),
-  ano_nacimiento: z.string().max(10).optional(),
+  celular: z.string().max(20).optional().default(""),
+  tipo_documento: z.enum(VALID_TIPO_DOCUMENTO).optional().or(z.literal("")),
+  numero_identificacion: z.string().trim().min(1, "El número de identificación es obligatorio").max(50),
+  genero: z.string().max(50).optional().default(""),
+  departamento: z.string().max(100).optional().default(""),
+  municipio: z.string().max(100).optional().default(""),
+  direccion: z.string().max(255).optional().default(""),
+  ano_nacimiento: z.string().max(10).optional().default(""),
+  identificacion_etnica: z.string().max(100).optional().default(""),
   emprendimiento_id: z.string().uuid(),
 });
 
@@ -28,7 +37,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify the calling user is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -43,7 +51,6 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Verify the caller owns the emprendimiento
     const supabaseUser = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -75,7 +82,6 @@ serve(async (req) => {
       );
     }
 
-    // Check if caller is owner or admin
     const { data: isAdmin } = await supabaseAdmin.rpc('is_admin', { _user_id: caller.id });
     if (emprendimiento.user_id !== caller.id && !isAdmin) {
       return new Response(
@@ -84,13 +90,13 @@ serve(async (req) => {
       );
     }
 
-    // Generate a random password (user won't need it, admin can reset later)
-    const randomPassword = crypto.randomUUID().slice(0, 16) + 'Aa1!';
+    // Password = numero_identificacion
+    const password = validatedData.numero_identificacion;
 
     // 1. Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: validatedData.email,
-      password: randomPassword,
+      password: password,
       email_confirm: true,
       user_metadata: {
         nombres: validatedData.nombres,
@@ -121,19 +127,23 @@ serve(async (req) => {
 
     const newUserId = authData.user.id;
 
-    // 2. Update the usuarios record (trigger should have created it)
+    // 2. Update the usuarios record with all provided fields
     const updateData: Record<string, any> = {};
     if (validatedData.celular) updateData.celular = validatedData.celular;
-    if (validatedData.tipo_documento) updateData.tipo_documento = validatedData.tipo_documento;
+    if (validatedData.tipo_documento && validatedData.tipo_documento !== "") updateData.tipo_documento = validatedData.tipo_documento;
     if (validatedData.numero_identificacion) updateData.numero_identificacion = validatedData.numero_identificacion;
     if (validatedData.genero) updateData.genero = validatedData.genero;
     if (validatedData.departamento) updateData.departamento = validatedData.departamento;
     if (validatedData.municipio) updateData.municipio = validatedData.municipio;
     if (validatedData.direccion) updateData.direccion = validatedData.direccion;
     if (validatedData.ano_nacimiento) updateData.ano_nacimiento = validatedData.ano_nacimiento;
+    if (validatedData.identificacion_etnica) updateData.identificacion_etnica = validatedData.identificacion_etnica;
 
     if (Object.keys(updateData).length > 0) {
-      await supabaseAdmin.from("usuarios").update(updateData).eq("id", newUserId);
+      const { error: updateError } = await supabaseAdmin.from("usuarios").update(updateData).eq("id", newUserId);
+      if (updateError) {
+        console.error("Update usuarios error:", updateError);
+      }
     }
 
     // 3. Assign beneficiario role
@@ -168,7 +178,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         user_id: newUserId,
-        message: `Co-fundador ${validatedData.nombres} ${validatedData.apellidos} creado exitosamente.`,
+        message: `Co-fundador ${validatedData.nombres} ${validatedData.apellidos} creado exitosamente. Su contraseña es su número de identificación.`,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

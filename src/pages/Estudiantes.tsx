@@ -205,13 +205,26 @@ const Estudiantes = () => {
 
       if (!cupos) return [];
 
+      const emprendimientoIds = cupos.map(c => c.emprendimiento_id);
       const userIds = cupos.map((c: any) => c.emprendimientos?.user_id).filter(Boolean);
       
-      const [{ data: autorizaciones }, { data: evaluaciones }, { data: acudientes }] = await Promise.all([
+      const [{ data: autorizaciones }, { data: evaluaciones }, { data: acudientes }, { data: miembros }] = await Promise.all([
         supabase.from("autorizaciones").select("*").in("user_id", userIds),
-        supabase.from("evaluaciones").select("*").in("emprendimiento_id", cupos.map(c => c.emprendimiento_id)),
+        supabase.from("evaluaciones").select("*").in("emprendimiento_id", emprendimientoIds),
         supabase.from("acudientes").select("*").in("menor_id", userIds),
+        supabase.from("emprendimiento_miembros").select("*").in("emprendimiento_id", emprendimientoIds),
       ]);
+
+      // Fetch co-founder user details
+      const cofundadorUserIds = miembros?.map(m => m.user_id).filter(id => !userIds.includes(id)) || [];
+      let cofundadorUsuarios: any[] = [];
+      if (cofundadorUserIds.length > 0) {
+        const { data: cofUsers } = await supabase
+          .from("usuarios")
+          .select("id, nombres, apellidos, email, celular")
+          .in("id", cofundadorUserIds);
+        cofundadorUsuarios = cofUsers || [];
+      }
 
       const allModulos = modulosData || { Starter: [], Growth: [], Scale: [] };
 
@@ -226,6 +239,21 @@ const Estudiantes = () => {
         const financiamiento = emp.financiamientos?.[0];
         const diagnostico = emp.diagnosticos?.[0];
         const userEvals = evaluaciones?.filter((e) => e.emprendimiento_id === emp.id) || [];
+
+        // Get co-founders for this emprendimiento
+        const empMiembros = miembros?.filter(m => m.emprendimiento_id === emp.id) || [];
+        const cofundadoresList = empMiembros
+          .map(m => {
+            const cofUser = cofundadorUsuarios.find(u => u.id === m.user_id);
+            if (!cofUser) return null;
+            return {
+              nombres: cofUser.nombres || "",
+              apellidos: cofUser.apellidos || "",
+              email: cofUser.email || "",
+              celular: cofUser.celular || "",
+            };
+          })
+          .filter(Boolean) as Array<{ nombres: string; apellidos: string; email: string; celular: string }>;
 
         const nivelModulos = allModulos[cupo.nivel as NivelEmprendimiento] || [];
         const totalModulos = nivelModulos.length;
@@ -354,6 +382,7 @@ const Estudiantes = () => {
             cumple_interes: ev.cumple_interes ?? false,
             created_at: ev.created_at,
           })),
+          cofundadores: cofundadoresList.length > 0 ? cofundadoresList : undefined,
           _progreso_promedio: avgProgress,
         } as CandidatoData & { _progreso_promedio?: number };
       }).filter(Boolean) as CandidatoData[];
