@@ -66,6 +66,13 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
         boton_url: (noticia as any).boton_url || "",
         niveles_acceso: (noticia as any).niveles_acceso || [],
         cohortes_acceso: (noticia as any).cohortes_acceso || [],
+        es_evento: (noticia as any).es_evento || false,
+        fecha_evento: (noticia as any).fecha_evento || "",
+        hora_inicio_evento: (noticia as any).hora_inicio_evento || "",
+        hora_fin_evento: (noticia as any).hora_fin_evento || "",
+        lugar_evento: (noticia as any).lugar_evento || "",
+        link_virtual_evento: (noticia as any).link_virtual_evento || "",
+        modalidad_evento: (noticia as any).modalidad_evento || "Virtual",
       });
       setImagePreview(noticia.imagen_url || null);
     }
