@@ -43,7 +43,7 @@ const Lab = () => {
   const [moduleProgress, setModuleProgress] = useState<Record<string, { completed: number; total: number }>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { userId, isAdmin, isBeneficiario, isMentor, isStakeholder } = useUserRole();
+  const { userId, isAdmin, isBeneficiario, isMentor, isStakeholder, isOperador, loading: roleLoading } = useUserRole();
   const { isApproved, loading: quotaLoading } = useQuotaStatus(userId);
 
   // Stakeholders can view all modules (all levels), but cannot edit/create anything
@@ -247,7 +247,7 @@ const Lab = () => {
     }
   };
 
-  if (loading || (isBeneficiario && quotaLoading)) {
+  if (roleLoading || loading || (isBeneficiario && quotaLoading)) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -414,7 +414,7 @@ const Lab = () => {
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Classroom</h1>
-              {userNivel && !isStakeholder && (
+              {userNivel && !isStakeholder && !isOperador && (
                 <Badge variant="secondary" className="text-sm">
                   Nivel {userNivel}
                 </Badge>
@@ -422,6 +422,11 @@ const Lab = () => {
               {isStakeholder && (
                 <Badge variant="outline" className="text-sm">
                   Modo Visualización
+                </Badge>
+              )}
+              {isOperador && !isAdmin && (
+                <Badge variant="secondary" className="text-sm">
+                  Operador
                 </Badge>
               )}
             </div>
@@ -435,7 +440,7 @@ const Lab = () => {
         </div>
 
         {/* Stakeholder: sections by level */}
-        {(isStakeholder || isAdmin) ? (
+        {(isStakeholder || isAdmin || isOperador) ? (
           <div className="space-y-10">
             {niveles.map(({ key, label }) => {
               const nivelModulos = modulos.filter((m) => m.nivel === key && (isAdmin || m.activo));

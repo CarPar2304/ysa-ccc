@@ -26,7 +26,7 @@ const News = () => {
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { isAdmin, isBeneficiario, isStakeholder, userId } = useUserRole();
+  const { isAdmin, isBeneficiario, isStakeholder, userId, loading: roleLoading } = useUserRole();
   const { isApproved, loading: quotaLoading, quotaInfo } = useQuotaStatus(userId);
   const navigate = useNavigate();
 
@@ -46,8 +46,10 @@ const News = () => {
   };
 
   useEffect(() => {
-    fetchNoticias();
-  }, [isAdmin, isStakeholder]);
+    if (!roleLoading && (!isBeneficiario || !quotaLoading)) {
+      fetchNoticias();
+    }
+  }, [isAdmin, isStakeholder, isBeneficiario, roleLoading, quotaLoading, quotaInfo]);
 
   const fetchNoticias = async () => {
     try {
@@ -71,7 +73,7 @@ const News = () => {
     }
   };
 
-  if (loading || (isBeneficiario && quotaLoading)) {
+  if (roleLoading || loading || (isBeneficiario && quotaLoading)) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">

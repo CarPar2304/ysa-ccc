@@ -45,7 +45,7 @@ const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Vier
 type ExternalCalendarStep = "link" | "confirm" | "done";
 
 const Mentorias = () => {
-  const { userId, isAdmin, isMentor, isStakeholder } = useUserRole();
+  const { userId, isAdmin, isMentor, isStakeholder, loading: roleLoading } = useUserRole();
   const { isApproved, loading: loadingQuota, quotaInfo } = useQuotaStatus(userId);
   
   const hasAccess = isAdmin || isMentor || isStakeholder || isApproved;
@@ -302,7 +302,7 @@ const Mentorias = () => {
   const availableSlots = getAvailableSlots();
   const isExternalCalendar = selectedPerfil?.tipo_disponibilidad === "calendario_externo";
 
-  if (loadingQuota) {
+  if (roleLoading || loadingQuota) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
