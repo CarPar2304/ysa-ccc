@@ -358,6 +358,88 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
             </div>
           </div>
 
+          {/* Evento / Cronograma */}
+          <div className="space-y-3 rounded-md border border-border p-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Anclar al cronograma
+              </Label>
+              <Switch
+                checked={formData.es_evento}
+                onCheckedChange={(checked) => setFormData({ ...formData, es_evento: checked })}
+              />
+            </div>
+            {formData.es_evento && (
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Fecha del evento *</Label>
+                    <Input
+                      type="date"
+                      value={formData.fecha_evento}
+                      onChange={(e) => setFormData({ ...formData, fecha_evento: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Modalidad</Label>
+                    <Select
+                      value={formData.modalidad_evento}
+                      onValueChange={(v) => setFormData({ ...formData, modalidad_evento: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Virtual">Virtual</SelectItem>
+                        <SelectItem value="Presencial">Presencial</SelectItem>
+                        <SelectItem value="Híbrido">Híbrido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Hora inicio</Label>
+                    <Input
+                      type="time"
+                      value={formData.hora_inicio_evento}
+                      onChange={(e) => setFormData({ ...formData, hora_inicio_evento: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Hora fin</Label>
+                    <Input
+                      type="time"
+                      value={formData.hora_fin_evento}
+                      onChange={(e) => setFormData({ ...formData, hora_fin_evento: e.target.value })}
+                    />
+                  </div>
+                </div>
+                {(formData.modalidad_evento === "Presencial" || formData.modalidad_evento === "Híbrido") && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Lugar</Label>
+                    <Input
+                      value={formData.lugar_evento}
+                      onChange={(e) => setFormData({ ...formData, lugar_evento: e.target.value })}
+                      placeholder="Dirección o nombre del lugar"
+                    />
+                  </div>
+                )}
+                {(formData.modalidad_evento === "Virtual" || formData.modalidad_evento === "Híbrido") && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Link virtual</Label>
+                    <Input
+                      value={formData.link_virtual_evento}
+                      onChange={(e) => setFormData({ ...formData, link_virtual_evento: e.target.value })}
+                      placeholder="https://meet.google.com/..."
+                    />
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground">Al publicar, se creará automáticamente un evento en el cronograma.</p>
+              </div>
+            )}
+          </div>
+
           {/* Público objetivo */}
           <div className="space-y-3 rounded-md border border-border p-3">
             <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Público objetivo (opcional)</Label>
