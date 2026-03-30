@@ -108,7 +108,6 @@ const Calendario = () => {
             if (clCohortes.length > 0 && cohorte && !clCohortes.includes(cohorte)) continue;
           }
           if (isOperador && !isAdmin && modulo?.nivel && !operadorNiveles.includes(modulo.nivel)) continue;
-          }
 
           mapped.push({
             id: `clase-${cl.id}`,
