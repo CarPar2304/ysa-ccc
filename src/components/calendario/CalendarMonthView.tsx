@@ -56,10 +56,10 @@ const EVENT_COLORS: Record<CalendarEventType, { bg: string; border: string; text
     dot: "bg-primary",
   },
   entregable: {
-    bg: "bg-amber-500/10 dark:bg-amber-500/20",
-    border: "border-l-amber-500",
-    text: "text-amber-700 dark:text-amber-400",
-    dot: "bg-amber-500",
+    bg: "bg-violet-500/10 dark:bg-violet-500/20",
+    border: "border-l-violet-500",
+    text: "text-violet-700 dark:text-violet-400",
+    dot: "bg-violet-500",
   },
   evento: {
     bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
