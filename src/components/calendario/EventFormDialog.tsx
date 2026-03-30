@@ -117,9 +117,15 @@ export function EventFormDialog({
   };
 
   const toggleNivel = (nivel: string) => {
-    setNivelesAcceso((prev) =>
-      prev.includes(nivel) ? prev.filter((n) => n !== nivel) : [...prev, nivel]
-    );
+    setNivelesAcceso((prev) => {
+      const next = prev.includes(nivel) ? prev.filter((n) => n !== nivel) : [...prev, nivel];
+      // If only Scale remains, clear cohortes since Scale has a single cohorte
+      const hasStarterOrGrowth = next.includes("Starter") || next.includes("Growth");
+      if (!hasStarterOrGrowth) {
+        setCohortesAcceso([]);
+      }
+      return next;
+    });
   };
 
   const toggleCohorte = (cohorte: number) => {
@@ -372,28 +378,31 @@ export function EventFormDialog({
                   ))}
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Cohortes de acceso
-                </Label>
-                <div className="flex gap-2">
-                  {COHORTES.map((cohorte) => (
-                    <button
-                      key={cohorte}
-                      type="button"
-                      onClick={() => toggleCohorte(cohorte)}
-                      className={cn(
-                        "flex-1 px-2 py-1.5 rounded-md text-xs font-medium border transition-all",
-                        cohortesAcceso.includes(cohorte)
-                          ? "bg-primary/10 text-primary border-primary/40"
-                          : "bg-background text-muted-foreground border-border hover:border-ring/30"
-                      )}
-                    >
-                      Cohorte {cohorte}
-                    </button>
-                  ))}
+              {/* Show cohortes only if Starter or Growth selected (Scale has only 1 cohorte) */}
+              {(nivelesAcceso.includes("Starter") || nivelesAcceso.includes("Growth")) && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Cohortes de acceso
+                  </Label>
+                  <div className="flex gap-2">
+                    {COHORTES.map((cohorte) => (
+                      <button
+                        key={cohorte}
+                        type="button"
+                        onClick={() => toggleCohorte(cohorte)}
+                        className={cn(
+                          "flex-1 px-2 py-1.5 rounded-md text-xs font-medium border transition-all",
+                          cohortesAcceso.includes(cohorte)
+                            ? "bg-primary/10 text-primary border-primary/40"
+                            : "bg-background text-muted-foreground border-border hover:border-ring/30"
+                        )}
+                      >
+                        Cohorte {cohorte}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
