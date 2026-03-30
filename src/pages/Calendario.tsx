@@ -285,7 +285,7 @@ const Calendario = () => {
           </div>
           <div className="flex items-center gap-2">
             {/* Entregable filter */}
-            {isBeneficiario && (
+            {(
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-1.5">
