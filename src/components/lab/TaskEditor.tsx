@@ -45,6 +45,9 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
   const [fechaLimite, setFechaLimite] = useState(
     tarea?.fecha_limite ? new Date(tarea.fecha_limite).toISOString().slice(0, 16) : ""
   );
+  const [fechaInicio, setFechaInicio] = useState(
+    tarea?.fecha_inicio ? new Date(tarea.fecha_inicio).toISOString().slice(0, 16) : ""
+  );
   const [activo, setActivo] = useState(tarea?.activo ?? true);
   const [guiaFile, setGuiaFile] = useState<File | null>(null);
   const [existingGuiaUrl, setExistingGuiaUrl] = useState(tarea?.documento_guia_url || null);
