@@ -240,6 +240,21 @@ const Estudiantes = () => {
         const diagnostico = emp.diagnosticos?.[0];
         const userEvals = evaluaciones?.filter((e) => e.emprendimiento_id === emp.id) || [];
 
+        // Get co-founders for this emprendimiento
+        const empMiembros = miembros?.filter(m => m.emprendimiento_id === emp.id) || [];
+        const cofundadoresList = empMiembros
+          .map(m => {
+            const cofUser = cofundadorUsuarios.find(u => u.id === m.user_id);
+            if (!cofUser) return null;
+            return {
+              nombres: cofUser.nombres || "",
+              apellidos: cofUser.apellidos || "",
+              email: cofUser.email || "",
+              celular: cofUser.celular || "",
+            };
+          })
+          .filter(Boolean) as Array<{ nombres: string; apellidos: string; email: string; celular: string }>;
+
         const nivelModulos = allModulos[cupo.nivel as NivelEmprendimiento] || [];
         const totalModulos = nivelModulos.length;
         const studentInModulos = nivelModulos.map((m) => {
