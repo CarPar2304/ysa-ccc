@@ -205,13 +205,26 @@ const Estudiantes = () => {
 
       if (!cupos) return [];
 
+      const emprendimientoIds = cupos.map(c => c.emprendimiento_id);
       const userIds = cupos.map((c: any) => c.emprendimientos?.user_id).filter(Boolean);
       
-      const [{ data: autorizaciones }, { data: evaluaciones }, { data: acudientes }] = await Promise.all([
+      const [{ data: autorizaciones }, { data: evaluaciones }, { data: acudientes }, { data: miembros }] = await Promise.all([
         supabase.from("autorizaciones").select("*").in("user_id", userIds),
-        supabase.from("evaluaciones").select("*").in("emprendimiento_id", cupos.map(c => c.emprendimiento_id)),
+        supabase.from("evaluaciones").select("*").in("emprendimiento_id", emprendimientoIds),
         supabase.from("acudientes").select("*").in("menor_id", userIds),
+        supabase.from("emprendimiento_miembros").select("*").in("emprendimiento_id", emprendimientoIds),
       ]);
+
+      // Fetch co-founder user details
+      const cofundadorUserIds = miembros?.map(m => m.user_id).filter(id => !userIds.includes(id)) || [];
+      let cofundadorUsuarios: any[] = [];
+      if (cofundadorUserIds.length > 0) {
+        const { data: cofUsers } = await supabase
+          .from("usuarios")
+          .select("id, nombres, apellidos, email, celular")
+          .in("id", cofundadorUserIds);
+        cofundadorUsuarios = cofUsers || [];
+      }
 
       const allModulos = modulosData || { Starter: [], Growth: [], Scale: [] };
 
