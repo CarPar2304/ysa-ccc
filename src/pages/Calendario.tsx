@@ -189,7 +189,7 @@ const Calendario = () => {
     }
   }, [roleLoading, quotaLoading, operadorLoading, fetchEvents]);
 
-  // Filter events based on type and entregable status
+  // Filter events based on type, entregable status, nivel, and cohorte
   const filteredEvents = useMemo(() => {
     return events.filter((ev) => {
       // Event type filter
@@ -201,9 +201,21 @@ const Calendario = () => {
         if (entregableFilter === "delivered" && !isDelivered) return false;
         if (entregableFilter === "pending" && isDelivered) return false;
       }
+      // Admin nivel filter
+      if (isAdmin && nivelFilter !== "all") {
+        const evNiveles = ev.nivelesAcceso || [];
+        if (evNiveles.length > 0 && !evNiveles.includes(nivelFilter)) return false;
+        // Events with no nivelesAcceso are shown (they apply to all levels)
+      }
+      // Admin cohorte filter
+      if (isAdmin && cohorteFilter !== "all") {
+        const evCohortes = ev.cohortesAcceso || [];
+        if (evCohortes.length > 0 && !evCohortes.includes(Number(cohorteFilter))) return false;
+        // Events with no cohortesAcceso are shown (they apply to all cohorts)
+      }
       return true;
     });
-  }, [events, eventTypeFilter, entregableFilter, entregaStatusMap]);
+  }, [events, eventTypeFilter, entregableFilter, entregaStatusMap, isAdmin, nivelFilter, cohorteFilter]);
 
   const handleDayClick = (date: Date) => {
     if (canManage) {
