@@ -405,6 +405,89 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             )}
           </div>
 
+          {/* Programación para el calendario */}
+          <div className="space-y-3">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              📅 Programación (Calendario)
+            </Label>
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+              <InlineDatePicker
+                value={fechaClase}
+                onChange={setFechaClase}
+                label="Fecha de la clase"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Hora inicio</label>
+                  <Input
+                    type="time"
+                    value={horaInicioClase}
+                    onChange={(e) => setHoraInicioClase(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Hora fin</label>
+                  <Input
+                    type="time"
+                    value={horaFinClase}
+                    onChange={(e) => setHoraFinClase(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+
+              {/* Modalidad */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Modalidad</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {MODALIDAD_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setModalidadClase(opt.value)}
+                        className={cn(
+                          "flex flex-col items-center gap-1 rounded-lg border p-2.5 text-xs font-medium transition-all duration-150",
+                          modalidadClase === opt.value
+                            ? "border-primary bg-accent text-accent-foreground shadow-sm"
+                            : "border-border bg-background text-muted-foreground hover:border-ring/40 hover:bg-accent/30"
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {(modalidadClase === "presencial" || modalidadClase === "hibrido") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Lugar</label>
+                  <Input
+                    value={lugarClase}
+                    onChange={(e) => setLugarClase(e.target.value)}
+                    placeholder="Dirección o nombre del lugar"
+                    className="h-9"
+                  />
+                </div>
+              )}
+              {(modalidadClase === "virtual" || modalidadClase === "hibrido") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Link virtual</label>
+                  <Input
+                    value={linkVirtualClase}
+                    onChange={(e) => setLinkVirtualClase(e.target.value)}
+                    placeholder="https://meet.google.com/..."
+                    className="h-9"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Recursos</Label>
             <div className="space-y-3">
