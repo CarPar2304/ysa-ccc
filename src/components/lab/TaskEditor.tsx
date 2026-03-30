@@ -231,8 +231,7 @@ export const TaskEditor = ({ moduloId, tarea, onSuccess, trigger }: TaskEditorPr
               value={fechaLimite}
               onChange={(e) => setFechaLimite(e.target.value)}
               required
-              />
-            </div>
+            />
           </div>
 
           <div className="flex items-center space-x-2">
