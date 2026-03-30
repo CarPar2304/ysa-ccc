@@ -46,8 +46,10 @@ const News = () => {
   };
 
   useEffect(() => {
-    fetchNoticias();
-  }, [isAdmin, isStakeholder]);
+    if (!roleLoading && (!isBeneficiario || !quotaLoading)) {
+      fetchNoticias();
+    }
+  }, [isAdmin, isStakeholder, isBeneficiario, roleLoading, quotaLoading, quotaInfo]);
 
   const fetchNoticias = async () => {
     try {
