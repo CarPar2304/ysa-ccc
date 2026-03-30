@@ -8,8 +8,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { Plus, Upload, X, Link, FileUp } from "lucide-react";
+import { Plus, Upload, X, Link, FileUp, Video, MapPin, Globe } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { InlineDatePicker } from "@/components/calendario/InlineDatePicker";
+import { cn } from "@/lib/utils";
 
 interface Recurso {
   titulo: string;
@@ -29,6 +31,12 @@ interface ClassEditorProps {
     recursos_url: Recurso[];
     imagen_url?: string;
     cohorte?: number[];
+    fecha?: string;
+    hora_inicio?: string;
+    hora_fin?: string;
+    modalidad?: string;
+    lugar?: string;
+    link_virtual?: string;
   };
   moduloId: string;
   nivelModulo?: string | null;
@@ -54,6 +62,18 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
   const [recursos, setRecursos] = useState<Recurso[]>([]);
   const [uploadingRecurso, setUploadingRecurso] = useState<number | null>(null);
   const [cohortes, setCohortes] = useState<number[]>([1]);
+  const [fechaClase, setFechaClase] = useState("");
+  const [horaInicioClase, setHoraInicioClase] = useState("");
+  const [horaFinClase, setHoraFinClase] = useState("");
+  const [modalidadClase, setModalidadClase] = useState("virtual");
+  const [lugarClase, setLugarClase] = useState("");
+  const [linkVirtualClase, setLinkVirtualClase] = useState("");
+
+  const MODALIDAD_OPTIONS = [
+    { value: "virtual", label: "Virtual", icon: Video },
+    { value: "presencial", label: "Presencial", icon: MapPin },
+    { value: "hibrido", label: "Híbrido", icon: Globe },
+  ];
 
   const isScale = nivelModulo === "Scale";
 
@@ -69,6 +89,12 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
       setRecursos(clase.recursos_url || []);
       setImagePreview(clase.imagen_url || null);
       setCohortes(clase.cohorte || [1]);
+      setFechaClase(clase.fecha || "");
+      setHoraInicioClase(clase.hora_inicio || "");
+      setHoraFinClase(clase.hora_fin || "");
+      setModalidadClase(clase.modalidad || "virtual");
+      setLugarClase(clase.lugar || "");
+      setLinkVirtualClase(clase.link_virtual || "");
     }
   }, [clase]);
 
@@ -166,6 +192,12 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             imagen_url: finalImagenUrl || null,
             orden: orden ? parseInt(orden) : null,
             cohorte: cohortes,
+            fecha: fechaClase || null,
+            hora_inicio: horaInicioClase || null,
+            hora_fin: horaFinClase || null,
+            modalidad: modalidadClase || null,
+            lugar: (modalidadClase === "presencial" || modalidadClase === "hibrido") ? lugarClase || null : null,
+            link_virtual: (modalidadClase === "virtual" || modalidadClase === "hibrido") ? linkVirtualClase || null : null,
           })
           .eq("id", clase.id);
 
@@ -189,6 +221,12 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             imagen_url: finalImagenUrl || null,
             orden: orden ? parseInt(orden) : null,
             cohorte: cohortes,
+            fecha: fechaClase || null,
+            hora_inicio: horaInicioClase || null,
+            hora_fin: horaFinClase || null,
+            modalidad: modalidadClase || null,
+            lugar: (modalidadClase === "presencial" || modalidadClase === "hibrido") ? lugarClase || null : null,
+            link_virtual: (modalidadClase === "virtual" || modalidadClase === "hibrido") ? linkVirtualClase || null : null,
           })
           .select()
           .single();
@@ -210,6 +248,12 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
       setOrden("");
       setRecursos([]);
       setCohortes([1]);
+      setFechaClase("");
+      setHoraInicioClase("");
+      setHoraFinClase("");
+      setModalidadClase("virtual");
+      setLugarClase("");
+      setLinkVirtualClase("");
       setImageFile(null);
       setImagePreview(null);
       setOpen(false);
@@ -359,6 +403,89 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Programación para el calendario */}
+          <div className="space-y-3">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              📅 Programación (Calendario)
+            </Label>
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+              <InlineDatePicker
+                value={fechaClase}
+                onChange={setFechaClase}
+                label="Fecha de la clase"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Hora inicio</label>
+                  <Input
+                    type="time"
+                    value={horaInicioClase}
+                    onChange={(e) => setHoraInicioClase(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Hora fin</label>
+                  <Input
+                    type="time"
+                    value={horaFinClase}
+                    onChange={(e) => setHoraFinClase(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+
+              {/* Modalidad */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Modalidad</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {MODALIDAD_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setModalidadClase(opt.value)}
+                        className={cn(
+                          "flex flex-col items-center gap-1 rounded-lg border p-2.5 text-xs font-medium transition-all duration-150",
+                          modalidadClase === opt.value
+                            ? "border-primary bg-accent text-accent-foreground shadow-sm"
+                            : "border-border bg-background text-muted-foreground hover:border-ring/40 hover:bg-accent/30"
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {(modalidadClase === "presencial" || modalidadClase === "hibrido") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Lugar</label>
+                  <Input
+                    value={lugarClase}
+                    onChange={(e) => setLugarClase(e.target.value)}
+                    placeholder="Dirección o nombre del lugar"
+                    className="h-9"
+                  />
+                </div>
+              )}
+              {(modalidadClase === "virtual" || modalidadClase === "hibrido") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Link virtual</label>
+                  <Input
+                    value={linkVirtualClase}
+                    onChange={(e) => setLinkVirtualClase(e.target.value)}
+                    placeholder="https://meet.google.com/..."
+                    className="h-9"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

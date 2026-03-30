@@ -32,24 +32,22 @@ const Calendario = () => {
 
   const fetchEvents = useCallback(async () => {
     try {
-      // Fetch calendar events
-      const { data: calEvents } = await supabase
-        .from("eventos_calendario")
-        .select("*, modulos(titulo)")
-        .order("fecha");
+      // Fetch calendar events, tareas, and clases with dates in parallel
+      const [calRes, tareasRes, clasesRes] = await Promise.all([
+        supabase.from("eventos_calendario").select("*, modulos(titulo)").order("fecha"),
+        supabase.from("tareas").select("*, modulos(titulo, nivel)").eq("activo", true),
+        supabase.from("clases").select("*, modulos(titulo, nivel)").not("fecha", "is", null),
+      ]);
 
-      // Fetch tareas (entregables) with module info
-      const { data: tareas } = await supabase
-        .from("tareas")
-        .select("*, modulos(titulo, nivel)")
-        .eq("activo", true);
+      const calEvents = calRes.data;
+      const tareas = tareasRes.data;
+      const clases = clasesRes.data;
 
       const mapped: CalendarEvent[] = [];
 
       // Map calendar events
       if (calEvents) {
         for (const ev of calEvents) {
-          // Visibility filtering for beneficiarios
           if (isBeneficiario && ev.tipo === "clase") {
             const evNiveles = ev.niveles_acceso || [];
             const evCohortes = ev.cohortes_acceso || [];
@@ -76,11 +74,41 @@ const Calendario = () => {
         }
       }
 
+      // Map clases with fecha as calendar events
+      if (clases) {
+        for (const cl of clases) {
+          const modulo = cl.modulos as any;
+          const clCohortes = cl.cohorte || [];
+
+          // Visibility filtering for beneficiarios
+          if (isBeneficiario) {
+            if (modulo?.nivel && nivel && modulo.nivel !== nivel) continue;
+            if (clCohortes.length > 0 && cohorte && !clCohortes.includes(cohorte)) continue;
+          }
+
+          mapped.push({
+            id: `clase-${cl.id}`,
+            tipo: "clase",
+            titulo: cl.titulo,
+            descripcion: cl.descripcion,
+            fecha: cl.fecha,
+            horaInicio: cl.hora_inicio,
+            horaFin: cl.hora_fin,
+            modalidad: cl.modalidad,
+            lugar: cl.lugar,
+            linkVirtual: cl.link_virtual,
+            moduloId: cl.modulo_id,
+            moduloNombre: modulo?.titulo || null,
+            nivelesAcceso: modulo?.nivel ? [modulo.nivel] : null,
+            cohortesAcceso: clCohortes.length > 0 ? clCohortes : null,
+          });
+        }
+      }
+
       // Map tareas as entregables
       if (tareas) {
         for (const t of tareas) {
           const modulo = t.modulos as any;
-          // For beneficiarios, filter by module nivel
           if (isBeneficiario && modulo?.nivel && nivel && modulo.nivel !== nivel) continue;
 
           const fechaInicio = t.fecha_inicio
