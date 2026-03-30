@@ -21,8 +21,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Video, MapPin, Globe } from "lucide-react";
 import { format } from "date-fns";
+import { InlineDatePicker } from "./InlineDatePicker";
+import { cn } from "@/lib/utils";
 
 interface EventFormDialogProps {
   open: boolean;
@@ -34,6 +36,12 @@ interface EventFormDialogProps {
 
 const NIVELES = ["Starter", "Growth", "Scale"];
 const COHORTES = [1, 2];
+
+const MODALIDAD_OPTIONS = [
+  { value: "virtual", label: "Virtual", icon: Video },
+  { value: "presencial", label: "Presencial", icon: MapPin },
+  { value: "hibrido", label: "Híbrido", icon: Globe },
+];
 
 export function EventFormDialog({
   open,
@@ -170,7 +178,7 @@ export function EventFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[580px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar Evento" : "Nuevo Evento"}</DialogTitle>
           <DialogDescription>
@@ -178,19 +186,32 @@ export function EventFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tipo */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Tipo - pill toggle */}
           <div className="space-y-2">
-            <Label>Tipo de evento</Label>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="clase">Clase</SelectItem>
-                <SelectItem value="evento">Evento General</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Tipo de evento
+            </Label>
+            <div className="flex gap-2">
+              {[
+                { value: "clase", label: "📚 Clase" },
+                { value: "evento", label: "🎉 Evento General" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setTipo(opt.value)}
+                  className={cn(
+                    "flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition-all duration-150",
+                    tipo === opt.value
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-background text-muted-foreground border-border hover:border-ring/40 hover:bg-accent/50"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Título */}
@@ -201,6 +222,7 @@ export function EventFormDialog({
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Nombre del evento"
               required
+              className="h-10"
             />
           </div>
 
@@ -215,51 +237,73 @@ export function EventFormDialog({
             />
           </div>
 
-          {/* Fecha y hora */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label>Fecha *</Label>
-              <Input
-                type="date"
+          {/* Fecha with inline calendar + times */}
+          <div className="space-y-3">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Fecha y hora
+            </Label>
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+              <InlineDatePicker
                 value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                required
+                onChange={setFecha}
+                label="Fecha del evento *"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Hora inicio</Label>
-              <Input
-                type="time"
-                value={horaInicio}
-                onChange={(e) => setHoraInicio(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Hora fin</Label>
-              <Input
-                type="time"
-                value={horaFin}
-                onChange={(e) => setHoraFin(e.target.value)}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">
+                    Hora inicio
+                  </label>
+                  <Input
+                    type="time"
+                    value={horaInicio}
+                    onChange={(e) => setHoraInicio(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">
+                    Hora fin
+                  </label>
+                  <Input
+                    type="time"
+                    value={horaFin}
+                    onChange={(e) => setHoraFin(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Modalidad */}
+          {/* Modalidad - visual selector */}
           <div className="space-y-2">
-            <Label>Modalidad</Label>
-            <Select value={modalidad} onValueChange={setModalidad}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="virtual">Virtual</SelectItem>
-                <SelectItem value="presencial">Presencial</SelectItem>
-                <SelectItem value="hibrido">Híbrido</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Modalidad
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {MODALIDAD_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setModalidad(opt.value)}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-lg border p-3 text-xs font-medium transition-all duration-150",
+                      modalidad === opt.value
+                        ? "border-primary bg-accent text-accent-foreground shadow-sm"
+                        : "border-border bg-background text-muted-foreground hover:border-ring/40 hover:bg-accent/30"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Lugar / Link */}
+          {/* Lugar / Link conditional */}
           {(modalidad === "presencial" || modalidad === "hibrido") && (
             <div className="space-y-2">
               <Label>Lugar</Label>
@@ -267,6 +311,7 @@ export function EventFormDialog({
                 value={lugar}
                 onChange={(e) => setLugar(e.target.value)}
                 placeholder="Dirección o nombre del lugar"
+                className="h-9"
               />
             </div>
           )}
@@ -277,6 +322,7 @@ export function EventFormDialog({
                 value={linkVirtual}
                 onChange={(e) => setLinkVirtual(e.target.value)}
                 placeholder="https://meet.google.com/..."
+                className="h-9"
               />
             </div>
           )}
@@ -286,7 +332,7 @@ export function EventFormDialog({
             <div className="space-y-2">
               <Label>Vincular a módulo (opcional)</Label>
               <Select value={moduloId} onValueChange={setModuloId}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Seleccionar módulo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -303,36 +349,52 @@ export function EventFormDialog({
 
           {/* Niveles y Cohortes (solo clase) */}
           {tipo === "clase" && (
-            <>
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
               <div className="space-y-2">
-                <Label>Niveles de acceso *</Label>
-                <div className="flex gap-3">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Niveles de acceso *
+                </Label>
+                <div className="flex gap-2">
                   {NIVELES.map((nivel) => (
-                    <label key={nivel} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={nivelesAcceso.includes(nivel)}
-                        onCheckedChange={() => toggleNivel(nivel)}
-                      />
+                    <button
+                      key={nivel}
+                      type="button"
+                      onClick={() => toggleNivel(nivel)}
+                      className={cn(
+                        "flex-1 px-2 py-1.5 rounded-md text-xs font-medium border transition-all",
+                        nivelesAcceso.includes(nivel)
+                          ? "bg-primary/10 text-primary border-primary/40"
+                          : "bg-background text-muted-foreground border-border hover:border-ring/30"
+                      )}
+                    >
                       {nivel}
-                    </label>
+                    </button>
                   ))}
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Cohortes de acceso</Label>
-                <div className="flex gap-3">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Cohortes de acceso
+                </Label>
+                <div className="flex gap-2">
                   {COHORTES.map((cohorte) => (
-                    <label key={cohorte} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={cohortesAcceso.includes(cohorte)}
-                        onCheckedChange={() => toggleCohorte(cohorte)}
-                      />
+                    <button
+                      key={cohorte}
+                      type="button"
+                      onClick={() => toggleCohorte(cohorte)}
+                      className={cn(
+                        "flex-1 px-2 py-1.5 rounded-md text-xs font-medium border transition-all",
+                        cohortesAcceso.includes(cohorte)
+                          ? "bg-primary/10 text-primary border-primary/40"
+                          : "bg-background text-muted-foreground border-border hover:border-ring/30"
+                      )}
+                    >
                       Cohorte {cohorte}
-                    </label>
+                    </button>
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {tipo === "evento" && (
