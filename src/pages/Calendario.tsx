@@ -8,6 +8,7 @@ import { DayDetailSheet } from "@/components/calendario/DayDetailSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
+import { useOperadorNiveles } from "@/hooks/useOperadorNiveles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Loader2, Filter } from "lucide-react";
@@ -22,6 +23,7 @@ import {
 const Calendario = () => {
   const { isAdmin, isOperador, isMentor, isBeneficiario, isStakeholder, loading: roleLoading, userId } = useUserRole();
   const { quotaInfo, loading: quotaLoading } = useQuotaStatus(userId);
+  const { niveles: operadorNiveles, loading: operadorLoading } = useOperadorNiveles();
   const nivel = quotaInfo?.nivel || null;
   const cohorte = quotaInfo?.cohorte || null;
 
@@ -71,6 +73,11 @@ const Calendario = () => {
             if (evNiveles.length > 0 && nivel && !evNiveles.includes(nivel)) continue;
             if (evCohortes.length > 0 && cohorte && !evCohortes.includes(cohorte)) continue;
           }
+          // Filter operador by assigned levels
+          if (isOperador && !isAdmin) {
+            const evNiveles = ev.niveles_acceso || [];
+            if (evNiveles.length > 0 && !evNiveles.some((n: string) => operadorNiveles.includes(n))) continue;
+          }
 
           mapped.push({
             id: ev.id,
@@ -100,6 +107,8 @@ const Calendario = () => {
             if (modulo?.nivel && nivel && modulo.nivel !== nivel) continue;
             if (clCohortes.length > 0 && cohorte && !clCohortes.includes(cohorte)) continue;
           }
+          if (isOperador && !isAdmin && modulo?.nivel && !operadorNiveles.includes(modulo.nivel)) continue;
+          }
 
           mapped.push({
             id: `clase-${cl.id}`,
@@ -124,6 +133,7 @@ const Calendario = () => {
         for (const t of tareas) {
           const modulo = t.modulos as any;
           if (isBeneficiario && modulo?.nivel && nivel && modulo.nivel !== nivel) continue;
+          if (isOperador && !isAdmin && modulo?.nivel && !operadorNiveles.includes(modulo.nivel)) continue;
 
           const fechaInicio = t.fecha_inicio
             ? format(new Date(t.fecha_inicio), "yyyy-MM-dd")
@@ -169,13 +179,13 @@ const Calendario = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isBeneficiario, nivel, cohorte, userId]);
+  }, [isBeneficiario, isOperador, isAdmin, nivel, cohorte, userId, operadorNiveles]);
 
   useEffect(() => {
-    if (!roleLoading && !quotaLoading) {
+    if (!roleLoading && !quotaLoading && !operadorLoading) {
       fetchEvents();
     }
-  }, [roleLoading, quotaLoading, fetchEvents]);
+  }, [roleLoading, quotaLoading, operadorLoading, fetchEvents]);
 
   // Filter events based on entregable filter
   const filteredEvents = useMemo(() => {
@@ -252,7 +262,7 @@ const Calendario = () => {
     fetchEvents();
   };
 
-  if (roleLoading || quotaLoading) {
+  if (roleLoading || quotaLoading || operadorLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">
@@ -275,7 +285,7 @@ const Calendario = () => {
           </div>
           <div className="flex items-center gap-2">
             {/* Entregable filter */}
-            {isBeneficiario && (
+            {(
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-1.5">
