@@ -248,6 +248,12 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
       setOrden("");
       setRecursos([]);
       setCohortes([1]);
+      setFechaClase("");
+      setHoraInicioClase("");
+      setHoraFinClase("");
+      setModalidadClase("virtual");
+      setLugarClase("");
+      setLinkVirtualClase("");
       setImageFile(null);
       setImagePreview(null);
       setOpen(false);
