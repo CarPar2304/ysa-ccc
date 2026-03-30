@@ -23,6 +23,7 @@ interface Tarea {
   num_documentos: number;
   documentos_obligatorios: boolean;
   fecha_limite: string;
+  fecha_inicio?: string | null;
   activo: boolean;
   documento_guia_url?: string | null;
 }
