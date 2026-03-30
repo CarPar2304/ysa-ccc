@@ -414,7 +414,7 @@ const Lab = () => {
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Classroom</h1>
-              {userNivel && !isStakeholder && (
+              {userNivel && !isStakeholder && !isOperador && (
                 <Badge variant="secondary" className="text-sm">
                   Nivel {userNivel}
                 </Badge>
@@ -422,6 +422,11 @@ const Lab = () => {
               {isStakeholder && (
                 <Badge variant="outline" className="text-sm">
                   Modo Visualización
+                </Badge>
+              )}
+              {isOperador && !isAdmin && (
+                <Badge variant="secondary" className="text-sm">
+                  Operador
                 </Badge>
               )}
             </div>
