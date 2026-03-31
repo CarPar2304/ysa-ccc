@@ -48,12 +48,13 @@ export const usePendingTasks = (userId: string | null, moduleIds: string[]): Pen
           return;
         }
 
-        // Get user's submissions
+        // Get all team member submissions (per emprendimiento)
         const tareaIds = activeTareas.map((t) => t.id);
+        const teamUserIds = await getTeamUserIds(userId);
         const { data: entregas, error: entregasError } = await supabase
           .from("entregas")
           .select("tarea_id")
-          .eq("user_id", userId)
+          .in("user_id", teamUserIds)
           .in("tarea_id", tareaIds);
 
         if (entregasError) throw entregasError;
