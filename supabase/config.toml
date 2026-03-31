@@ -2,3 +2,9 @@ project_id = "aqfpzlrpqszoxbjojavc"
 
 [functions.update-user-credentials]
 verify_jwt = false
+
+[functions.register-cofundador]
+verify_jwt = false
+
+[functions.register-mentor]
+verify_jwt = false
