@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getTeamUserIds } from "@/lib/teamUtils";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PendingTasksResult {
