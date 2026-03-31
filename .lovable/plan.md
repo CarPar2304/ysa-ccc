@@ -1,32 +1,58 @@
 
 
-## Plan: Limitar eventos por día + Arreglar contenedor de Próximos Eventos
+## Plan: Fix Co-founder Registration Edge Function
 
-### Cambio 1: Máximo 4 eventos visibles por celda del calendario
+### Problem
 
-**Archivo:** `src/components/calendario/CalendarMonthView.tsx`
+Two issues identified:
 
-- En las celdas de cada día, cambiar el límite de eventos single-day visibles de 3 a un máximo combinado de 4 (contando multi-day + single-day).
-- Si hay más de 4 eventos en total (multi-day bars + single-day), mostrar solo los primeros 4 y un botón "+N más" que abre un Dialog/popup con todos los eventos de ese día.
-- Para los multi-day bars: limitar a máximo 4 segmentos visibles por semana-celda; los adicionales se incluyen en el conteo del "+N más".
+1. **Function not processing requests**: Edge function logs show only boot events -- no request processing logs appear at all. This means the `serve()` handler never executes, likely due to incompatible esm.sh imports or deno.lock issues.
+2. **Authorization too restrictive**: Current logic only allows the emprendimiento **owner** or an **admin** to create co-founders. User wants all beneficiarios and co-founders linked to the emprendimiento to be able to add new co-founders.
 
-### Cambio 2: Arreglar contenedor de Próximos Eventos
+### Fix 1: Stabilize imports and redeploy
 
-**Archivo:** `src/components/calendario/UpcomingEvents.tsx`
+**File:** `supabase/functions/register-cofundador/index.ts`
 
-- El problema es que el contenedor con `overflow-hidden` en el wrapper principal corta las tarjetas verticalmente.
-- Cambiar `overflow-hidden` a `overflow-visible` en el wrapper, y mantener `overflow-x-auto` solo en el scroll container.
-- Asegurar que las tarjetas de evento tengan una altura mínima consistente o que el contenedor del scroll se ajuste al alto real de las tarjetas (no las recorte).
-- Agregar `overflow-y-visible` al scroll container para que las tarjetas no se corten verticalmente.
+- Replace `https://esm.sh/@supabase/supabase-js@2.38.4` with `npm:@supabase/supabase-js@2`
+- Replace `https://deno.land/x/zod@v3.22.4/mod.ts` with `npm:zod@3`
+- Replace `https://deno.land/std@0.168.0/http/server.ts` serve with `Deno.serve` (native, no import needed)
+- Delete `deno.lock` if present
 
-### Detalle técnico
+### Fix 2: Expand authorization to members
 
-**CalendarMonthView.tsx:**
-- Cambiar `dayEvents.slice(0, 3)` → `dayEvents.slice(0, Math.max(0, 4 - multiDaySlots))` para que el total visible (multi-day + single-day) sea máximo 4.
-- El botón "+N más" calcula: `total = dayEvents.length + multiDaySlots; remaining = total - 4`.
-- Al hacer click en "+N más" se llama `onDayClick?.(day)` para abrir el DayDetailSheet existente.
+**File:** `supabase/functions/register-cofundador/index.ts`
 
-**UpcomingEvents.tsx:**
-- Quitar `overflow-hidden` del div wrapper principal (línea 237).
-- Mantener `overflow-x-auto` en el scroll container pero sin clip vertical.
+- After checking if caller is owner or admin, also check if caller is a member of the emprendimiento via `emprendimiento_miembros` table.
+- New logic: allow if `caller.id === emprendimiento.user_id` OR `isAdmin` OR caller exists in `emprendimiento_miembros` for that emprendimiento.
+
+### Fix 3: Better error handling on client
+
+**File:** `src/components/profile/ProfileCoFounders.tsx`
+
+- When `supabase.functions.invoke` returns non-2xx, the `error` object has a generic message but `data` may contain the real error. Update `handleSubmit` to check `data?.error` before throwing `error`.
+
+### Technical detail
+
+The edge function will be rewritten with stable `npm:` imports and `Deno.serve()`:
+
+```typescript
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3";
+
+const corsHeaders = { ... };
+
+Deno.serve(async (req) => {
+  // ... same logic but with expanded auth check:
+  const { data: isMember } = await supabaseAdmin
+    .from('emprendimiento_miembros')
+    .select('id')
+    .eq('emprendimiento_id', validatedData.emprendimiento_id)
+    .eq('user_id', caller.id)
+    .maybeSingle();
+
+  if (emprendimiento.user_id !== caller.id && !isAdmin && !isMember) {
+    return 403;
+  }
+});
+```
 
