@@ -18,13 +18,14 @@ export const usePendingTasks = (userId: string | null, moduleIds: string[]): Pen
 
     const fetchPendingTasks = async () => {
       try {
+        const now = new Date().toISOString();
         // Get all active tasks for these modules
         const { data: tareas, error: tareasError } = await supabase
           .from("tareas")
-          .select("id, modulo_id")
+          .select("id, modulo_id, fecha_inicio")
           .in("modulo_id", moduleIds)
           .eq("activo", true)
-          .gte("fecha_limite", new Date().toISOString());
+          .gte("fecha_limite", now);
 
         if (tareasError) throw tareasError;
 
@@ -34,8 +35,20 @@ export const usePendingTasks = (userId: string | null, moduleIds: string[]): Pen
           return;
         }
 
+        // Filter out tasks whose fecha_inicio hasn't started yet
+        const activeTareas = tareas.filter((t) => {
+          if (!t.fecha_inicio) return true;
+          return t.fecha_inicio <= now;
+        });
+
+        if (activeTareas.length === 0) {
+          setPendingTasks({});
+          setLoading(false);
+          return;
+        }
+
         // Get user's submissions
-        const tareaIds = tareas.map((t) => t.id);
+        const tareaIds = activeTareas.map((t) => t.id);
         const { data: entregas, error: entregasError } = await supabase
           .from("entregas")
           .select("tarea_id")
@@ -48,7 +61,7 @@ export const usePendingTasks = (userId: string | null, moduleIds: string[]): Pen
 
         // Count pending tasks per module
         const pendingByModule: Record<string, number> = {};
-        tareas.forEach((tarea) => {
+        activeTareas.forEach((tarea) => {
           if (!entregaSet.has(tarea.id)) {
             pendingByModule[tarea.modulo_id] = (pendingByModule[tarea.modulo_id] || 0) + 1;
           }

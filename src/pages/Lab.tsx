@@ -305,23 +305,25 @@ const Lab = () => {
             <BookOpen className="h-16 w-16 text-primary/40" />
           </div>
         )}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
-          <Badge
-            className={modulo.activo
-              ? "bg-primary text-primary-foreground shadow-md"
-              : "bg-muted text-muted-foreground shadow-md"
-            }
-          >
-            {modulo.activo ? "Disponible" : "Inactivo"}
-          </Badge>
-          {isMentor && editableModules.has(modulo.id) && (
-            <Badge className="bg-accent text-accent-foreground shadow-md flex items-center gap-1">
-              <Edit className="h-3 w-3" />
-              Puedes editarlo
+        {!isBeneficiario && (
+          <div className="absolute top-3 left-3 flex flex-col gap-2">
+            <Badge
+              className={modulo.activo
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-muted text-muted-foreground shadow-md"
+              }
+            >
+              {modulo.activo ? "Disponible" : "Inactivo"}
             </Badge>
-          )}
-        </div>
-        {modulo.nivel && (
+            {isMentor && editableModules.has(modulo.id) && (
+              <Badge className="bg-accent text-accent-foreground shadow-md flex items-center gap-1">
+                <Edit className="h-3 w-3" />
+                Puedes editarlo
+              </Badge>
+            )}
+          </div>
+        )}
+        {modulo.nivel && !isBeneficiario && (
           <div className="absolute top-3 right-3">
             <Badge variant="outline" className="bg-background/90 backdrop-blur-sm shadow-md">
               {modulo.nivel}
