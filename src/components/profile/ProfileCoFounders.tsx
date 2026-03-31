@@ -126,8 +126,8 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
         },
       });
 
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      if (error) throw error;
 
       toast({ title: "Co-fundador creado", description: data.message });
       setDialogOpen(false);
