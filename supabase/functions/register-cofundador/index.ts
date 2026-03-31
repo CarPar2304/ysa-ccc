@@ -1,6 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +30,7 @@ const cofundadorSchema = z.object({
   emprendimiento_id: z.string().uuid(),
 });
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -68,7 +67,7 @@ serve(async (req) => {
     const body = await req.json();
     const validatedData = cofundadorSchema.parse(body);
 
-    // Check caller is admin or owner of the emprendimiento
+    // Check emprendimiento exists
     const { data: emprendimiento } = await supabaseAdmin
       .from('emprendimientos')
       .select('id, user_id')
@@ -82,8 +81,16 @@ serve(async (req) => {
       );
     }
 
+    // Authorization: owner, admin, or any member of the emprendimiento
     const { data: isAdmin } = await supabaseAdmin.rpc('is_admin', { _user_id: caller.id });
-    if (emprendimiento.user_id !== caller.id && !isAdmin) {
+    const { data: isMember } = await supabaseAdmin
+      .from('emprendimiento_miembros')
+      .select('id')
+      .eq('emprendimiento_id', validatedData.emprendimiento_id)
+      .eq('user_id', caller.id)
+      .maybeSingle();
+
+    if (emprendimiento.user_id !== caller.id && !isAdmin && !isMember) {
       return new Response(
         JSON.stringify({ error: "No tienes permiso para agregar cofundadores a este emprendimiento" }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -127,7 +134,7 @@ serve(async (req) => {
 
     const newUserId = authData.user.id;
 
-    // 2. Update the usuarios record with all provided fields
+    // 2. Update the usuarios record
     const updateData: Record<string, any> = {};
     if (validatedData.celular) updateData.celular = validatedData.celular;
     if (validatedData.tipo_documento && validatedData.tipo_documento !== "") updateData.tipo_documento = validatedData.tipo_documento;
