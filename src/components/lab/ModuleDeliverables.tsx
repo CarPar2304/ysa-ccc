@@ -246,21 +246,28 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
     if (!userId) return;
     try {
       const tareaIds = tareas.map((t) => t.id);
+
+      // Get all team member IDs (same emprendimiento)
+      const teamUserIds = await getTeamUserIds(userId);
+
       const { data, error } = await supabase
         .from("entregas")
         .select("*")
-        .eq("user_id", userId)
+        .in("user_id", teamUserIds)
         .in("tarea_id", tareaIds);
 
       if (error) throw error;
 
       const entregasMap: Record<string, Entrega> = {};
       (data || []).forEach((entrega) => {
-        entregasMap[entrega.tarea_id] = {
-          ...entrega,
-          nota: entrega.nota ?? null,
-          archivos_urls: (entrega.archivos_urls as { name: string; url: string }[]) || [],
-        };
+        // Prefer showing own submission, but show any team submission
+        if (!entregasMap[entrega.tarea_id] || entrega.user_id === userId) {
+          entregasMap[entrega.tarea_id] = {
+            ...entrega,
+            nota: entrega.nota ?? null,
+            archivos_urls: (entrega.archivos_urls as { name: string; url: string }[]) || [],
+          };
+        }
       });
       setEntregas(entregasMap);
     } catch (error) {

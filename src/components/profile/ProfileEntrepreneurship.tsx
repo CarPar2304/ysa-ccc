@@ -41,11 +41,39 @@ export const ProfileEntrepreneurship = ({ readOnly = false }: ProfileEntrepreneu
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      // Try as owner first
+      let data: any = null;
+      let error: any = null;
+
+      const ownerResult = await supabase
         .from("emprendimientos")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
+
+      data = ownerResult.data;
+      error = ownerResult.error;
+
+      // If not owner, check if co-founder
+      if (!data && (!error || error.code === 'PGRST116')) {
+        const { data: membership } = await supabase
+          .from("emprendimiento_miembros")
+          .select("emprendimiento_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (membership) {
+          const memberResult = await supabase
+            .from("emprendimientos")
+            .select("*")
+            .eq("id", membership.emprendimiento_id)
+            .maybeSingle();
+          
+          data = memberResult.data;
+          error = memberResult.error;
+        }
+      }
 
       if (error && error.code !== 'PGRST116') throw error;
 

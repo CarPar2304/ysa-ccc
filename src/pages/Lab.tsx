@@ -80,20 +80,38 @@ const Lab = () => {
     if (!userId) return;
     
     try {
-      // Obtener el emprendimiento del usuario
+      // Check if user owns an emprendimiento
+      let empId: string | null = null;
+
       const { data: emprendimiento } = await supabase
         .from("emprendimientos")
         .select("id")
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (!emprendimiento) return;
+      if (emprendimiento) {
+        empId = emprendimiento.id;
+      } else {
+        // Check if user is a co-founder
+        const { data: membership } = await supabase
+          .from("emprendimiento_miembros")
+          .select("emprendimiento_id")
+          .eq("user_id", userId)
+          .limit(1)
+          .maybeSingle();
+        
+        if (membership) {
+          empId = membership.emprendimiento_id;
+        }
+      }
+
+      if (!empId) return;
 
       // Obtener el nivel del cupo aprobado
       const { data: asignacion } = await supabase
         .from("asignacion_cupos")
         .select("nivel")
-        .eq("emprendimiento_id", emprendimiento.id)
+        .eq("emprendimiento_id", empId)
         .eq("estado", "aprobado")
         .maybeSingle();
 
