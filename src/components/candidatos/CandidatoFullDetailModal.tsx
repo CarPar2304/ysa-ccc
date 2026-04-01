@@ -341,8 +341,36 @@ export const CandidatoFullDetailModal = ({ candidato, open, onClose }: Candidato
                         </CardContent>
                       </Card>
                     )}
-                  </>
-                ) : (
+
+                    {candidato.cofundadores && candidato.cofundadores.length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <Users className="h-5 w-5" />
+                            Co-fundadores ({candidato.cofundadores.length})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {candidato.cofundadores.map((cf, i) => (
+                            <div key={i} className="p-3 bg-muted/50 rounded-lg space-y-1">
+                              <p className="font-medium">{cf.nombres} {cf.apellidos}</p>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                                {cf.email && (
+                                  <span className="flex items-center gap-1">
+                                    <Mail className="h-3 w-3" /> {cf.email}
+                                  </span>
+                                )}
+                                {cf.celular && (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="h-3 w-3" /> {cf.celular}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
                   <Card>
                     <CardContent className="py-8 text-center text-muted-foreground">
                       No hay información de emprendimiento disponible
