@@ -214,7 +214,24 @@ const Candidatos = () => {
 
       // Combinar datos
       const candidatosData: CandidatoData[] = usuarios.map(usuario => {
-        const emprendimiento = emprendimientos?.find(e => e.user_id === usuario.id);
+        // Find emprendimiento as owner first, then as co-founder
+        let emprendimiento = emprendimientos?.find(e => e.user_id === usuario.id);
+        let esCofundador = false;
+        
+        if (!emprendimiento) {
+          // Check if user is a co-founder
+          const membership = miembros?.find(m => m.user_id === usuario.id);
+          if (membership) {
+            emprendimiento = emprendimientos?.find(e => e.id === membership.emprendimiento_id);
+            // If emprendimiento wasn't fetched (owner not a beneficiario), fetch it from all available
+            if (!emprendimiento) {
+              // We'll need to handle this - the emprendimiento might not be in our list
+              // because we only fetched emprendimientos by owner user_id
+            }
+            esCofundador = true;
+          }
+        }
+        
         const cupo = cupos?.find(c => c.emprendimiento_id === emprendimiento?.id);
         const equipo = equipos?.find(e => e.emprendimiento_id === emprendimiento?.id);
         const proyeccion = proyecciones?.find(p => p.emprendimiento_id === emprendimiento?.id);
