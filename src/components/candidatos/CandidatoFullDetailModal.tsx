@@ -371,6 +371,8 @@ export const CandidatoFullDetailModal = ({ candidato, open, onClose }: Candidato
                         </CardContent>
                       </Card>
                     )}
+                  </>
+                ) : (
                   <Card>
                     <CardContent className="py-8 text-center text-muted-foreground">
                       No hay información de emprendimiento disponible
