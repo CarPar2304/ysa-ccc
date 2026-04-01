@@ -376,6 +376,7 @@ const Candidatos = () => {
             created_at: ev.created_at,
           })),
           cofundadores: cofundadoresList.length > 0 ? cofundadoresList : undefined,
+          es_cofundador: esCofundador,
         };
       });
 
