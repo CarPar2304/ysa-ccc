@@ -170,13 +170,33 @@ const Candidatos = () => {
 
       if (!usuarios) return;
 
-      // Obtener emprendimientos con todos los campos
-      const { data: emprendimientos } = await supabase
+      // Obtener emprendimientos de owners beneficiarios
+      const { data: emprendimientosByOwner } = await supabase
         .from("emprendimientos")
         .select("*")
         .in("user_id", userIds);
 
-      const emprendimientoIds = emprendimientos?.map(e => e.id) || [];
+      // Also fetch emprendimientos where these users are co-founders
+      const { data: membershipLinks } = await supabase
+        .from("emprendimiento_miembros")
+        .select("emprendimiento_id")
+        .in("user_id", userIds);
+
+      const memberEmpIds = membershipLinks?.map(m => m.emprendimiento_id).filter(
+        id => !emprendimientosByOwner?.some(e => e.id === id)
+      ) || [];
+
+      let emprendimientosByMembership: typeof emprendimientosByOwner = [];
+      if (memberEmpIds.length > 0) {
+        const { data } = await supabase
+          .from("emprendimientos")
+          .select("*")
+          .in("id", memberEmpIds);
+        emprendimientosByMembership = data || [];
+      }
+
+      const emprendimientos = [...(emprendimientosByOwner || []), ...(emprendimientosByMembership || [])];
+      const emprendimientoIds = emprendimientos.map(e => e.id);
 
       // Obtener todos los datos relacionados en paralelo
       const [
