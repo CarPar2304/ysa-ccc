@@ -170,13 +170,33 @@ const Candidatos = () => {
 
       if (!usuarios) return;
 
-      // Obtener emprendimientos con todos los campos
-      const { data: emprendimientos } = await supabase
+      // Obtener emprendimientos de owners beneficiarios
+      const { data: emprendimientosByOwner } = await supabase
         .from("emprendimientos")
         .select("*")
         .in("user_id", userIds);
 
-      const emprendimientoIds = emprendimientos?.map(e => e.id) || [];
+      // Also fetch emprendimientos where these users are co-founders
+      const { data: membershipLinks } = await supabase
+        .from("emprendimiento_miembros")
+        .select("emprendimiento_id")
+        .in("user_id", userIds);
+
+      const memberEmpIds = membershipLinks?.map(m => m.emprendimiento_id).filter(
+        id => !emprendimientosByOwner?.some(e => e.id === id)
+      ) || [];
+
+      let emprendimientosByMembership: typeof emprendimientosByOwner = [];
+      if (memberEmpIds.length > 0) {
+        const { data } = await supabase
+          .from("emprendimientos")
+          .select("*")
+          .in("id", memberEmpIds);
+        emprendimientosByMembership = data || [];
+      }
+
+      const emprendimientos = [...(emprendimientosByOwner || []), ...(emprendimientosByMembership || [])];
+      const emprendimientoIds = emprendimientos.map(e => e.id);
 
       // Obtener todos los datos relacionados en paralelo
       const [
@@ -214,7 +234,24 @@ const Candidatos = () => {
 
       // Combinar datos
       const candidatosData: CandidatoData[] = usuarios.map(usuario => {
-        const emprendimiento = emprendimientos?.find(e => e.user_id === usuario.id);
+        // Find emprendimiento as owner first, then as co-founder
+        let emprendimiento = emprendimientos?.find(e => e.user_id === usuario.id);
+        let esCofundador = false;
+        
+        if (!emprendimiento) {
+          // Check if user is a co-founder
+          const membership = miembros?.find(m => m.user_id === usuario.id);
+          if (membership) {
+            emprendimiento = emprendimientos?.find(e => e.id === membership.emprendimiento_id);
+            // If emprendimiento wasn't fetched (owner not a beneficiario), fetch it from all available
+            if (!emprendimiento) {
+              // We'll need to handle this - the emprendimiento might not be in our list
+              // because we only fetched emprendimientos by owner user_id
+            }
+            esCofundador = true;
+          }
+        }
+        
         const cupo = cupos?.find(c => c.emprendimiento_id === emprendimiento?.id);
         const equipo = equipos?.find(e => e.emprendimiento_id === emprendimiento?.id);
         const proyeccion = proyecciones?.find(p => p.emprendimiento_id === emprendimiento?.id);
@@ -359,6 +396,7 @@ const Candidatos = () => {
             created_at: ev.created_at,
           })),
           cofundadores: cofundadoresList.length > 0 ? cofundadoresList : undefined,
+          es_cofundador: esCofundador,
         };
       });
 
