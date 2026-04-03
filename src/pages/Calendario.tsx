@@ -162,10 +162,13 @@ const Calendario = () => {
       if (isBeneficiario && userId && tareas) {
         const tareaIds = tareas.map((t) => t.id);
         if (tareaIds.length > 0) {
+          // Check team submissions (not just own)
+          const { getTeamUserIds } = await import("@/lib/teamUtils");
+          const teamUserIds = await getTeamUserIds(userId);
           const { data: entregas } = await supabase
             .from("entregas")
             .select("tarea_id")
-            .eq("user_id", userId)
+            .in("user_id", teamUserIds)
             .in("tarea_id", tareaIds);
           
           const statusMap: Record<string, boolean> = {};
