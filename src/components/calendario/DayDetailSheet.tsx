@@ -39,7 +39,7 @@ export function DayDetailSheet({
   const handleGoToEntregable = (event: CalendarEvent) => {
     // Navigate to lab module to submit
     if (event.moduloId) {
-      navigate(`/lab/modulo/${event.moduloId}`);
+      navigate(`/lab/${event.moduloId}`);
       onOpenChange(false);
     }
   };

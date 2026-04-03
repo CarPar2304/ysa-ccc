@@ -115,7 +115,7 @@ export function UpcomingEvents({ events, onEventClick, className }: UpcomingEven
   const handleEntregableClick = (event: CalendarEvent, e: React.MouseEvent) => {
     e.stopPropagation();
     if (event.moduloId) {
-      navigate(`/lab/modulo/${event.moduloId}`);
+      navigate(`/lab/${event.moduloId}`);
     }
   };
 
