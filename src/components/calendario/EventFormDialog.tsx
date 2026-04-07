@@ -151,8 +151,8 @@ export function EventFormDialog({
         .from("General")
         .upload(filePath, icalFile, { cacheControl: "3600", upsert: false });
       if (uploadError) throw uploadError;
-      const { data } = supabase.storage.from("General").getPublicUrl(filePath);
-      return data?.publicUrl || null;
+      // Store the path, not a public URL (General bucket is private)
+      return filePath;
     } catch (err: any) {
       toast({ title: "Error al subir archivo .ics", description: err.message, variant: "destructive" });
       return icalUrl || null;

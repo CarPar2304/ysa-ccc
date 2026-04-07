@@ -17,6 +17,7 @@ import {
   Trash2,
   Calendar,
   CalendarPlus,
+  Loader2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -42,6 +43,7 @@ export function EventDetailDialog({
   canManage = false,
 }: EventDetailDialogProps) {
   const [deleting, setDeleting] = useState(false);
+  const [downloadingIcal, setDownloadingIcal] = useState(false);
   const { toast } = useToast();
 
   if (!event) return null;
@@ -65,6 +67,24 @@ export function EventDetailDialog({
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleDownloadIcal = async () => {
+    if (!event.archivoIcalUrl) return;
+    setDownloadingIcal(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from("General")
+        .createSignedUrl(event.archivoIcalUrl, 60);
+      if (error) throw error;
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, "_blank");
+      }
+    } catch (err: any) {
+      toast({ title: "Error al descargar", description: err.message, variant: "destructive" });
+    } finally {
+      setDownloadingIcal(false);
     }
   };
 
@@ -152,12 +172,15 @@ export function EventDetailDialog({
                 variant="outline"
                 size="sm"
                 className="gap-1.5 w-full"
-                asChild
+                onClick={handleDownloadIcal}
+                disabled={downloadingIcal}
               >
-                <a href={event.archivoIcalUrl} download>
+                {downloadingIcal ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
                   <CalendarPlus className="h-3.5 w-3.5" />
-                  Agregar a mi calendario
-                </a>
+                )}
+                Agregar a mi calendario
               </Button>
             </div>
           )}
