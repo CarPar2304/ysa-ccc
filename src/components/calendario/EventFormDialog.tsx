@@ -21,7 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Video, MapPin, Globe } from "lucide-react";
+import { Loader2, Video, MapPin, Globe, CalendarPlus, X } from "lucide-react";
 import { format } from "date-fns";
 import { InlineDatePicker } from "./InlineDatePicker";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,9 @@ export function EventFormDialog({
   const [nivelesAcceso, setNivelesAcceso] = useState<string[]>([]);
   const [cohortesAcceso, setCohortesAcceso] = useState<number[]>([]);
   const [modulos, setModulos] = useState<any[]>([]);
+  const [icalFile, setIcalFile] = useState<File | null>(null);
+  const [icalUrl, setIcalUrl] = useState<string>("");
+  const [uploadingIcal, setUploadingIcal] = useState(false);
   const { toast } = useToast();
 
   const isEditing = !!editEvent;
@@ -84,6 +87,8 @@ export function EventFormDialog({
         setModuloId(editEvent.modulo_id || "");
         setNivelesAcceso(editEvent.niveles_acceso || []);
         setCohortesAcceso(editEvent.cohortes_acceso || []);
+        setIcalUrl(editEvent.archivo_ical_url || "");
+        setIcalFile(null);
       } else {
         resetForm();
         if (initialDate) {
