@@ -141,6 +141,26 @@ export function EventFormDialog({
     );
   };
 
+  const uploadIcalFile = async (): Promise<string | null> => {
+    if (!icalFile) return icalUrl || null;
+    setUploadingIcal(true);
+    try {
+      const fileName = `${crypto.randomUUID()}.ics`;
+      const filePath = `ical/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("General")
+        .upload(filePath, icalFile, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("General").getPublicUrl(filePath);
+      return data?.publicUrl || null;
+    } catch (err: any) {
+      toast({ title: "Error al subir archivo .ics", description: err.message, variant: "destructive" });
+      return icalUrl || null;
+    } finally {
+      setUploadingIcal(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -149,7 +169,9 @@ export function EventFormDialog({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
 
-      const eventData = {
+      const finalIcalUrl = await uploadIcalFile();
+
+      const eventData: Record<string, any> = {
         tipo,
         titulo,
         descripcion: descripcion || null,
@@ -163,6 +185,7 @@ export function EventFormDialog({
         niveles_acceso: tipo === "evento" ? [] : nivelesAcceso,
         cohortes_acceso: tipo === "evento" ? [] : cohortesAcceso,
         created_by: user.id,
+        archivo_ical_url: finalIcalUrl,
       };
 
       if (isEditing) {
