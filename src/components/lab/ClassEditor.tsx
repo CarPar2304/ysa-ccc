@@ -223,7 +223,8 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             modalidad: modalidadClase || null,
             lugar: (modalidadClase === "presencial" || modalidadClase === "hibrido") ? lugarClase || null : null,
             link_virtual: (modalidadClase === "virtual" || modalidadClase === "hibrido") ? linkVirtualClase || null : null,
-          })
+            archivo_ical_url: finalIcalUrl,
+          } as any)
           .eq("id", clase.id);
 
         if (error) throw error;
@@ -252,7 +253,8 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             modalidad: modalidadClase || null,
             lugar: (modalidadClase === "presencial" || modalidadClase === "hibrido") ? lugarClase || null : null,
             link_virtual: (modalidadClase === "virtual" || modalidadClase === "hibrido") ? linkVirtualClase || null : null,
-          })
+            archivo_ical_url: finalIcalUrl,
+          } as any)
           .select()
           .single();
 
@@ -279,6 +281,8 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
       setModalidadClase("virtual");
       setLugarClase("");
       setLinkVirtualClase("");
+      setIcalFile(null);
+      setIcalUrl("");
       setImageFile(null);
       setImagePreview(null);
       setOpen(false);
