@@ -119,6 +119,8 @@ export function EventFormDialog({
     setModuloId("");
     setNivelesAcceso([]);
     setCohortesAcceso([]);
+    setIcalFile(null);
+    setIcalUrl("");
   };
 
   const toggleNivel = (nivel: string) => {
