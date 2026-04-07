@@ -29,6 +29,7 @@ const Calendario = () => {
   const cohorte = quotaInfo?.cohorte || null;
 
   const { toast } = useToast();
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
