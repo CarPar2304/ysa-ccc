@@ -97,6 +97,7 @@ const Calendario = () => {
             moduloNombre: (ev.modulos as any)?.titulo || null,
             nivelesAcceso: ev.niveles_acceso,
             cohortesAcceso: ev.cohortes_acceso,
+            archivoIcalUrl: (ev as any).archivo_ical_url || null,
           });
         }
       }
@@ -127,6 +128,7 @@ const Calendario = () => {
             moduloNombre: modulo?.titulo || null,
             nivelesAcceso: modulo?.nivel ? [modulo.nivel] : null,
             cohortesAcceso: clCohortes.length > 0 ? clCohortes : null,
+            archivoIcalUrl: (cl as any).archivo_ical_url || null,
           });
         }
       }
@@ -264,15 +266,30 @@ const Calendario = () => {
 
   const handleEditFromDetail = (event: CalendarEvent) => {
     if (event.tipo === "entregable") return;
+    // Events from the clases table have prefixed IDs — can't edit from calendar
+    if (event.id.startsWith("clase-")) {
+      toast({
+        title: "Editar desde el módulo",
+        description: "Esta clase se gestiona desde el Classroom. Ve al módulo correspondiente para editarla.",
+      });
+      return;
+    }
     supabase
       .from("eventos_calendario")
       .select("*")
       .eq("id", event.id)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (data) {
           setEditEvent(data);
           setCreateDialogOpen(true);
+        } else {
+          console.error("Error fetching event for edit:", error);
+          toast({
+            title: "Error",
+            description: "No se pudo cargar el evento para editar.",
+            variant: "destructive",
+          });
         }
       });
   };
