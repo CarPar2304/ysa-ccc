@@ -15,15 +15,19 @@ import {
   CheckCircle2,
   AlertCircle,
   CalendarPlus,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface DayDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date: Date | null;
   events: CalendarEvent[];
-  entregaStatusMap?: Record<string, boolean>; // tareaId -> delivered
+  entregaStatusMap?: Record<string, boolean>;
 }
 
 export function DayDetailSheet({
@@ -34,14 +38,33 @@ export function DayDetailSheet({
   entregaStatusMap = {},
 }: DayDetailSheetProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   if (!date) return null;
 
   const handleGoToEntregable = (event: CalendarEvent) => {
-    // Navigate to lab module to submit
     if (event.moduloId) {
       navigate(`/lab/${event.moduloId}`);
       onOpenChange(false);
+    }
+  };
+
+  const handleDownloadIcal = async (event: CalendarEvent) => {
+    if (!event.archivoIcalUrl) return;
+    setDownloadingId(event.id);
+    try {
+      const { data, error } = await supabase.storage
+        .from("General")
+        .createSignedUrl(event.archivoIcalUrl, 60);
+      if (error) throw error;
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, "_blank");
+      }
+    } catch (err: any) {
+      toast({ title: "Error al descargar", description: err.message, variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -141,7 +164,6 @@ export function DayDetailSheet({
                     </div>
                   )}
 
-                  {/* Location for presencial or híbrido */}
                   {event.lugar && (event.modalidad === "presencial" || event.modalidad === "hibrido") && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
@@ -149,7 +171,6 @@ export function DayDetailSheet({
                     </div>
                   )}
 
-                  {/* Virtual link for virtual or híbrido */}
                   {event.linkVirtual && (event.modalidad === "virtual" || event.modalidad === "hibrido") && (
                     <div className="flex items-center gap-2 text-xs">
                       <LinkIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -202,12 +223,15 @@ export function DayDetailSheet({
                       size="sm"
                       variant="outline"
                       className="gap-1.5 text-xs h-8"
-                      asChild
+                      onClick={() => handleDownloadIcal(event)}
+                      disabled={downloadingId === event.id}
                     >
-                      <a href={event.archivoIcalUrl} download>
+                      {downloadingId === event.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
                         <CalendarPlus className="h-3.5 w-3.5" />
-                        Agregar a mi calendario
-                      </a>
+                      )}
+                      Agregar a mi calendario
                     </Button>
                   )}
                 </div>
