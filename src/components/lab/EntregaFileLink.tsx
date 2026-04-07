@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import { getEntregaSignedUrl } from "@/lib/entregaStorage";
+import { downloadFileWithName } from "@/lib/downloadFile";
 
 interface EntregaFileLinkProps {
   archivo: { name: string; url: string };
@@ -23,18 +24,10 @@ export const EntregaFileLink = ({ archivo, className }: EntregaFileLinkProps) =>
           window.open(signedUrl, "_blank");
         }
       } else {
-        // For non-PDF files, force download with the original filename
-        const signedUrl = await getEntregaSignedUrl(archivo.url, 3600, {
-          download: archivo.name,
-        });
+        // For non-PDF files, fetch as blob to guarantee correct filename
+        const signedUrl = await getEntregaSignedUrl(archivo.url);
         if (signedUrl) {
-          // Use an anchor element to trigger proper download
-          const a = document.createElement("a");
-          a.href = signedUrl;
-          a.download = archivo.name;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          await downloadFileWithName(signedUrl, archivo.name);
         }
       }
     } catch (error) {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ExternalLink, FileDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadFileWithName } from "@/lib/downloadFile";
 
 interface Recurso {
   titulo: string;
@@ -36,13 +37,13 @@ export const ResourceLink = ({ recurso }: { recurso: Recurso }) => {
     document.body.removeChild(a);
   };
 
-  const downloadFile = (url: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const downloadFileFn = async (url: string, filename: string) => {
+    try {
+      await downloadFileWithName(url, filename);
+    } catch {
+      // Fallback: open in new tab
+      openUrl(url);
+    }
   };
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -65,17 +66,8 @@ export const ResourceLink = ({ recurso }: { recurso: Recurso }) => {
       if (isPdf) {
         openUrl(publicUrl);
       } else {
-        // For non-PDF files, try signed URL with download disposition first
-        const { data, error } = await supabase.storage
-          .from("lab-images")
-          .createSignedUrl(storagePath, 300, { download: recurso.titulo || true });
-
-        if (!error && data?.signedUrl) {
-          downloadFile(data.signedUrl, recurso.titulo || storagePath.split("/").pop() || "archivo");
-        } else {
-          // Fallback: use public URL
-          downloadFile(publicUrl, recurso.titulo || storagePath.split("/").pop() || "archivo");
-        }
+        const filename = recurso.titulo || storagePath.split("/").pop() || "archivo";
+        await downloadFileFn(publicUrl, filename);
       }
     } catch (err) {
       console.error("Error handling file:", err);
