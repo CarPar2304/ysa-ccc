@@ -171,7 +171,7 @@ export function EventFormDialog({
 
       const finalIcalUrl = await uploadIcalFile();
 
-      const eventData: Record<string, any> = {
+      const eventData = {
         tipo,
         titulo,
         descripcion: descripcion || null,
@@ -186,7 +186,7 @@ export function EventFormDialog({
         cohortes_acceso: tipo === "evento" ? [] : cohortesAcceso,
         created_by: user.id,
         archivo_ical_url: finalIcalUrl,
-      };
+      } as any;
 
       if (isEditing) {
         const { error } = await supabase
