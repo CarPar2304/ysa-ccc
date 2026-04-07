@@ -6,6 +6,7 @@ import { EventFormDialog } from "@/components/calendario/EventFormDialog";
 import { EventDetailDialog } from "@/components/calendario/EventDetailDialog";
 import { DayDetailSheet } from "@/components/calendario/DayDetailSheet";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
 import { useOperadorNiveles } from "@/hooks/useOperadorNiveles";
