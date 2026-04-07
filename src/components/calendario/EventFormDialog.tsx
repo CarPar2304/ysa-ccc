@@ -442,6 +442,40 @@ export function EventFormDialog({
             </p>
           )}
 
+          {/* Archivo .ics / .ical */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Archivo de calendario (.ics)
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Sube un archivo .ics para que los usuarios puedan agregar este evento a su calendario personal.
+            </p>
+            {icalUrl && !icalFile && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded-md">
+                <CalendarPlus className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate flex-1">Archivo .ics cargado</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setIcalUrl("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            <Input
+              type="file"
+              accept=".ics,.ical"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setIcalFile(file);
+              }}
+              className="h-9"
+            />
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
