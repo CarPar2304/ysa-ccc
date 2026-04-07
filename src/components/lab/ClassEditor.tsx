@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { Plus, Upload, X, Link, FileUp, Video, MapPin, Globe } from "lucide-react";
+import { Plus, Upload, X, Link, FileUp, Video, MapPin, Globe, CalendarPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InlineDatePicker } from "@/components/calendario/InlineDatePicker";
 import { cn } from "@/lib/utils";
@@ -68,7 +68,9 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
   const [modalidadClase, setModalidadClase] = useState("virtual");
   const [lugarClase, setLugarClase] = useState("");
   const [linkVirtualClase, setLinkVirtualClase] = useState("");
-
+  const [icalFile, setIcalFile] = useState<File | null>(null);
+  const [icalUrl, setIcalUrl] = useState<string>("");
+  const [uploadingIcal, setUploadingIcal] = useState(false);
   const MODALIDAD_OPTIONS = [
     { value: "virtual", label: "Virtual", icon: Video },
     { value: "presencial", label: "Presencial", icon: MapPin },
@@ -95,6 +97,8 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
       setModalidadClase(clase.modalidad || "virtual");
       setLugarClase(clase.lugar || "");
       setLinkVirtualClase(clase.link_virtual || "");
+      setIcalUrl((clase as any).archivo_ical_url || "");
+      setIcalFile(null);
     }
   }, [clase]);
 
