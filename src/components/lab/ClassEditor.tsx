@@ -176,12 +176,33 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
     }
   };
 
+  const uploadIcalFile = async (): Promise<string | null> => {
+    if (!icalFile) return icalUrl || null;
+    setUploadingIcal(true);
+    try {
+      const fileName = `${crypto.randomUUID()}.ics`;
+      const filePath = `ical/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("General")
+        .upload(filePath, icalFile, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("General").getPublicUrl(filePath);
+      return data?.publicUrl || null;
+    } catch (err: any) {
+      toast({ title: "Error al subir archivo .ics", description: err.message, variant: "destructive" });
+      return icalUrl || null;
+    } finally {
+      setUploadingIcal(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const finalImagenUrl = await uploadImage();
+      const finalIcalUrl = await uploadIcalFile();
 
       if (clase) {
         const { error } = await supabase
