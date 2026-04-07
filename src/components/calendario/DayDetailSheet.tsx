@@ -14,6 +14,7 @@ import {
   ExternalLink,
   CheckCircle2,
   AlertCircle,
+  CalendarPlus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -171,7 +172,7 @@ export function DayDetailSheet({
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-1">
+                <div className="flex gap-2 pt-1 flex-wrap">
                   {isEntregable && event.moduloId && (
                     <Button
                       size="sm"
@@ -193,6 +194,19 @@ export function DayDetailSheet({
                       <a href={event.linkVirtual} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-3.5 w-3.5" />
                         Enlace virtual
+                      </a>
+                    </Button>
+                  )}
+                  {event.archivoIcalUrl && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs h-8"
+                      asChild
+                    >
+                      <a href={event.archivoIcalUrl} download>
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                        Agregar a mi calendario
                       </a>
                     </Button>
                   )}

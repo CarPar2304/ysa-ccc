@@ -47,6 +47,7 @@ export interface CalendarEvent {
   moduloNombre?: string | null;
   nivelesAcceso?: string[] | null;
   cohortesAcceso?: number[] | null;
+  archivoIcalUrl?: string | null;
 }
 
 interface CalendarMonthViewProps {

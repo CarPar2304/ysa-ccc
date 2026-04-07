@@ -252,6 +252,7 @@ export type Database = {
       }
       clases: {
         Row: {
+          archivo_ical_url: string | null
           cohorte: number[] | null
           contenido: string | null
           created_at: string
@@ -273,6 +274,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          archivo_ical_url?: string | null
           cohorte?: number[] | null
           contenido?: string | null
           created_at?: string
@@ -294,6 +296,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          archivo_ical_url?: string | null
           cohorte?: number[] | null
           contenido?: string | null
           created_at?: string
@@ -954,6 +957,7 @@ export type Database = {
       }
       eventos_calendario: {
         Row: {
+          archivo_ical_url: string | null
           cohortes_acceso: number[] | null
           created_at: string
           created_by: string
@@ -972,6 +976,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archivo_ical_url?: string | null
           cohortes_acceso?: number[] | null
           created_at?: string
           created_by: string
@@ -990,6 +995,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archivo_ical_url?: string | null
           cohortes_acceso?: number[] | null
           created_at?: string
           created_by?: string

@@ -21,7 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Video, MapPin, Globe } from "lucide-react";
+import { Loader2, Video, MapPin, Globe, CalendarPlus, X } from "lucide-react";
 import { format } from "date-fns";
 import { InlineDatePicker } from "./InlineDatePicker";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,9 @@ export function EventFormDialog({
   const [nivelesAcceso, setNivelesAcceso] = useState<string[]>([]);
   const [cohortesAcceso, setCohortesAcceso] = useState<number[]>([]);
   const [modulos, setModulos] = useState<any[]>([]);
+  const [icalFile, setIcalFile] = useState<File | null>(null);
+  const [icalUrl, setIcalUrl] = useState<string>("");
+  const [uploadingIcal, setUploadingIcal] = useState(false);
   const { toast } = useToast();
 
   const isEditing = !!editEvent;
@@ -84,6 +87,8 @@ export function EventFormDialog({
         setModuloId(editEvent.modulo_id || "");
         setNivelesAcceso(editEvent.niveles_acceso || []);
         setCohortesAcceso(editEvent.cohortes_acceso || []);
+        setIcalUrl(editEvent.archivo_ical_url || "");
+        setIcalFile(null);
       } else {
         resetForm();
         if (initialDate) {
@@ -114,6 +119,8 @@ export function EventFormDialog({
     setModuloId("");
     setNivelesAcceso([]);
     setCohortesAcceso([]);
+    setIcalFile(null);
+    setIcalUrl("");
   };
 
   const toggleNivel = (nivel: string) => {
@@ -134,6 +141,26 @@ export function EventFormDialog({
     );
   };
 
+  const uploadIcalFile = async (): Promise<string | null> => {
+    if (!icalFile) return icalUrl || null;
+    setUploadingIcal(true);
+    try {
+      const fileName = `${crypto.randomUUID()}.ics`;
+      const filePath = `ical/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("General")
+        .upload(filePath, icalFile, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("General").getPublicUrl(filePath);
+      return data?.publicUrl || null;
+    } catch (err: any) {
+      toast({ title: "Error al subir archivo .ics", description: err.message, variant: "destructive" });
+      return icalUrl || null;
+    } finally {
+      setUploadingIcal(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -141,6 +168,8 @@ export function EventFormDialog({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
+
+      const finalIcalUrl = await uploadIcalFile();
 
       const eventData = {
         tipo,
@@ -156,7 +185,8 @@ export function EventFormDialog({
         niveles_acceso: tipo === "evento" ? [] : nivelesAcceso,
         cohortes_acceso: tipo === "evento" ? [] : cohortesAcceso,
         created_by: user.id,
-      };
+        archivo_ical_url: finalIcalUrl,
+      } as any;
 
       if (isEditing) {
         const { error } = await supabase
@@ -411,6 +441,40 @@ export function EventFormDialog({
               Los eventos generales son visibles para todos los usuarios de la plataforma.
             </p>
           )}
+
+          {/* Archivo .ics / .ical */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Archivo de calendario (.ics)
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Sube un archivo .ics para que los usuarios puedan agregar este evento a su calendario personal.
+            </p>
+            {icalUrl && !icalFile && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded-md">
+                <CalendarPlus className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate flex-1">Archivo .ics cargado</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setIcalUrl("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            <Input
+              type="file"
+              accept=".ics,.ical"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setIcalFile(file);
+              }}
+              className="h-9"
+            />
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -16,6 +16,7 @@ import {
   Pencil,
   Trash2,
   Calendar,
+  CalendarPlus,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -46,9 +47,10 @@ export function EventDetailDialog({
   if (!event) return null;
 
   const colors = EVENT_COLORS[event.tipo];
+  const isFromClasesTable = event.id.startsWith("clase-");
 
   const handleDelete = async () => {
-    if (event.tipo === "entregable") return; // Can't delete entregables from here
+    if (event.tipo === "entregable") return;
     setDeleting(true);
     try {
       const { error } = await supabase
@@ -143,6 +145,23 @@ export function EventDetailDialog({
             )}
           </div>
 
+          {/* Add to calendar button */}
+          {event.archivoIcalUrl && (
+            <div className="pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 w-full"
+                asChild
+              >
+                <a href={event.archivoIcalUrl} download>
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                  Agregar a mi calendario
+                </a>
+              </Button>
+            </div>
+          )}
+
           {(event.nivelesAcceso?.length || event.cohortesAcceso?.length) ? (
             <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
               {event.nivelesAcceso?.map((n) => (
@@ -158,7 +177,7 @@ export function EventDetailDialog({
             </div>
           ) : null}
 
-          {canManage && event.tipo !== "entregable" && (
+          {canManage && event.tipo !== "entregable" && !isFromClasesTable && (
             <div className="flex gap-2 pt-2 border-t border-border">
               <Button
                 variant="outline"

@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { Plus, Upload, X, Link, FileUp, Video, MapPin, Globe } from "lucide-react";
+import { Plus, Upload, X, Link, FileUp, Video, MapPin, Globe, CalendarPlus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InlineDatePicker } from "@/components/calendario/InlineDatePicker";
 import { cn } from "@/lib/utils";
@@ -68,7 +68,9 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
   const [modalidadClase, setModalidadClase] = useState("virtual");
   const [lugarClase, setLugarClase] = useState("");
   const [linkVirtualClase, setLinkVirtualClase] = useState("");
-
+  const [icalFile, setIcalFile] = useState<File | null>(null);
+  const [icalUrl, setIcalUrl] = useState<string>("");
+  const [uploadingIcal, setUploadingIcal] = useState(false);
   const MODALIDAD_OPTIONS = [
     { value: "virtual", label: "Virtual", icon: Video },
     { value: "presencial", label: "Presencial", icon: MapPin },
@@ -95,6 +97,8 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
       setModalidadClase(clase.modalidad || "virtual");
       setLugarClase(clase.lugar || "");
       setLinkVirtualClase(clase.link_virtual || "");
+      setIcalUrl((clase as any).archivo_ical_url || "");
+      setIcalFile(null);
     }
   }, [clase]);
 
@@ -172,12 +176,33 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
     }
   };
 
+  const uploadIcalFile = async (): Promise<string | null> => {
+    if (!icalFile) return icalUrl || null;
+    setUploadingIcal(true);
+    try {
+      const fileName = `${crypto.randomUUID()}.ics`;
+      const filePath = `ical/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("General")
+        .upload(filePath, icalFile, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("General").getPublicUrl(filePath);
+      return data?.publicUrl || null;
+    } catch (err: any) {
+      toast({ title: "Error al subir archivo .ics", description: err.message, variant: "destructive" });
+      return icalUrl || null;
+    } finally {
+      setUploadingIcal(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const finalImagenUrl = await uploadImage();
+      const finalIcalUrl = await uploadIcalFile();
 
       if (clase) {
         const { error } = await supabase
@@ -198,7 +223,8 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             modalidad: modalidadClase || null,
             lugar: (modalidadClase === "presencial" || modalidadClase === "hibrido") ? lugarClase || null : null,
             link_virtual: (modalidadClase === "virtual" || modalidadClase === "hibrido") ? linkVirtualClase || null : null,
-          })
+            archivo_ical_url: finalIcalUrl,
+          } as any)
           .eq("id", clase.id);
 
         if (error) throw error;
@@ -227,7 +253,8 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             modalidad: modalidadClase || null,
             lugar: (modalidadClase === "presencial" || modalidadClase === "hibrido") ? lugarClase || null : null,
             link_virtual: (modalidadClase === "virtual" || modalidadClase === "hibrido") ? linkVirtualClase || null : null,
-          })
+            archivo_ical_url: finalIcalUrl,
+          } as any)
           .select()
           .single();
 
@@ -254,6 +281,8 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
       setModalidadClase("virtual");
       setLugarClase("");
       setLinkVirtualClase("");
+      setIcalFile(null);
+      setIcalUrl("");
       setImageFile(null);
       setImagePreview(null);
       setOpen(false);
@@ -594,7 +623,42 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
             </div>
           </div>
 
-          <Button type="submit" disabled={loading || uploading} className="w-full">
+          {/* Archivo .ics */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <CalendarPlus className="h-3.5 w-3.5" />
+              Archivo de calendario (.ics)
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Sube un archivo .ics para que los estudiantes puedan agregar esta clase a su calendario.
+            </p>
+            {icalUrl && !icalFile && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted p-2 rounded-md">
+                <CalendarPlus className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate flex-1">Archivo .ics cargado</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setIcalUrl("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            <Input
+              type="file"
+              accept=".ics,.ical"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setIcalFile(file);
+              }}
+              className="h-9"
+            />
+          </div>
+
+          <Button type="submit" disabled={loading || uploading || uploadingIcal} className="w-full">
             {loading || uploading
               ? "Guardando..."
               : clase

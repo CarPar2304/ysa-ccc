@@ -6,6 +6,7 @@ import { EventFormDialog } from "@/components/calendario/EventFormDialog";
 import { EventDetailDialog } from "@/components/calendario/EventDetailDialog";
 import { DayDetailSheet } from "@/components/calendario/DayDetailSheet";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
 import { useOperadorNiveles } from "@/hooks/useOperadorNiveles";
@@ -27,6 +28,7 @@ const Calendario = () => {
   const nivel = quotaInfo?.nivel || null;
   const cohorte = quotaInfo?.cohorte || null;
 
+  const { toast } = useToast();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,6 +99,7 @@ const Calendario = () => {
             moduloNombre: (ev.modulos as any)?.titulo || null,
             nivelesAcceso: ev.niveles_acceso,
             cohortesAcceso: ev.cohortes_acceso,
+            archivoIcalUrl: (ev as any).archivo_ical_url || null,
           });
         }
       }
@@ -127,6 +130,7 @@ const Calendario = () => {
             moduloNombre: modulo?.titulo || null,
             nivelesAcceso: modulo?.nivel ? [modulo.nivel] : null,
             cohortesAcceso: clCohortes.length > 0 ? clCohortes : null,
+            archivoIcalUrl: (cl as any).archivo_ical_url || null,
           });
         }
       }
@@ -264,15 +268,30 @@ const Calendario = () => {
 
   const handleEditFromDetail = (event: CalendarEvent) => {
     if (event.tipo === "entregable") return;
+    // Events from the clases table have prefixed IDs — can't edit from calendar
+    if (event.id.startsWith("clase-")) {
+      toast({
+        title: "Editar desde el módulo",
+        description: "Esta clase se gestiona desde el Classroom. Ve al módulo correspondiente para editarla.",
+      });
+      return;
+    }
     supabase
       .from("eventos_calendario")
       .select("*")
       .eq("id", event.id)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (data) {
           setEditEvent(data);
           setCreateDialogOpen(true);
+        } else {
+          console.error("Error fetching event for edit:", error);
+          toast({
+            title: "Error",
+            description: "No se pudo cargar el evento para editar.",
+            variant: "destructive",
+          });
         }
       });
   };
