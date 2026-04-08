@@ -36,12 +36,14 @@ const Admin = () => {
   const showEvaluations = isAdmin;
   const showMentors = isAdmin;
   const showCupos = isAdmin;
+  const showStakeholders = isAdmin;
 
   // Calculate tab count for grid
   let tabCount = 2; // dashboard + diagnostics always
   if (showEvaluations) tabCount++;
   if (showMentors) tabCount++;
   if (showCupos) tabCount++;
+  if (showStakeholders) tabCount++;
 
   return (
     <Layout>
