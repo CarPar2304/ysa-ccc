@@ -1,58 +1,66 @@
 
 
-## Plan: Fix Co-founder Registration Edge Function
+## Plan: Stakeholder Access Filters Management
 
-### Problem
+### What this does
+Allows admins to configure per-stakeholder data access restrictions based on filterable variables (e.g., municipio = "Buga"). Each stakeholder can have multiple filter rules, and they'll only see data matching those filters. Stakeholders with no filters see everything (current behavior preserved).
 
-Two issues identified:
+### Database Changes
 
-1. **Function not processing requests**: Edge function logs show only boot events -- no request processing logs appear at all. This means the `serve()` handler never executes, likely due to incompatible esm.sh imports or deno.lock issues.
-2. **Authorization too restrictive**: Current logic only allows the emprendimiento **owner** or an **admin** to create co-founders. User wants all beneficiarios and co-founders linked to the emprendimiento to be able to add new co-founders.
-
-### Fix 1: Stabilize imports and redeploy
-
-**File:** `supabase/functions/register-cofundador/index.ts`
-
-- Replace `https://esm.sh/@supabase/supabase-js@2.38.4` with `npm:@supabase/supabase-js@2`
-- Replace `https://deno.land/x/zod@v3.22.4/mod.ts` with `npm:zod@3`
-- Replace `https://deno.land/std@0.168.0/http/server.ts` serve with `Deno.serve` (native, no import needed)
-- Delete `deno.lock` if present
-
-### Fix 2: Expand authorization to members
-
-**File:** `supabase/functions/register-cofundador/index.ts`
-
-- After checking if caller is owner or admin, also check if caller is a member of the emprendimiento via `emprendimiento_miembros` table.
-- New logic: allow if `caller.id === emprendimiento.user_id` OR `isAdmin` OR caller exists in `emprendimiento_miembros` for that emprendimiento.
-
-### Fix 3: Better error handling on client
-
-**File:** `src/components/profile/ProfileCoFounders.tsx`
-
-- When `supabase.functions.invoke` returns non-2xx, the `error` object has a generic message but `data` may contain the real error. Update `handleSubmit` to check `data?.error` before throwing `error`.
-
-### Technical detail
-
-The edge function will be rewritten with stable `npm:` imports and `Deno.serve()`:
-
-```typescript
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { z } from "npm:zod@3";
-
-const corsHeaders = { ... };
-
-Deno.serve(async (req) => {
-  // ... same logic but with expanded auth check:
-  const { data: isMember } = await supabaseAdmin
-    .from('emprendimiento_miembros')
-    .select('id')
-    .eq('emprendimiento_id', validatedData.emprendimiento_id)
-    .eq('user_id', caller.id)
-    .maybeSingle();
-
-  if (emprendimiento.user_id !== caller.id && !isAdmin && !isMember) {
-    return 403;
-  }
-});
+**New table: `stakeholder_filtros`**
 ```
+id          uuid PK
+user_id     uuid NOT NULL (references the stakeholder's user ID)
+campo       text NOT NULL (e.g., "municipio", "departamento", "ubicacion_principal")
+valor       text NOT NULL (e.g., "Buga", "Valle del Cauca")
+activo      boolean DEFAULT true
+created_at  timestamptz DEFAULT now()
+```
+- Unique constraint on `(user_id, campo, valor)` to prevent duplicates.
+- RLS: only admins can CRUD; stakeholders can SELECT their own rows.
+
+**New SECURITY DEFINER function: `get_stakeholder_filtered_user_ids(uuid)`**
+Returns the set of user IDs a stakeholder is allowed to see. Logic:
+1. Query `stakeholder_filtros` for the given stakeholder.
+2. If no active filters exist, return NULL (meaning "no restriction").
+3. If filters exist on `municipio`/`departamento` (usuario fields): filter `usuarios` table.
+4. If filters exist on `ubicacion_principal` (emprendimiento field): filter via `emprendimientos`.
+5. Return intersection of all matching user IDs.
+
+**Updated RLS policies** -- The existing stakeholder SELECT policies on tables like `emprendimientos`, `usuarios`, `equipos`, `financiamientos`, `diagnosticos`, `evaluaciones`, etc. currently use `is_stakeholder(auth.uid())`. These will be updated to additionally check the filter function. For example:
+```sql
+-- Before
+USING (is_stakeholder(auth.uid()))
+-- After  
+USING (
+  is_stakeholder(auth.uid()) 
+  AND (
+    get_stakeholder_filtered_user_ids(auth.uid()) IS NULL
+    OR <table>.user_id = ANY(get_stakeholder_filtered_user_ids(auth.uid()))
+  )
+)
+```
+This preserves full access for stakeholders without filters and restricts those with filters.
+
+### Admin UI Changes
+
+**New component: `StakeholderAccessManager`**
+- Added as a new tab "Stakeholders" in the Admin panel (visible only to admins).
+- Lists all stakeholder users (fetched via `user_roles` where role = 'stakeholder').
+- For each stakeholder, shows current active filters as badges.
+- "Add Filter" form with:
+  - Dropdown for field: `municipio`, `departamento`, `ubicacion_principal` (expandable later).
+  - Text input or dynamic dropdown for value (populated from distinct values in the DB).
+- Delete button per filter row.
+
+### Files to create/modify
+1. **Migration SQL** -- new table, function, and updated RLS policies.
+2. **`src/components/admin/StakeholderAccessManager.tsx`** -- new component.
+3. **`src/pages/Admin.tsx`** -- add "Stakeholders" tab for admins.
+
+### Safety
+- All existing RLS policies for non-stakeholder roles remain untouched.
+- Stakeholders without any filter rows retain full access (backward compatible).
+- The filter function uses `SECURITY DEFINER` to avoid recursion.
+- Client-side filtering in Dashboard/Stats components will also respect these filters by querying only the data RLS allows.
 
