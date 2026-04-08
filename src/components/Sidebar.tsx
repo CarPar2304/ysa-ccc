@@ -79,7 +79,7 @@ export const Sidebar = () => {
               ))}
 
               {/* Admin Panel - accessible by admin, stakeholder, and operators */}
-              {(isAdmin || isStakeholder || isOperador) && (
+              {(isAdmin || ((isStakeholder && canAccessPage("admin")) || isOperador)) && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
