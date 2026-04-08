@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Trash2, Plus, Filter, User, Loader2 } from "lucide-react";
+import { Trash2, Plus, Filter, User, Loader2, LayoutGrid } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { STAKEHOLDER_PAGES } from "@/hooks/useStakeholderAccess";
 
 interface StakeholderUser {
   user_id: string;
@@ -200,8 +202,48 @@ export const StakeholderAccessManager = () => {
     }
   };
 
+  // Page access helpers
+  const pageFilters = filters.filter((f) => f.campo === "pagina_acceso");
+  const activePageKeys = new Set(pageFilters.filter((f) => f.activo).map((f) => f.valor));
+  const hasPageRestrictions = pageFilters.length > 0;
+
+  const togglePageAccess = async (pageKey: string, enabled: boolean) => {
+    if (!selectedStakeholder) return;
+
+    if (enabled) {
+      // Add page access filter
+      const { error } = await supabase.from("stakeholder_filtros").insert({
+        user_id: selectedStakeholder,
+        campo: "pagina_acceso",
+        valor: pageKey,
+        activo: true,
+      });
+      if (error && error.code !== "23505") {
+        toast.error("Error al agregar acceso");
+        return;
+      }
+    } else {
+      // Remove page access filter
+      const filter = pageFilters.find((f) => f.valor === pageKey);
+      if (filter) {
+        await supabase.from("stakeholder_filtros").delete().eq("id", filter.id);
+      }
+    }
+    fetchFilters(selectedStakeholder);
+  };
+
+  const clearAllPageRestrictions = async () => {
+    if (!selectedStakeholder) return;
+    for (const f of pageFilters) {
+      await supabase.from("stakeholder_filtros").delete().eq("id", f.id);
+    }
+    toast.success("Restricciones de páginas eliminadas");
+    fetchFilters(selectedStakeholder);
+  };
+
   const selectedUser = stakeholders.find((s) => s.user_id === selectedStakeholder);
-  const groupedFilters = filters.reduce<Record<string, StakeholderFilter[]>>((acc, f) => {
+  const dataFilters = filters.filter((f) => f.campo !== "pagina_acceso");
+  const groupedFilters = dataFilters.reduce<Record<string, StakeholderFilter[]>>((acc, f) => {
     acc[f.campo] = acc[f.campo] || [];
     acc[f.campo].push(f);
     return acc;
@@ -220,8 +262,8 @@ export const StakeholderAccessManager = () => {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Gestión de acceso Stakeholders</h2>
         <p className="text-sm text-muted-foreground">
-          Configura qué información puede ver cada stakeholder basándose en variables como municipio, departamento, etc.
-          Los stakeholders sin filtros ven toda la información.
+          Configura qué páginas y qué información puede ver cada stakeholder.
+          Sin restricciones configuradas, el stakeholder ve todo.
         </p>
       </div>
 
@@ -277,10 +319,59 @@ export const StakeholderAccessManager = () => {
               </Card>
             ) : (
               <>
+                {/* Page access card */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      Filtros de {selectedUser?.nombres} {selectedUser?.apellidos}
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <LayoutGrid className="h-4 w-4" />
+                        Acceso a páginas
+                      </CardTitle>
+                      {hasPageRestrictions && (
+                        <Button variant="ghost" size="sm" onClick={clearAllPageRestrictions} className="text-xs h-7">
+                          Quitar restricciones
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {!hasPageRestrictions && (
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Sin restricciones — acceso a todas las páginas. Activa las páginas que deseas permitir para restringir.
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {STAKEHOLDER_PAGES.map((page) => {
+                        const isEnabled = hasPageRestrictions ? activePageKeys.has(page.key) : false;
+                        return (
+                          <label
+                            key={page.key}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm cursor-pointer transition-colors ${
+                              hasPageRestrictions && isEnabled
+                                ? "border-primary bg-primary/5"
+                                : hasPageRestrictions && !isEnabled
+                                ? "border-border bg-muted/30 text-muted-foreground"
+                                : "border-border"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={hasPageRestrictions ? isEnabled : true}
+                              onCheckedChange={(checked) => togglePageAccess(page.key, !!checked)}
+                            />
+                            <span>{page.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Data filters card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      Filtros de datos — {selectedUser?.nombres} {selectedUser?.apellidos}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -330,9 +421,9 @@ export const StakeholderAccessManager = () => {
                     </div>
 
                     {/* Current filters */}
-                    {filters.length === 0 ? (
+                    {dataFilters.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">
-                        Sin filtros — este stakeholder ve toda la información.
+                        Sin filtros de datos — este stakeholder ve toda la información.
                       </p>
                     ) : (
                       <div className="space-y-4">
