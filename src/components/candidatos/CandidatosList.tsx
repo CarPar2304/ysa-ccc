@@ -151,6 +151,16 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
                   <SelectItem value="Scale">Scale</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={rolFilter} onValueChange={setRolFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los roles</SelectItem>
+                  <SelectItem value="principal">Solo principales</SelectItem>
+                  <SelectItem value="cofundador">Solo co-fundadores</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={sortOrder} onValueChange={setSortOrder}>
                 <SelectTrigger className="w-[180px]">
                   <ArrowUpDown className="h-4 w-4 mr-2" />
