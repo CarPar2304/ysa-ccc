@@ -1623,6 +1623,33 @@ export type Database = {
           },
         ]
       }
+      stakeholder_filtros: {
+        Row: {
+          activo: boolean
+          campo: string
+          created_at: string
+          id: string
+          user_id: string
+          valor: string
+        }
+        Insert: {
+          activo?: boolean
+          campo: string
+          created_at?: string
+          id?: string
+          user_id: string
+          valor: string
+        }
+        Update: {
+          activo?: boolean
+          campo?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          valor?: string
+        }
+        Relationships: []
+      }
       tareas: {
         Row: {
           activo: boolean
@@ -1839,6 +1866,10 @@ export type Database = {
           nombres: string
         }[]
       }
+      get_stakeholder_filtered_emprendimiento_ids: {
+        Args: { _stakeholder_id: string }
+        Returns: string[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1880,6 +1911,10 @@ export type Database = {
           id: string
           nombres: string
         }[]
+      }
+      stakeholder_can_see_emprendimiento: {
+        Args: { _emprendimiento_id: string; _stakeholder_id: string }
+        Returns: boolean
       }
     }
     Enums: {
