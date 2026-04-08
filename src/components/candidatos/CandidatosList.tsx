@@ -23,6 +23,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
+  const [rolFilter, setRolFilter] = useState<string>("todos");
   const [sortOrder, setSortOrder] = useState<string>("desc");
   const [selectedCandidato, setSelectedCandidato] = useState<CandidatoData | null>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -48,7 +49,12 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         nivelFilter === "todos" ||
         candidato.cupo?.nivel === nivelFilter;
 
-      return matchesSearch && matchesStatus && matchesNivel;
+      const matchesRol =
+        rolFilter === "todos" ||
+        (rolFilter === "principal" && !candidato.es_cofundador) ||
+        (rolFilter === "cofundador" && candidato.es_cofundador);
+
+      return matchesSearch && matchesStatus && matchesNivel && matchesRol;
     });
 
     // Sort by user creation date
@@ -57,7 +63,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
       const dateB = new Date(b.created_at || 0).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
-  }, [candidatos, searchTerm, statusFilter, nivelFilter, sortOrder]);
+  }, [candidatos, searchTerm, statusFilter, nivelFilter, rolFilter, sortOrder]);
 
   const getStatusBadge = (candidato: CandidatoData) => {
     if (candidato.cupo?.estado === "aprobado") {
@@ -114,7 +120,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         <CardContent>
           <div className="space-y-4">
             {/* Filtros */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -143,6 +149,16 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
                   <SelectItem value="Starter">Starter</SelectItem>
                   <SelectItem value="Growth">Growth</SelectItem>
                   <SelectItem value="Scale">Scale</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={rolFilter} onValueChange={setRolFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los roles</SelectItem>
+                  <SelectItem value="principal">Solo principales</SelectItem>
+                  <SelectItem value="cofundador">Solo co-fundadores</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={sortOrder} onValueChange={setSortOrder}>
