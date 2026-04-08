@@ -10,6 +10,7 @@ import { Top100Rankings } from "@/components/admin/Top100Rankings";
 import { EvaluationProgress } from "@/components/admin/EvaluationProgress";
 import { DiagnosticEditor } from "@/components/admin/DiagnosticEditor";
 import { QuotaAssignment } from "@/components/admin/QuotaAssignment";
+import { StakeholderAccessManager } from "@/components/admin/StakeholderAccessManager";
 
 const Admin = () => {
   const { isAdmin, isStakeholder, isOperador, loading } = useUserRole();
@@ -35,12 +36,14 @@ const Admin = () => {
   const showEvaluations = isAdmin;
   const showMentors = isAdmin;
   const showCupos = isAdmin;
+  const showStakeholders = isAdmin;
 
   // Calculate tab count for grid
   let tabCount = 2; // dashboard + diagnostics always
   if (showEvaluations) tabCount++;
   if (showMentors) tabCount++;
   if (showCupos) tabCount++;
+  if (showStakeholders) tabCount++;
 
   return (
     <Layout>
@@ -62,6 +65,7 @@ const Admin = () => {
             <TabsTrigger value="diagnostics">Diagnósticos</TabsTrigger>
             {showMentors && <TabsTrigger value="mentors">Mentores</TabsTrigger>}
             {showCupos && <TabsTrigger value="cupos">Cupos</TabsTrigger>}
+            {showStakeholders && <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4">
@@ -105,6 +109,12 @@ const Admin = () => {
           {showCupos && (
             <TabsContent value="cupos" className="space-y-4">
               <QuotaAssignment />
+            </TabsContent>
+          )}
+
+          {showStakeholders && (
+            <TabsContent value="stakeholders" className="space-y-4">
+              <StakeholderAccessManager />
             </TabsContent>
           )}
         </Tabs>
