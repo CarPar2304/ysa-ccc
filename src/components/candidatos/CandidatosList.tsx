@@ -49,7 +49,12 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         nivelFilter === "todos" ||
         candidato.cupo?.nivel === nivelFilter;
 
-      return matchesSearch && matchesStatus && matchesNivel;
+      const matchesRol =
+        rolFilter === "todos" ||
+        (rolFilter === "principal" && !candidato.es_cofundador) ||
+        (rolFilter === "cofundador" && candidato.es_cofundador);
+
+      return matchesSearch && matchesStatus && matchesNivel && matchesRol;
     });
 
     // Sort by user creation date
