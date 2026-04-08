@@ -4,6 +4,7 @@ import { useThemePreference } from "@/hooks/useThemePreference";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useStakeholderAccess } from "@/hooks/useStakeholderAccess";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar as SidebarPrimitive,
@@ -19,15 +20,16 @@ import logoLight from "@/assets/logo-light.png";
 import logoDark from "@/assets/logo-dark.png";
 
 const navigation = [
-  { name: "YSA Conecta", href: "/", icon: Home },
-  { name: "Noticias", href: "/news", icon: Newspaper },
-  { name: "Classroom", href: "/lab", icon: BookOpen },
-  { name: "Calendario", href: "/calendario", icon: CalendarDays },
-  { name: "Mentorías", href: "/mentorias", icon: User },
+  { name: "YSA Conecta", href: "/", icon: Home, pageKey: "ysa_conecta" },
+  { name: "Noticias", href: "/news", icon: Newspaper, pageKey: "noticias" },
+  { name: "Classroom", href: "/lab", icon: BookOpen, pageKey: "classroom" },
+  { name: "Calendario", href: "/calendario", icon: CalendarDays, pageKey: "calendario" },
+  { name: "Mentorías", href: "/mentorias", icon: User, pageKey: "mentorias" },
 ];
 
 export const Sidebar = () => {
   const { isAdmin, isMentor, isStakeholder, isOperador } = useUserRole();
+  const { canAccessPage } = useStakeholderAccess();
   const { open } = useSidebar();
   const theme = useThemePreference();
   const navigate = useNavigate();
@@ -53,7 +55,9 @@ export const Sidebar = () => {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation.map((item) => (
+              {navigation
+                .filter((item) => !isStakeholder || canAccessPage(item.pageKey))
+                .map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
                     <NavLink
