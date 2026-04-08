@@ -63,7 +63,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
       const dateB = new Date(b.created_at || 0).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
-  }, [candidatos, searchTerm, statusFilter, nivelFilter, sortOrder]);
+  }, [candidatos, searchTerm, statusFilter, nivelFilter, rolFilter, sortOrder]);
 
   const getStatusBadge = (candidato: CandidatoData) => {
     if (candidato.cupo?.estado === "aprobado") {
