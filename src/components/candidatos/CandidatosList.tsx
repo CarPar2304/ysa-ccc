@@ -23,6 +23,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
+  const [rolFilter, setRolFilter] = useState<string>("todos");
   const [sortOrder, setSortOrder] = useState<string>("desc");
   const [selectedCandidato, setSelectedCandidato] = useState<CandidatoData | null>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
