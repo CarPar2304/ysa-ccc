@@ -10,6 +10,7 @@ import { Top100Rankings } from "@/components/admin/Top100Rankings";
 import { EvaluationProgress } from "@/components/admin/EvaluationProgress";
 import { DiagnosticEditor } from "@/components/admin/DiagnosticEditor";
 import { QuotaAssignment } from "@/components/admin/QuotaAssignment";
+import { StakeholderAccessManager } from "@/components/admin/StakeholderAccessManager";
 
 const Admin = () => {
   const { isAdmin, isStakeholder, isOperador, loading } = useUserRole();
