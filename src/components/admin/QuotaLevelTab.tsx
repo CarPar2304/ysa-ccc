@@ -252,7 +252,7 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
       if (emprendimiento.asignacion_id) {
         const { error } = await supabase
           .from("asignacion_cupos")
-          .update({ estado: "aprobado", cohorte, aprobado_por: user?.id, fecha_asignacion: new Date().toISOString() })
+          .update({ estado: "aprobado", cohorte, nivel, aprobado_por: user?.id, fecha_asignacion: new Date().toISOString() })
           .eq("id", emprendimiento.asignacion_id);
         if (error) throw error;
       } else {
@@ -261,6 +261,13 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           .insert({ emprendimiento_id: emprendimiento.id, nivel, cohorte, estado: "aprobado", aprobado_por: user?.id });
         if (error) throw error;
       }
+
+      // Ensure nivel_definitivo matches the tab's nivel upon approval
+      const { error: nivelError } = await supabase
+        .from("emprendimientos")
+        .update({ nivel_definitivo: nivel })
+        .eq("id", emprendimiento.id);
+      if (nivelError) throw nivelError;
 
       const { error: evalError } = await supabase
         .from("evaluaciones")
