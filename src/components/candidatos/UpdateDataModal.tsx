@@ -7,11 +7,28 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Download, Upload, Loader2, Search, CheckCircle2, XCircle, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { CandidatoData } from "@/pages/Candidatos";
+
+// Enum options maps
+const ENUM_OPTIONS: Record<string, string[]> = {
+  categoria: ["Base científica", "Base tecnológica", "Bioeconomía"],
+  etapa: ["Idea", "MVP", "Primeras Ventas", "Clientes frecuentes"],
+  tipo_cliente: ["B2B", "B2C", "B2G", "Mixto"],
+  alcance_mercado: ["Local", "Regional", "Nacional", "Internacional"],
+  nivel_innovacion: ["Tradicional", "Mejoras incrementales", "Disruptiva", "Innovadora"],
+  integracion_tecnologia: ["Hace uso en su oferta", "Solución tecnológica", "Tecnología 4ta Generación"],
+  estado_unidad_productiva: ["Idea de negocio", "Idea en validación", "Negocio en incubación"],
+  plan_negocios: ["No", "En proceso", "Básico", "Completo"],
+  ventas_ultimo_ano: ["Sin ventas", "Menores a $50 Millones", "Entre $50M a $80M", "Mayores a $80 Millones"],
+  afiliacion_comfandi: ["Afiliada como empresa", "En proceso o con interés", "Afiliado a otra caja", "Afiliado como independiente"],
+  tipo_documento: ["Cédula de ciudadanía", "Tarjeta de identidad", "Cédula de extranjería", "Pasaporte", "Permiso por Protección Temporal (PPT)"],
+};
 
 const USUARIO_FIELDS: { key: string; label: string; table: "usuarios" }[] = [
   { key: "nombres", label: "Nombres", table: "usuarios" },
@@ -33,10 +50,18 @@ const USUARIO_FIELDS: { key: string; label: string; table: "usuarios" }[] = [
 
 const EMPRENDIMIENTO_FIELDS: { key: string; label: string; table: "emprendimientos" }[] = [
   { key: "nombre", label: "Nombre emprendimiento", table: "emprendimientos" },
+  { key: "descripcion", label: "Descripción", table: "emprendimientos" },
   { key: "nit", label: "NIT", table: "emprendimientos" },
   { key: "valor_ventas", label: "Valor de las Ventas", table: "emprendimientos" },
   { key: "categoria", label: "Categoría", table: "emprendimientos" },
   { key: "etapa", label: "Etapa", table: "emprendimientos" },
+  { key: "tipo_cliente", label: "Tipo de cliente", table: "emprendimientos" },
+  { key: "alcance_mercado", label: "Alcance de mercado", table: "emprendimientos" },
+  { key: "nivel_innovacion", label: "Nivel de innovación", table: "emprendimientos" },
+  { key: "integracion_tecnologia", label: "Integración tecnología", table: "emprendimientos" },
+  { key: "estado_unidad_productiva", label: "Estado unidad productiva", table: "emprendimientos" },
+  { key: "plan_negocios", label: "Plan de negocios", table: "emprendimientos" },
+  { key: "ventas_ultimo_ano", label: "Ventas último año", table: "emprendimientos" },
   { key: "pagina_web", label: "Página web", table: "emprendimientos" },
   { key: "industria_vertical", label: "Industria vertical", table: "emprendimientos" },
   { key: "afiliacion_comfandi", label: "Afiliación Comfandi", table: "emprendimientos" },
@@ -108,7 +133,6 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
       return;
     }
 
-    // Normalize emails from Excel
     const emailCol = Object.keys(rows[0]).find(k => k.toLowerCase().trim() === "email");
     if (!emailCol) {
       toast({ title: "Error", description: "No se encontró la columna 'Email'.", variant: "destructive" });
@@ -117,7 +141,6 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
 
     const emailsFromFile = rows.map(r => (r[emailCol] || "").toString().trim().toLowerCase()).filter(Boolean);
 
-    // Query DB to find matching users
     const { data: usuarios } = await supabase
       .from("usuarios")
       .select("id, email")
@@ -125,7 +148,6 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
 
     const userMap = new Map((usuarios || []).map(u => [u.email!.toLowerCase(), u.id]));
 
-    // If any emprendimiento fields selected, fetch emprendimientos
     const needsEmprendimiento = selectedFieldDefs.some(f => f.table === "emprendimientos");
     let empMap = new Map<string, string>();
     if (needsEmprendimiento && usuarios?.length) {
@@ -137,7 +159,6 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
       empMap = new Map((emps || []).map(e => [e.user_id, e.id]));
     }
 
-    // Build header mapping: label -> key
     const labelToKey = new Map(selectedFieldDefs.map(f => [f.label, f.key]));
 
     const matchedRows: MatchResult[] = [];
@@ -171,6 +192,11 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
     setStep("review");
   };
 
+  const parseFieldValue = (key: string, value: string): unknown => {
+    if (key === "nit" || key === "valor_ventas") return value ? Number(value) : null;
+    return value || null;
+  };
+
   const executeBulkUpdate = async () => {
     setUpdating(true);
     let updated = 0;
@@ -178,14 +204,13 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
 
     for (const row of matched) {
       try {
-        // Split into usuarios and emprendimientos updates
         const usuarioUpdate: Record<string, unknown> = {};
         const emprendimientoUpdate: Record<string, unknown> = {};
 
         for (const [key, value] of Object.entries(row.rowData)) {
           const fieldDef = ALL_FIELDS.find(f => f.key === key);
           if (!fieldDef) continue;
-          const val = key === "nit" ? (value ? Number(value) : null) : value || null;
+          const val = parseFieldValue(key, value);
           if (fieldDef.table === "usuarios") usuarioUpdate[key] = val;
           else emprendimientoUpdate[key] = val;
         }
@@ -226,7 +251,6 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
 
   const selectCandidatoForEdit = (c: CandidatoData) => {
     setSelectedCandidato(c);
-    // Pre-fill values
     const values: Record<string, string> = {};
     for (const f of ALL_FIELDS) {
       if (f.table === "usuarios") {
@@ -249,7 +273,7 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
       for (const key of individualFields) {
         const fieldDef = ALL_FIELDS.find(f => f.key === key);
         if (!fieldDef) continue;
-        const val = key === "nit" ? (individualValues[key] ? Number(individualValues[key]) : null) : individualValues[key] || null;
+        const val = parseFieldValue(key, individualValues[key] || "");
         if (fieldDef.table === "usuarios") usuarioUpdate[key] = val;
         else emprendimientoUpdate[key] = val;
       }
@@ -286,6 +310,45 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
     setIndividualFields([]);
     setIndividualValues({});
     onClose();
+  };
+
+  const renderFieldInput = (key: string, fieldDef: FieldDef) => {
+    const enumOptions = ENUM_OPTIONS[key];
+
+    if (enumOptions) {
+      return (
+        <Select
+          value={individualValues[key] || ""}
+          onValueChange={(val) => setIndividualValues(prev => ({ ...prev, [key]: val }))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={`Seleccionar ${fieldDef.label.toLowerCase()}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {enumOptions.map(opt => (
+              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    if (key === "descripcion") {
+      return (
+        <Textarea
+          value={individualValues[key] || ""}
+          onChange={(e) => setIndividualValues(prev => ({ ...prev, [key]: e.target.value }))}
+          rows={3}
+        />
+      );
+    }
+
+    return (
+      <Input
+        value={individualValues[key] || ""}
+        onChange={(e) => setIndividualValues(prev => ({ ...prev, [key]: e.target.value }))}
+      />
+    );
   };
 
   return (
@@ -447,18 +510,35 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
                 </div>
 
                 <p className="text-sm text-muted-foreground">Selecciona qué campos editar:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {ALL_FIELDS.map(f => (
-                    <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <Checkbox
-                        checked={individualFields.includes(f.key)}
-                        onCheckedChange={() =>
-                          setIndividualFields(prev => prev.includes(f.key) ? prev.filter(k => k !== f.key) : [...prev, f.key])
-                        }
-                      />
-                      {f.label}
-                    </label>
-                  ))}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Datos de usuario</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {USUARIO_FIELDS.map(f => (
+                      <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={individualFields.includes(f.key)}
+                          onCheckedChange={() =>
+                            setIndividualFields(prev => prev.includes(f.key) ? prev.filter(k => k !== f.key) : [...prev, f.key])
+                          }
+                        />
+                        {f.label}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mt-2">Datos de emprendimiento</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {EMPRENDIMIENTO_FIELDS.map(f => (
+                      <label key={f.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={individualFields.includes(f.key)}
+                          onCheckedChange={() =>
+                            setIndividualFields(prev => prev.includes(f.key) ? prev.filter(k => k !== f.key) : [...prev, f.key])
+                          }
+                        />
+                        {f.label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 {individualFields.length > 0 && (
@@ -468,10 +548,7 @@ export const UpdateDataModal = ({ open, onClose, candidatos, onRefresh }: Update
                       return (
                         <div key={key} className="space-y-1">
                           <Label className="text-xs">{fieldDef.label}</Label>
-                          <Input
-                            value={individualValues[key] || ""}
-                            onChange={(e) => setIndividualValues(prev => ({ ...prev, [key]: e.target.value }))}
-                          />
+                          {renderFieldInput(key, fieldDef)}
                         </div>
                       );
                     })}
