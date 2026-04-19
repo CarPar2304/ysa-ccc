@@ -56,7 +56,17 @@ const LabModuleView = () => {
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
   const { toast } = useToast();
-  const { isAdmin, userId } = useUserRole();
+  const { isAdmin, isMentor, isStakeholder, isOperador, isBeneficiario, userId, loading: roleLoading } = useUserRole();
+  const { quotaInfo, loading: quotaLoading } = useQuotaStatus(userId);
+
+  // Beneficiarios (incl. cofounders) should only see classes for their cohort.
+  // Admins / mentors / stakeholders / operadores see all classes.
+  const restrictByCohort = !roleLoading && !quotaLoading && isBeneficiario && !isAdmin && !isMentor && !isStakeholder && !isOperador;
+  const userCohorte = quotaInfo?.cohorte ?? null;
+
+  const visibleClases = restrictByCohort && userCohorte != null
+    ? clases.filter(c => Array.isArray(c.cohorte) && c.cohorte.includes(userCohorte))
+    : clases;
 
   useEffect(() => {
     if (moduloId) {
