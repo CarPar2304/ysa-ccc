@@ -9,6 +9,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useQuotaStatus } from "@/hooks/useQuotaStatus";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,7 +56,17 @@ const LabModuleView = () => {
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
   const { toast } = useToast();
-  const { isAdmin, userId } = useUserRole();
+  const { isAdmin, isMentor, isStakeholder, isOperador, isBeneficiario, userId, loading: roleLoading } = useUserRole();
+  const { quotaInfo, loading: quotaLoading } = useQuotaStatus(userId);
+
+  // Beneficiarios (incl. cofounders) should only see classes for their cohort.
+  // Admins / mentors / stakeholders / operadores see all classes.
+  const restrictByCohort = !roleLoading && !quotaLoading && isBeneficiario && !isAdmin && !isMentor && !isStakeholder && !isOperador;
+  const userCohorte = quotaInfo?.cohorte ?? null;
+
+  const visibleClases = restrictByCohort && userCohorte != null
+    ? clases.filter(c => Array.isArray(c.cohorte) && c.cohorte.includes(userCohorte))
+    : clases;
 
   useEffect(() => {
     if (moduloId) {
@@ -150,7 +161,7 @@ const LabModuleView = () => {
     }
   };
 
-  if (loading) {
+  if (loading || roleLoading || (isBeneficiario && quotaLoading)) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -229,7 +240,7 @@ const LabModuleView = () => {
 
           <TabsContent value="clases">
             {/* Lista de clases */}
-            {clases.length === 0 ? (
+            {visibleClases.length === 0 ? (
               <Card className="shadow-soft border-border">
                 <CardContent className="p-12 text-center">
                   <p className="text-muted-foreground">
@@ -242,7 +253,7 @@ const LabModuleView = () => {
                 <h2 className="text-2xl font-bold text-foreground mb-4">
                   Clases del curso
                 </h2>
-                {clases.map((clase, index) => (
+                {visibleClases.map((clase, index) => (
                   <Card 
                     key={clase.id} 
                     className="border-border hover:shadow-md transition-all cursor-pointer group"
