@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getTeamUserIds } from "@/lib/teamUtils";
 import { EntregaFileLink } from "./EntregaFileLink";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,17 @@ import { getEntregaSignedUrl } from "@/lib/entregaStorage";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+
+const safeFormatDate = (value: string | null | undefined, fmt: string): string => {
+  if (!value) return "—";
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, fmt, { locale: es });
+  } catch {
+    return "—";
+  }
+};
 import {
   AlertDialog,
   AlertDialogAction,
@@ -133,7 +144,7 @@ const EntregaReviewCard = ({
 
       {/* Files */}
       <div className="flex flex-wrap gap-2">
-        {entrega.archivos_urls.map((archivo, idx) => (
+        {(Array.isArray(entrega.archivos_urls) ? entrega.archivos_urls : []).map((archivo, idx) => (
           <EntregaFileLink
             key={idx}
             archivo={archivo}
@@ -148,7 +159,7 @@ const EntregaReviewCard = ({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Entregado: {format(new Date(entrega.fecha_entrega), "PPP 'a las' p", { locale: es })}
+        Entregado: {safeFormatDate(entrega.fecha_entrega, "PPP 'a las' p")}
       </p>
 
       {/* Review controls */}
@@ -210,21 +221,29 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
-  const { userId, isBeneficiario } = useUserRole();
+  const { userId, isBeneficiario, loading: roleLoading } = useUserRole();
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     fetchTareas();
   }, [moduloId]);
 
   useEffect(() => {
-    if (userId && tareas.length > 0) {
-      if (isBeneficiario) {
-        fetchMisEntregas();
-      } else if (canEdit) {
-        fetchAllEntregas();
-      }
+    if (roleLoading) return;
+    if (!userId || tareas.length === 0) return;
+    if (isBeneficiario) {
+      fetchMisEntregas();
+    } else if (canEdit) {
+      fetchAllEntregas();
     }
-  }, [userId, tareas, isBeneficiario, canEdit]);
+  }, [userId, tareas, isBeneficiario, canEdit, roleLoading]);
 
   const fetchTareas = async () => {
     try {
@@ -235,11 +254,12 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
         .order("fecha_limite", { ascending: true });
 
       if (error) throw error;
+      if (!isMountedRef.current) return;
       setTareas(data || []);
     } catch (error) {
       console.error("Error fetching tasks:", error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
@@ -266,10 +286,13 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
           entregasMap[entrega.tarea_id] = {
             ...entrega,
             nota: entrega.nota ?? null,
-            archivos_urls: (entrega.archivos_urls as { name: string; url: string }[]) || [],
+            archivos_urls: Array.isArray(entrega.archivos_urls)
+              ? (entrega.archivos_urls as { name: string; url: string }[])
+              : [],
           };
         }
       });
+      if (!isMountedRef.current) return;
       setEntregas(entregasMap);
     } catch (error) {
       console.error("Error fetching submissions:", error);
@@ -294,9 +317,12 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
         entregasByTarea[entrega.tarea_id].push({
           ...entrega,
           nota: entrega.nota ?? null,
-          archivos_urls: (entrega.archivos_urls as { name: string; url: string }[]) || [],
+          archivos_urls: Array.isArray(entrega.archivos_urls)
+            ? (entrega.archivos_urls as { name: string; url: string }[])
+            : [],
         });
       });
+      if (!isMountedRef.current) return;
       setAllEntregas(entregasByTarea);
     } catch (error) {
       console.error("Error fetching all submissions:", error);
@@ -376,8 +402,8 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
         rows.push({
           Estudiante: `${entrega.usuario?.nombres || ""} ${entrega.usuario?.apellidos || ""}`.trim(),
           Tarea: tarea.titulo,
-          "Fecha Límite": format(new Date(tarea.fecha_limite), "PPP p", { locale: es }),
-          "Fecha Entrega": format(new Date(entrega.fecha_entrega), "PPP p", { locale: es }),
+          "Fecha Límite": safeFormatDate(tarea.fecha_limite, "PPP p"),
+          "Fecha Entrega": safeFormatDate(entrega.fecha_entrega, "PPP p"),
           Estado: entrega.estado,
           Nota: entrega.nota,
           Feedback: entrega.feedback || "",
@@ -477,7 +503,7 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
                       <CardDescription className="flex items-center gap-4 text-sm">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" />
-                          {format(new Date(tarea.fecha_limite), "PPP 'a las' p", { locale: es })}
+                          {safeFormatDate(tarea.fecha_limite, "PPP 'a las' p")}
                         </span>
                         <span className="flex items-center gap-1">
                           <FileText className="h-3.5 w-3.5" />
