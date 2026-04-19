@@ -240,7 +240,7 @@ const LabModuleView = () => {
 
           <TabsContent value="clases">
             {/* Lista de clases */}
-            {clases.length === 0 ? (
+            {visibleClases.length === 0 ? (
               <Card className="shadow-soft border-border">
                 <CardContent className="p-12 text-center">
                   <p className="text-muted-foreground">
@@ -253,7 +253,7 @@ const LabModuleView = () => {
                 <h2 className="text-2xl font-bold text-foreground mb-4">
                   Clases del curso
                 </h2>
-                {clases.map((clase, index) => (
+                {visibleClases.map((clase, index) => (
                   <Card 
                     key={clase.id} 
                     className="border-border hover:shadow-md transition-all cursor-pointer group"
