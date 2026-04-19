@@ -161,7 +161,7 @@ const LabModuleView = () => {
     }
   };
 
-  if (loading) {
+  if (loading || roleLoading || (isBeneficiario && quotaLoading)) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
