@@ -29,6 +29,17 @@ import { getEntregaSignedUrl } from "@/lib/entregaStorage";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+
+const safeFormatDate = (value: string | null | undefined, fmt: string): string => {
+  if (!value) return "—";
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, fmt, { locale: es });
+  } catch {
+    return "—";
+  }
+};
 import {
   AlertDialog,
   AlertDialogAction,
@@ -133,7 +144,7 @@ const EntregaReviewCard = ({
 
       {/* Files */}
       <div className="flex flex-wrap gap-2">
-        {entrega.archivos_urls.map((archivo, idx) => (
+        {(Array.isArray(entrega.archivos_urls) ? entrega.archivos_urls : []).map((archivo, idx) => (
           <EntregaFileLink
             key={idx}
             archivo={archivo}
@@ -148,7 +159,7 @@ const EntregaReviewCard = ({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Entregado: {format(new Date(entrega.fecha_entrega), "PPP 'a las' p", { locale: es })}
+        Entregado: {safeFormatDate(entrega.fecha_entrega, "PPP 'a las' p")}
       </p>
 
       {/* Review controls */}
@@ -210,21 +221,29 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
-  const { userId, isBeneficiario } = useUserRole();
+  const { userId, isBeneficiario, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
-    fetchTareas();
+    let isMounted = true;
+    fetchTareas(isMounted);
+    return () => {
+      isMounted = false;
+    };
   }, [moduloId]);
 
   useEffect(() => {
-    if (userId && tareas.length > 0) {
-      if (isBeneficiario) {
-        fetchMisEntregas();
-      } else if (canEdit) {
-        fetchAllEntregas();
-      }
+    if (roleLoading) return;
+    if (!userId || tareas.length === 0) return;
+    let isMounted = true;
+    if (isBeneficiario) {
+      fetchMisEntregas(isMounted);
+    } else if (canEdit) {
+      fetchAllEntregas(isMounted);
     }
-  }, [userId, tareas, isBeneficiario, canEdit]);
+    return () => {
+      isMounted = false;
+    };
+  }, [userId, tareas, isBeneficiario, canEdit, roleLoading]);
 
   const fetchTareas = async () => {
     try {
