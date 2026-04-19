@@ -402,8 +402,8 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
         rows.push({
           Estudiante: `${entrega.usuario?.nombres || ""} ${entrega.usuario?.apellidos || ""}`.trim(),
           Tarea: tarea.titulo,
-          "Fecha Límite": format(new Date(tarea.fecha_limite), "PPP p", { locale: es }),
-          "Fecha Entrega": format(new Date(entrega.fecha_entrega), "PPP p", { locale: es }),
+          "Fecha Límite": safeFormatDate(tarea.fecha_limite, "PPP p"),
+          "Fecha Entrega": safeFormatDate(entrega.fecha_entrega, "PPP p"),
           Estado: entrega.estado,
           Nota: entrega.nota,
           Feedback: entrega.feedback || "",
@@ -503,7 +503,7 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
                       <CardDescription className="flex items-center gap-4 text-sm">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" />
-                          {format(new Date(tarea.fecha_limite), "PPP 'a las' p", { locale: es })}
+                          {safeFormatDate(tarea.fecha_limite, "PPP 'a las' p")}
                         </span>
                         <span className="flex items-center gap-1">
                           <FileText className="h-3.5 w-3.5" />
