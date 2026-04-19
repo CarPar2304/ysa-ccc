@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Returns at least the user's own ID.
  */
 export const getTeamUserIds = async (userId: string): Promise<string[]> => {
+  if (!userId) return [];
   try {
     // Find emprendimiento as owner
     let empId: string | null = null;
@@ -53,6 +54,6 @@ export const getTeamUserIds = async (userId: string): Promise<string[]> => {
     return Array.from(ids);
   } catch (error) {
     console.error("Error getting team user IDs:", error);
-    return [userId];
+    return userId ? [userId] : [];
   }
 };

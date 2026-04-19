@@ -48,7 +48,7 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
   const [comentario, setComentario] = useState(entregaExistente?.comentario || "");
   const [archivos, setArchivos] = useState<File[]>([]);
   const [archivosExistentes, setArchivosExistentes] = useState<{ name: string; url: string }[]>(
-    entregaExistente?.archivos_urls || []
+    Array.isArray(entregaExistente?.archivos_urls) ? entregaExistente!.archivos_urls : []
   );
   const { toast } = useToast();
 
@@ -58,7 +58,9 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
   useEffect(() => {
     if (entregaExistente) {
       setComentario(entregaExistente.comentario || "");
-      setArchivosExistentes(entregaExistente.archivos_urls || []);
+      setArchivosExistentes(
+        Array.isArray(entregaExistente.archivos_urls) ? entregaExistente.archivos_urls : []
+      );
     }
   }, [entregaExistente]);
 
