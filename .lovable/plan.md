@@ -1,66 +1,47 @@
 
 
-## Plan: Stakeholder Access Filters Management
+## Diagnóstico
 
-### What this does
-Allows admins to configure per-stakeholder data access restrictions based on filterable variables (e.g., municipio = "Buga"). Each stakeholder can have multiple filter rules, and they'll only see data matching those filters. Stakeholders with no filters see everything (current behavior preserved).
+**Síntoma:** En el perfil de beneficiario, al entrar a "Entregables" se ve brevemente un frame y luego la pantalla queda en blanco (toda la app desaparece).
 
-### Database Changes
+**Causa raíz (combinada):**
 
-**New table: `stakeholder_filtros`**
-```
-id          uuid PK
-user_id     uuid NOT NULL (references the stakeholder's user ID)
-campo       text NOT NULL (e.g., "municipio", "departamento", "ubicacion_principal")
-valor       text NOT NULL (e.g., "Buga", "Valle del Cauca")
-activo      boolean DEFAULT true
-created_at  timestamptz DEFAULT now()
-```
-- Unique constraint on `(user_id, campo, valor)` to prevent duplicates.
-- RLS: only admins can CRUD; stakeholders can SELECT their own rows.
+1. **No existe ningún `ErrorBoundary` en la app** (verificado con búsqueda). Cualquier excepción durante render desmonta todo el árbol React → pantalla blanca total.
+2. **`ModuleDeliverables.tsx` tiene varios puntos frágiles que pueden lanzar durante render:**
+   - `format(new Date(tarea.fecha_limite))` y `format(new Date(entrega.fecha_entrega))` — si la fecha viene `null`/inválida, `date-fns` lanza `RangeError: Invalid time value` y rompe todo.
+   - `entrega.archivos_urls.map(...)` — si por alguna entrega el campo viene como objeto/null no-array, `.map` lanza.
+   - El `useEffect` que llama a `fetchMisEntregas` depende de `tareas` (referencia nueva en cada fetch); puede disparar fetches en cascada y resolver con datos parciales mientras el componente ya renderizó.
+3. **`getTeamUserIds`** hace múltiples queries; si una falla por RLS devuelve `[userId]` silenciosamente, pero los `useEffect` no abortan al desmontar — un `setState` tras unmount + un segundo render con datos inconsistentes puede provocar el "frame, luego blanco".
+4. **`isBeneficiario` es `false` durante el primer render** (mientras `useUserRole` carga) → renderiza el bloque "no beneficiario" y luego cambia → el segundo render con datos parciales es donde explota.
 
-**New SECURITY DEFINER function: `get_stakeholder_filtered_user_ids(uuid)`**
-Returns the set of user IDs a stakeholder is allowed to see. Logic:
-1. Query `stakeholder_filtros` for the given stakeholder.
-2. If no active filters exist, return NULL (meaning "no restriction").
-3. If filters exist on `municipio`/`departamento` (usuario fields): filter `usuarios` table.
-4. If filters exist on `ubicacion_principal` (emprendimiento field): filter via `emprendimientos`.
-5. Return intersection of all matching user IDs.
+## Plan de corrección
 
-**Updated RLS policies** -- The existing stakeholder SELECT policies on tables like `emprendimientos`, `usuarios`, `equipos`, `financiamientos`, `diagnosticos`, `evaluaciones`, etc. currently use `is_stakeholder(auth.uid())`. These will be updated to additionally check the filter function. For example:
-```sql
--- Before
-USING (is_stakeholder(auth.uid()))
--- After  
-USING (
-  is_stakeholder(auth.uid()) 
-  AND (
-    get_stakeholder_filtered_user_ids(auth.uid()) IS NULL
-    OR <table>.user_id = ANY(get_stakeholder_filtered_user_ids(auth.uid()))
-  )
-)
-```
-This preserves full access for stakeholders without filters and restricts those with filters.
+### 1. Agregar `ErrorBoundary` global (red de seguridad)
+- Crear `src/components/ErrorBoundary.tsx` (clase React) que capture errores de render y muestre una UI de fallback amigable con botón "Recargar" + log a consola.
+- Envolver `<Routes>` en `App.tsx` con `<ErrorBoundary>`. Esto evita que cualquier excepción futura vuelva la app blanca.
 
-### Admin UI Changes
+### 2. Endurecer `ModuleDeliverables.tsx`
+- Crear helper `safeFormatDate(date, fmt)` que retorne `"—"` si la fecha es inválida en lugar de lanzar.
+- Reemplazar todos los `format(new Date(...))` por `safeFormatDate(...)` (líneas 151, 379, 380, 480).
+- Asegurar `Array.isArray(entrega.archivos_urls)` antes de `.map` y al hidratar el estado.
+- Esperar a que `useUserRole` termine (`roleLoading`) antes de decidir qué fetch hacer, para evitar el render intermedio.
+- Agregar guardia `isMounted` en los fetch async para no hacer `setState` tras unmount.
 
-**New component: `StakeholderAccessManager`**
-- Added as a new tab "Stakeholders" in the Admin panel (visible only to admins).
-- Lists all stakeholder users (fetched via `user_roles` where role = 'stakeholder').
-- For each stakeholder, shows current active filters as badges.
-- "Add Filter" form with:
-  - Dropdown for field: `municipio`, `departamento`, `ubicacion_principal` (expandable later).
-  - Text input or dynamic dropdown for value (populated from distinct values in the DB).
-- Delete button per filter row.
+### 3. Endurecer `TaskSubmission.tsx`
+- Garantizar que `archivosExistentes` siempre se inicialice como array (`Array.isArray(...) ? ... : []`).
 
-### Files to create/modify
-1. **Migration SQL** -- new table, function, and updated RLS policies.
-2. **`src/components/admin/StakeholderAccessManager.tsx`** -- new component.
-3. **`src/pages/Admin.tsx`** -- add "Stakeholders" tab for admins.
+### 4. Endurecer `getTeamUserIds` (`teamUtils.ts`)
+- Ya tiene try/catch, pero asegurar que retorna siempre array no-vacío (incluso si `userId` es vacío).
 
-### Safety
-- All existing RLS policies for non-stakeholder roles remain untouched.
-- Stakeholders without any filter rows retain full access (backward compatible).
-- The filter function uses `SECURITY DEFINER` to avoid recursion.
-- Client-side filtering in Dashboard/Stats components will also respect these filters by querying only the data RLS allows.
+### Archivos a tocar
+- `src/components/ErrorBoundary.tsx` — nuevo.
+- `src/App.tsx` — envolver Routes.
+- `src/components/lab/ModuleDeliverables.tsx` — helpers, guardas, dependencia en `roleLoading`.
+- `src/components/lab/TaskSubmission.tsx` — defensa de `archivos_urls`.
+- `src/lib/teamUtils.ts` — defensa adicional.
+
+### Resultado esperado
+- Si algo realmente falla, la app muestra mensaje en lugar de pantalla blanca.
+- Las fechas inválidas, arrays mal formados y race conditions ya no rompen el render de Entregables.
+- Los beneficiarios ven la pestaña Entregables de forma estable.
 
