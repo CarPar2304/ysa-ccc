@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getTeamUserIds } from "@/lib/teamUtils";
 import { EntregaFileLink } from "./EntregaFileLink";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -222,27 +222,27 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
   const { userId, isBeneficiario, loading: roleLoading } = useUserRole();
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    let isMounted = true;
-    fetchTareas(isMounted);
+    isMountedRef.current = true;
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    fetchTareas();
   }, [moduloId]);
 
   useEffect(() => {
     if (roleLoading) return;
     if (!userId || tareas.length === 0) return;
-    let isMounted = true;
     if (isBeneficiario) {
-      fetchMisEntregas(isMounted);
+      fetchMisEntregas();
     } else if (canEdit) {
-      fetchAllEntregas(isMounted);
+      fetchAllEntregas();
     }
-    return () => {
-      isMounted = false;
-    };
   }, [userId, tareas, isBeneficiario, canEdit, roleLoading]);
 
   const fetchTareas = async () => {
@@ -254,11 +254,12 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
         .order("fecha_limite", { ascending: true });
 
       if (error) throw error;
+      if (!isMountedRef.current) return;
       setTareas(data || []);
     } catch (error) {
       console.error("Error fetching tasks:", error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
@@ -285,10 +286,13 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
           entregasMap[entrega.tarea_id] = {
             ...entrega,
             nota: entrega.nota ?? null,
-            archivos_urls: (entrega.archivos_urls as { name: string; url: string }[]) || [],
+            archivos_urls: Array.isArray(entrega.archivos_urls)
+              ? (entrega.archivos_urls as { name: string; url: string }[])
+              : [],
           };
         }
       });
+      if (!isMountedRef.current) return;
       setEntregas(entregasMap);
     } catch (error) {
       console.error("Error fetching submissions:", error);
@@ -313,9 +317,12 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
         entregasByTarea[entrega.tarea_id].push({
           ...entrega,
           nota: entrega.nota ?? null,
-          archivos_urls: (entrega.archivos_urls as { name: string; url: string }[]) || [],
+          archivos_urls: Array.isArray(entrega.archivos_urls)
+            ? (entrega.archivos_urls as { name: string; url: string }[])
+            : [],
         });
       });
+      if (!isMountedRef.current) return;
       setAllEntregas(entregasByTarea);
     } catch (error) {
       console.error("Error fetching all submissions:", error);
