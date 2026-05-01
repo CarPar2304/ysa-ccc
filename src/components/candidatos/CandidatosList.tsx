@@ -23,6 +23,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [nivelFilter, setNivelFilter] = useState<string>("todos");
+  const [cohorteFilter, setCohorteFilter] = useState<string>("todos");
   const [rolFilter, setRolFilter] = useState<string>("todos");
   const [sortOrder, setSortOrder] = useState<string>("desc");
   const [selectedCandidato, setSelectedCandidato] = useState<CandidatoData | null>(null);
@@ -54,7 +55,15 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         (rolFilter === "principal" && !candidato.es_cofundador) ||
         (rolFilter === "cofundador" && candidato.es_cofundador);
 
-      return matchesSearch && matchesStatus && matchesNivel && matchesRol;
+      const showCohorteFilter =
+        statusFilter === "beneficiario" &&
+        (nivelFilter === "Starter" || nivelFilter === "Growth");
+      const matchesCohorte =
+        !showCohorteFilter ||
+        cohorteFilter === "todos" ||
+        String(candidato.cupo?.cohorte ?? "") === cohorteFilter;
+
+      return matchesSearch && matchesStatus && matchesNivel && matchesRol && matchesCohorte;
     });
 
     // Sort by user creation date
@@ -63,7 +72,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
       const dateB = new Date(b.created_at || 0).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
-  }, [candidatos, searchTerm, statusFilter, nivelFilter, rolFilter, sortOrder]);
+  }, [candidatos, searchTerm, statusFilter, nivelFilter, rolFilter, cohorteFilter, sortOrder]);
 
   const getStatusBadge = (candidato: CandidatoData) => {
     if (candidato.cupo?.estado === "aprobado") {
@@ -120,7 +129,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         <CardContent>
           <div className="space-y-4">
             {/* Filtros */}
-            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -151,6 +160,18 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
                   <SelectItem value="Scale">Scale</SelectItem>
                 </SelectContent>
               </Select>
+              {statusFilter === "beneficiario" && (nivelFilter === "Starter" || nivelFilter === "Growth") && (
+                <Select value={cohorteFilter} onValueChange={setCohorteFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Cohorte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas las cohortes</SelectItem>
+                    <SelectItem value="1">Cohorte 1</SelectItem>
+                    <SelectItem value="2">Cohorte 2</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               <Select value={rolFilter} onValueChange={setRolFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Rol" />
