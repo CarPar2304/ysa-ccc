@@ -160,6 +160,18 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
                   <SelectItem value="Scale">Scale</SelectItem>
                 </SelectContent>
               </Select>
+              {statusFilter === "beneficiario" && (nivelFilter === "Starter" || nivelFilter === "Growth") && (
+                <Select value={cohorteFilter} onValueChange={setCohorteFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Cohorte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas las cohortes</SelectItem>
+                    <SelectItem value="1">Cohorte 1</SelectItem>
+                    <SelectItem value="2">Cohorte 2</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
               <Select value={rolFilter} onValueChange={setRolFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Rol" />
