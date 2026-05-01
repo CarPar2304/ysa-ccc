@@ -55,7 +55,15 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
         (rolFilter === "principal" && !candidato.es_cofundador) ||
         (rolFilter === "cofundador" && candidato.es_cofundador);
 
-      return matchesSearch && matchesStatus && matchesNivel && matchesRol;
+      const showCohorteFilter =
+        statusFilter === "beneficiario" &&
+        (nivelFilter === "Starter" || nivelFilter === "Growth");
+      const matchesCohorte =
+        !showCohorteFilter ||
+        cohorteFilter === "todos" ||
+        String(candidato.cupo?.cohorte ?? "") === cohorteFilter;
+
+      return matchesSearch && matchesStatus && matchesNivel && matchesRol && matchesCohorte;
     });
 
     // Sort by user creation date
@@ -64,7 +72,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
       const dateB = new Date(b.created_at || 0).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
-  }, [candidatos, searchTerm, statusFilter, nivelFilter, rolFilter, sortOrder]);
+  }, [candidatos, searchTerm, statusFilter, nivelFilter, rolFilter, cohorteFilter, sortOrder]);
 
   const getStatusBadge = (candidato: CandidatoData) => {
     if (candidato.cupo?.estado === "aprobado") {
