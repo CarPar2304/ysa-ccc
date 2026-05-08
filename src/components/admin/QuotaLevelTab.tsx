@@ -715,6 +715,15 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex gap-2 justify-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setDetailUserId(emp.user_id)}
+                            className="gap-1"
+                            title="Ver perfil completo"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {emp.asignacion_estado !== "aprobado" && (
                             <Button
                               size="sm"
