@@ -18,8 +18,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown, Search, Filter, ArrowRightLeft } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown, Search, Filter, ArrowRightLeft, Eye } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { CandidatoFullDetailById } from "@/components/candidatos/CandidatoFullDetailById";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
 
@@ -73,6 +74,9 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
 
   // Move level confirmation dialog
   const [pendingLevelMove, setPendingLevelMove] = useState<{ emp: EmprendimientoElegible; nuevoNivel: NivelEmprendimiento } | null>(null);
+
+  // Profile detail modal
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
   
   const { toast } = useToast();
 
@@ -711,6 +715,15 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex gap-2 justify-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setDetailUserId(emp.user_id)}
+                            className="gap-1"
+                            title="Ver perfil completo"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {emp.asignacion_estado !== "aprobado" && (
                             <Button
                               size="sm"
@@ -797,6 +810,12 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CandidatoFullDetailById
+        userId={detailUserId}
+        open={!!detailUserId}
+        onClose={() => setDetailUserId(null)}
+      />
     </div>
   );
 };
