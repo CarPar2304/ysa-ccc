@@ -74,6 +74,9 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
 
   // Move level confirmation dialog
   const [pendingLevelMove, setPendingLevelMove] = useState<{ emp: EmprendimientoElegible; nuevoNivel: NivelEmprendimiento } | null>(null);
+
+  // Profile detail modal
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
   
   const { toast } = useToast();
 
