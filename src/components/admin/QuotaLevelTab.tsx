@@ -810,6 +810,12 @@ export const QuotaLevelTab = ({ nivel, maxCupos, tieneCohorts, maxPorCohorte }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CandidatoFullDetailById
+        userId={detailUserId}
+        open={!!detailUserId}
+        onClose={() => setDetailUserId(null)}
+      />
     </div>
   );
 };
