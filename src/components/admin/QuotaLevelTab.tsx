@@ -18,8 +18,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown, Search, Filter, ArrowRightLeft } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, TrendingUp, Download, ArrowUp, ArrowDown, RotateCcw, ThumbsUp, ThumbsDown, Search, Filter, ArrowRightLeft, Eye } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { CandidatoFullDetailById } from "@/components/candidatos/CandidatoFullDetailById";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
 
