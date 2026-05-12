@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ACCESS_CODE_MENTOR = "YSA-MENTOR-ACCESS";
-const ACCESS_CODE_STAKEHOLDER = "ITC-YSA-2026";
+const ACCESS_CODE_MENTOR = Deno.env.get("MENTOR_ACCESS_CODE") ?? "YSA-MENTOR-ACCESS";
+const ACCESS_CODE_STAKEHOLDER = Deno.env.get("STAKEHOLDER_ACCESS_CODE") ?? "ITC-YSA-2026";
 
 // Server-side validation schema (mirrors client-side for security)
 const mentorSchema = z.object({
