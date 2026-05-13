@@ -31,13 +31,8 @@ export const ProfileTeam = ({ readOnly = false }: ProfileTeamProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: emprendimiento } = await supabase
-        .from("emprendimientos")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!emprendimiento) {
+      const empId = await getCurrentEmprendimientoId(user.id);
+      if (!empId) {
         setLoading(false);
         return;
       }
@@ -45,7 +40,7 @@ export const ProfileTeam = ({ readOnly = false }: ProfileTeamProps) => {
       const { data, error } = await supabase
         .from("equipos")
         .select("*")
-        .eq("emprendimiento_id", emprendimiento.id)
+        .eq("emprendimiento_id", empId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
