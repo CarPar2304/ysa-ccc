@@ -315,9 +315,11 @@ const Lab = () => {
       <div className="relative w-full overflow-hidden bg-muted" style={{ aspectRatio: '1600 / 400' }}>
         {modulo.imagen_url ? (
           <img
-            src={modulo.imagen_url}
+            src={Thumb.cardLg(modulo.imagen_url)}
             alt={modulo.titulo}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
