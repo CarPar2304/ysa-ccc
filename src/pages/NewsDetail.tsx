@@ -150,9 +150,11 @@ const NewsDetail = () => {
               <div className="lg:col-span-2">
                 <div className="rounded-xl overflow-hidden border border-border shadow-[var(--shadow-soft)] sticky top-24">
                   <img
-                    src={noticia.imagen_url}
+                    src={Thumb.detail(noticia.imagen_url)}
                     alt={noticia.titulo}
                     className="w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               </div>
