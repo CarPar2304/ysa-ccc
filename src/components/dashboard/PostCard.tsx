@@ -69,7 +69,7 @@ export const PostCard = ({ post, onRefresh, currentUserId, userQuota, userRole }
         <div className="flex items-start gap-3">
           <Avatar className="h-11 w-11 ring-2 ring-primary/10">
             {post.usuarios?.avatar_url && (
-              <AvatarImage src={post.usuarios.avatar_url} />
+              <AvatarImage src={Thumb.avatar(post.usuarios.avatar_url)} />
             )}
             <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
               {getInitials(post.usuarios?.nombres || null, post.usuarios?.apellidos || null)}
