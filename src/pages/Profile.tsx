@@ -13,6 +13,8 @@ import { ProfilePosts } from "@/components/profile/ProfilePosts";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
 import { ProfileCoFounders } from "@/components/profile/ProfileCoFounders";
 import { Lock, Upload, User as UserIcon, Briefcase, Award, MessageSquare, Users } from "lucide-react";
+import { Thumb } from "@/lib/imageUrl";
+import { compressImage, isImageFile, SIZE_LIMITS, formatBytes } from "@/lib/uploadImage";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
