@@ -304,7 +304,7 @@ export const ModuleDeliverables = ({ moduloId, canEdit }: ModuleDeliverablesProp
       const tareaIds = tareas.map((t) => t.id);
       const { data, error } = await supabase
         .from("entregas")
-        .select(`*, usuario:usuarios(nombres, apellidos)`)
+        .select(`id, tarea_id, user_id, comentario, archivos_urls, estado, feedback, nota, fecha_entrega, usuario:usuarios(nombres, apellidos)`)
         .in("tarea_id", tareaIds);
 
       if (error) throw error;
