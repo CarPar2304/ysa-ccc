@@ -160,14 +160,20 @@ export const PostCard = ({ post, onRefresh, currentUserId, userQuota, userRole }
         )}
 
         {post.imagen_url && (
-          <div className="rounded-xl overflow-hidden border border-border">
+          <a
+            href={post.imagen_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-xl overflow-hidden border border-border"
+          >
             <img
-              src={post.imagen_url}
+              src={Thumb.cardLg(post.imagen_url)}
               alt="Post image"
               className="w-full h-auto object-cover max-h-[500px]"
               loading="lazy"
+              decoding="async"
             />
-          </div>
+          </a>
         )}
 
         <div className="flex items-center gap-3 pt-2 border-t border-border/60">
