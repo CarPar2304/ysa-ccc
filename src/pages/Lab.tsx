@@ -11,6 +11,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
 import { usePendingTasks } from "@/hooks/usePendingTasks";
+import { Thumb } from "@/lib/imageUrl";
 import {
   AlertDialog,
   AlertDialogAction,
