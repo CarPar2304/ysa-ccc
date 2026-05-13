@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Upload, X, Loader2 as LoaderIcon, CalendarDays } from "lucide-react";
 import { MarkdownToolbar } from "./MarkdownToolbar";
+import { compressImage, SIZE_LIMITS, formatBytes } from "@/lib/uploadImage";
 
 interface NewsEditorProps {
   noticia?: {
