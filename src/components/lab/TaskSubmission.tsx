@@ -68,7 +68,7 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const totalFiles = archivos.length + archivosExistentes.length + files.length;
-    
+
     if (tarea.documentos_obligatorios && totalFiles > tarea.num_documentos) {
       toast({
         title: "Límite de archivos",
@@ -77,7 +77,19 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
       });
       return;
     }
-    
+
+    // Per-file size validation (15MB) before adding
+    for (const f of files) {
+      if (f.size > SIZE_LIMITS.ENTREGA_FILE_MAX) {
+        toast({
+          title: "Archivo demasiado grande",
+          description: `"${f.name}" pesa ${formatBytes(f.size)}. Máximo ${formatBytes(SIZE_LIMITS.ENTREGA_FILE_MAX)} por archivo.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setArchivos((prev) => [...prev, ...files]);
   };
 
