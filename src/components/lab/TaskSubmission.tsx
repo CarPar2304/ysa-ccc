@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Loader2, FileText, X, CheckCircle, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { compressImage, isImageFile, validateEntregaFiles, SIZE_LIMITS, formatBytes } from "@/lib/uploadImage";
 
 interface Tarea {
   id: string;
