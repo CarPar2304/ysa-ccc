@@ -150,13 +150,14 @@ export const ModuleEditor = ({ modulo, onSuccess, trigger }: ModuleEditorProps) 
 
     setUploading(true);
     try {
-      const fileExt = imageFile.name.split('.').pop();
+      const compressed = await compressImage(imageFile, 1600, 0.82);
+      const fileExt = compressed.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `modulos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('lab-images')
-        .upload(filePath, imageFile);
+        .upload(filePath, compressed, { cacheControl: "31536000", contentType: compressed.type });
 
       if (uploadError) throw uploadError;
 
