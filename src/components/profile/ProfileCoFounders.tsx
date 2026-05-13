@@ -112,9 +112,39 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
     }
   };
 
+  const friendlyError = (raw: string): { title: string; description: string } => {
+    const msg = (raw || "").toLowerCase();
+    if (msg.includes("ya existe") || msg.includes("already") || msg.includes("registrado con este correo")) {
+      return { title: "Correo ya registrado", description: "Ya existe una cuenta con este correo electrónico. Pídele al co-fundador que use otro correo o que inicie sesión con el actual." };
+    }
+    if (msg.includes("permiso") || msg.includes("no tienes permiso") || msg.includes("forbidden")) {
+      return { title: "Sin permisos", description: "No tienes permiso para agregar co-fundadores a este emprendimiento." };
+    }
+    if (msg.includes("emprendimiento no encontrado") || msg.includes("not found")) {
+      return { title: "Emprendimiento no encontrado", description: "No pudimos encontrar el emprendimiento. Recarga la página e inténtalo de nuevo." };
+    }
+    if (msg.includes("datos inválidos") || msg.includes("invalid") || msg.includes("validation")) {
+      return { title: "Datos inválidos", description: "Revisa los campos del formulario: el correo debe ser válido y los nombres/identificación son obligatorios." };
+    }
+    if (msg.includes("password") || msg.includes("contraseña")) {
+      return { title: "Identificación inválida", description: "El número de identificación se usa como contraseña y debe tener al menos 6 caracteres." };
+    }
+    if (msg.includes("duplicate") || msg.includes("unique")) {
+      return { title: "Registro duplicado", description: "Este co-fundador ya está vinculado al emprendimiento." };
+    }
+    if (msg.includes("network") || msg.includes("failed to fetch")) {
+      return { title: "Sin conexión", description: "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo nuevamente." };
+    }
+    return { title: "No se pudo crear el co-fundador", description: "Ocurrió un problema al registrar al co-fundador. Inténtalo de nuevo en unos segundos." };
+  };
+
   const handleSubmit = async () => {
     if (!form.nombres || !form.apellidos || !form.email || !form.numero_identificacion) {
-      toast({ title: "Error", description: "Nombres, apellidos, email y número de identificación son obligatorios", variant: "destructive" });
+      toast({ title: "Faltan datos obligatorios", description: "Completa nombres, apellidos, correo y número de identificación.", variant: "destructive" });
+      return;
+    }
+    if (form.numero_identificacion.length < 6) {
+      toast({ title: "Identificación muy corta", description: "El número de identificación debe tener al menos 6 caracteres (se usará como contraseña inicial).", variant: "destructive" });
       return;
     }
 
@@ -127,15 +157,38 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
         },
       });
 
-      if (data?.error) throw new Error(data.error);
-      if (error) throw error;
+      // Extract real server error from FunctionsHttpError context
+      let serverError: string | null = null;
+      if (error) {
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            serverError = body?.error || body?.message || null;
+          } else if (ctx && typeof ctx.text === "function") {
+            serverError = await ctx.text();
+          }
+        } catch {
+          // ignore parse errors
+        }
+        const { title, description } = friendlyError(serverError || error.message || "");
+        toast({ title, description, variant: "destructive" });
+        return;
+      }
 
-      toast({ title: "Co-fundador creado", description: data.message });
+      if (data?.error) {
+        const { title, description } = friendlyError(data.error);
+        toast({ title, description, variant: "destructive" });
+        return;
+      }
+
+      toast({ title: "Co-fundador creado", description: data?.message || "El co-fundador fue registrado exitosamente." });
       setDialogOpen(false);
       setForm({ nombres: "", apellidos: "", email: "", celular: "", tipo_documento: "", numero_identificacion: "", genero: "", departamento: "", municipio: "", direccion: "", ano_nacimiento: "", identificacion_etnica: "" });
       fetchCoFounders();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (err: any) {
+      const { title, description } = friendlyError(err?.message || "");
+      toast({ title, description, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
