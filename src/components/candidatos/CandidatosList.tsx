@@ -35,11 +35,15 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
 
   const filteredCandidatos = useMemo(() => {
     const filtered = candidatos.filter((candidato) => {
-    const matchesSearch = 
-      candidato.nombres.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidato.apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidato.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidato.emprendimiento?.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+    const normalizedSearch = searchTerm.toLowerCase();
+    const digitsSearch = searchTerm.replace(/\D/g, "");
+    const candidatoCelDigits = (candidato.celular || "").replace(/\D/g, "");
+    const matchesSearch =
+      candidato.nombres.toLowerCase().includes(normalizedSearch) ||
+      candidato.apellidos.toLowerCase().includes(normalizedSearch) ||
+      candidato.email.toLowerCase().includes(normalizedSearch) ||
+      candidato.emprendimiento?.nombre.toLowerCase().includes(normalizedSearch) ||
+      (digitsSearch.length > 0 && candidatoCelDigits.includes(digitsSearch));
 
     const matchesStatus = 
       statusFilter === "todos" ||
@@ -133,7 +137,7 @@ export const CandidatosList = ({ candidatos, loading, onRefresh }: CandidatosLis
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nombre, email o emprendimiento..."
+                  placeholder="Buscar por nombre, email, celular o emprendimiento..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
