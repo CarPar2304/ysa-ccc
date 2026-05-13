@@ -174,7 +174,7 @@ const Profile = () => {
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6">
               <div className="relative flex-shrink-0">
                 <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24">
-                  <AvatarImage src={usuario.avatar_url} />
+                  <AvatarImage src={Thumb.avatarLg(usuario.avatar_url)} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-lg sm:text-xl lg:text-2xl">
                     {nombreCompleto.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </AvatarFallback>
