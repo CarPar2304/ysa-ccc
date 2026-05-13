@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { NotificacionesModal } from "@/components/estudiantes/NotificacionesModal";
 import { useState } from "react";
 import { ExportOptionsModal } from "@/components/candidatos/ExportOptionsModal";
+import { Thumb } from "@/lib/imageUrl";
 import type { CandidatoData } from "@/pages/Candidatos";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
