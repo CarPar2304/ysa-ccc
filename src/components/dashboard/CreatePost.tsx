@@ -63,19 +63,23 @@ export const CreatePost = ({ userId, userAvatar, onPostCreated }: CreatePostProp
       let imageUrl = null;
 
       if (selectedImage) {
-        const fileExt = selectedImage.name.split(".").pop();
+        const compressed = await compressImage(selectedImage, 1600, 0.82);
+        const fileExt = compressed.name.split(".").pop();
         const fileName = `${userId}/${Date.now()}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from("post-images")
-          .upload(fileName, selectedImage);
+          .upload(fileName, compressed, {
+            cacheControl: "31536000",
+            contentType: compressed.type,
+          });
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
           .from("post-images")
           .getPublicUrl(fileName);
-        
+
         imageUrl = publicUrl;
       }
 
