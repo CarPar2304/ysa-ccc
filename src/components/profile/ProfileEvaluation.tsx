@@ -24,13 +24,10 @@ export const ProfileEvaluation = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: emprendimiento } = await supabase
-        .from("emprendimientos")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { getCurrentEmprendimientoId } = await import("@/lib/emprendimientoUtils");
+      const empId = await getCurrentEmprendimientoId(user.id);
 
-      if (!emprendimiento) {
+      if (!empId) {
         setLoading(false);
         return;
       }
@@ -39,7 +36,7 @@ export const ProfileEvaluation = () => {
       const { data: evaluacionesData } = await supabase
         .from("evaluaciones")
         .select("*")
-        .eq("emprendimiento_id", emprendimiento.id)
+        .eq("emprendimiento_id", empId)
         .eq("visible_para_usuario", true)
         .order("created_at", { ascending: false });
 
