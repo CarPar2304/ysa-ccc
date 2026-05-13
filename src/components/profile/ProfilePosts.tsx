@@ -188,7 +188,7 @@ export const ProfilePosts = ({ readOnly }: ProfilePostsProps) => {
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <Avatar className="h-10 w-10">
-                  {userAvatar && <AvatarImage src={userAvatar} />}
+                  {userAvatar && <AvatarImage src={Thumb.avatar(userAvatar)} />}
                   <AvatarFallback className="bg-accent text-accent-foreground">
                     TU
                   </AvatarFallback>
