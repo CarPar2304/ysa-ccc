@@ -11,6 +11,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { NewsEditor } from "@/components/news/NewsEditor";
 import { MarkdownRenderer } from "@/components/common/MarkdownRenderer";
+import { Thumb } from "@/lib/imageUrl";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
