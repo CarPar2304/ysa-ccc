@@ -28,22 +28,23 @@ export const CreatePost = ({ userId, userAvatar, onPostCreated }: CreatePostProp
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: "La imagen no debe superar 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (!isImageFile(file)) {
+      toast({ title: "Archivo no válido", description: "Selecciona una imagen.", variant: "destructive" });
+      return;
     }
+    if (file.size > SIZE_LIMITS.IMAGE_RAW_MAX) {
+      toast({
+        title: "Imagen demasiado grande",
+        description: `Máximo ${formatBytes(SIZE_LIMITS.IMAGE_RAW_MAX)}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
