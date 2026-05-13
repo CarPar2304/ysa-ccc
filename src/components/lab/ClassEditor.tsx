@@ -12,6 +12,7 @@ import { Plus, Upload, X, Link, FileUp, Video, MapPin, Globe, CalendarPlus } fro
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InlineDatePicker } from "@/components/calendario/InlineDatePicker";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/uploadImage";
 
 interface Recurso {
   titulo: string;
