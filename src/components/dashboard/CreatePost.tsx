@@ -7,6 +7,8 @@ import { Image, X, Loader2, AtSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UserMentionInput } from "./UserMentionInput";
+import { compressImage, isImageFile, SIZE_LIMITS, formatBytes } from "@/lib/uploadImage";
+import { Thumb } from "@/lib/imageUrl";
 
 interface CreatePostProps {
   userId: string;
