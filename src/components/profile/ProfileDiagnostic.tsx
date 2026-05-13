@@ -27,20 +27,18 @@ export function ProfileDiagnostic() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get user's emprendimiento
-      const { data: empData, error: empError } = await supabase
-        .from("emprendimientos")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (empError) throw empError;
+      const { getCurrentEmprendimientoId } = await import("@/lib/emprendimientoUtils");
+      const empId = await getCurrentEmprendimientoId(user.id);
+      if (!empId) {
+        setDiagnostico(null);
+        return;
+      }
 
       // Get diagnostico for this emprendimiento
       const { data: diagData, error: diagError } = await supabase
         .from("diagnosticos")
         .select("id, contenido, created_at, updated_at")
-        .eq("emprendimiento_id", empData.id)
+        .eq("emprendimiento_id", empId)
         .eq("visible_para_usuario", true)
         .maybeSingle();
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Users, UserCheck, Star, Code, GitBranch, Vote } from "lucide-react";
+import { getCurrentEmprendimientoId } from "@/lib/emprendimientoUtils";
 
 interface ProfileTeamProps {
   readOnly?: boolean;
@@ -31,13 +32,8 @@ export const ProfileTeam = ({ readOnly = false }: ProfileTeamProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: emprendimiento } = await supabase
-        .from("emprendimientos")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!emprendimiento) {
+      const empId = await getCurrentEmprendimientoId(user.id);
+      if (!empId) {
         setLoading(false);
         return;
       }
@@ -45,7 +41,7 @@ export const ProfileTeam = ({ readOnly = false }: ProfileTeamProps) => {
       const { data, error } = await supabase
         .from("equipos")
         .select("*")
-        .eq("emprendimiento_id", emprendimiento.id)
+        .eq("emprendimiento_id", empId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
