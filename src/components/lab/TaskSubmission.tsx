@@ -120,16 +120,24 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
 
+      // Validate total entrega size before uploading any byte
+      validateEntregaFiles(archivos);
+
       // Upload new files – store the storage path, not a public URL
       const uploadedFiles: { name: string; url: string }[] = [...archivosExistentes];
 
       for (const archivo of archivos) {
-        const fileExt = archivo.name.split(".").pop();
+        // Compress images on the fly to reduce storage + future egress
+        const toUpload = isImageFile(archivo) ? await compressImage(archivo, 1600, 0.82) : archivo;
+        const fileExt = toUpload.name.split(".").pop();
         const fileName = `${user.id}/${tarea.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("entregas")
-          .upload(fileName, archivo);
+          .upload(fileName, toUpload, {
+            cacheControl: "31536000",
+            contentType: toUpload.type || undefined,
+          });
 
         if (uploadError) throw uploadError;
 
