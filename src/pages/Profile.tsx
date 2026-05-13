@@ -92,9 +92,22 @@ const Profile = () => {
         return;
       }
 
-      const file = event.target.files[0];
+      const rawFile = event.target.files[0];
+      if (!isImageFile(rawFile)) {
+        toast({ title: "Archivo no válido", description: "Selecciona una imagen.", variant: "destructive" });
+        return;
+      }
+      if (rawFile.size > SIZE_LIMITS.IMAGE_RAW_MAX) {
+        toast({
+          title: "Imagen demasiado grande",
+          description: `Máximo ${formatBytes(SIZE_LIMITS.IMAGE_RAW_MAX)}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const file = await compressImage(rawFile, 600, 0.85);
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) throw new Error('No user found');
 
       const fileExt = file.name.split('.').pop();
@@ -110,7 +123,7 @@ const Profile = () => {
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { upsert: true, cacheControl: "31536000", contentType: file.type });
 
       if (uploadError) throw uploadError;
 
