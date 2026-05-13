@@ -139,7 +139,7 @@ export const CreatePost = ({ userId, userAvatar, onPostCreated }: CreatePostProp
       <CardContent className="p-6">
         <div className="flex gap-4">
           <Avatar className="h-12 w-12">
-            {userAvatar && <AvatarImage src={userAvatar} />}
+            {userAvatar && <AvatarImage src={Thumb.avatar(userAvatar)} />}
             <AvatarFallback className="bg-primary text-primary-foreground">TU</AvatarFallback>
           </Avatar>
           
