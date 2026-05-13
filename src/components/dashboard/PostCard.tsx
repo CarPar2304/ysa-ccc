@@ -6,6 +6,7 @@ import { es } from "date-fns/locale";
 import { EmojiReactions } from "./EmojiReactions";
 import { PostComments } from "./PostComments";
 import { GraduationCap, Award, Shield, Users } from "lucide-react";
+import { Thumb } from "@/lib/imageUrl";
 
 interface PostCardProps {
   post: {
