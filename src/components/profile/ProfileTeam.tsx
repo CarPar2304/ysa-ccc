@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Users, UserCheck, Star, Code, GitBranch, Vote } from "lucide-react";
+import { getCurrentEmprendimientoId } from "@/lib/emprendimientoUtils";
 
 interface ProfileTeamProps {
   readOnly?: boolean;
