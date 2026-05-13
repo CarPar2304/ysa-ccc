@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Plus, Upload, X, UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { compressImage } from "@/lib/uploadImage";
 
 interface ModuleEditorProps {
   modulo?: {
