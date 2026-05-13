@@ -446,9 +446,11 @@ const Estudiantes = () => {
                       <div className="flex-shrink-0">
                         {estudiante.avatar_url ? (
                           <img
-                            src={estudiante.avatar_url}
+                            src={Thumb.avatar(estudiante.avatar_url)}
                             alt={`${estudiante.nombres} ${estudiante.apellidos}`}
                             className="w-12 h-12 rounded-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
