@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search } from "lucide-react";
+import { Thumb } from "@/lib/imageUrl";
 
 interface User {
   id: string;
@@ -78,7 +79,7 @@ export const UserMentionInput = ({ onSelectUser }: UserMentionInputProps) => {
               className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-accent transition-colors text-left"
             >
               <Avatar className="h-8 w-8">
-                {user.avatar_url && <AvatarImage src={user.avatar_url} />}
+                {user.avatar_url && <AvatarImage src={Thumb.avatar(user.avatar_url)} />}
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                   {getInitials(user.nombres, user.apellidos)}
                 </AvatarFallback>

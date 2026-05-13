@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useQuotaStatus } from "@/hooks/useQuotaStatus";
+import { Thumb } from "@/lib/imageUrl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -270,9 +271,11 @@ const LabModuleView = () => {
                         <div className="relative w-24 h-16 shrink-0 rounded-md overflow-hidden bg-muted">
                           {clase.imagen_url ? (
                             <img 
-                              src={clase.imagen_url} 
+                              src={Thumb.cardSm(clase.imagen_url)} 
                               alt={clase.titulo}
                               className="w-full h-full object-cover"
+                              loading="lazy"
+                              decoding="async"
                             />
                           ) : clase.video_url ? (
                             <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/20 to-primary/5">

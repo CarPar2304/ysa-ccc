@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, Users, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Thumb } from "@/lib/imageUrl";
 
 interface CoFounder {
   id: string;
@@ -183,7 +184,7 @@ export const ProfileCoFounders = ({ emprendimientoId, emprendimientoNombre, isOw
               <div key={cf.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-accent/30 border border-border">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={cf.usuario?.avatar_url || undefined} />
+                    <AvatarImage src={Thumb.avatar(cf.usuario?.avatar_url)} />
                     <AvatarFallback className="bg-primary/10 text-primary text-sm">
                       {(cf.usuario?.nombres?.[0] || "")}{(cf.usuario?.apellidos?.[0] || "")}
                     </AvatarFallback>

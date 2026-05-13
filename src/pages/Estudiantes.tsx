@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { NotificacionesModal } from "@/components/estudiantes/NotificacionesModal";
 import { useState } from "react";
 import { ExportOptionsModal } from "@/components/candidatos/ExportOptionsModal";
+import { Thumb } from "@/lib/imageUrl";
 import type { CandidatoData } from "@/pages/Candidatos";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
@@ -445,9 +446,11 @@ const Estudiantes = () => {
                       <div className="flex-shrink-0">
                         {estudiante.avatar_url ? (
                           <img
-                            src={estudiante.avatar_url}
+                            src={Thumb.avatar(estudiante.avatar_url)}
                             alt={`${estudiante.nombres} ${estudiante.apellidos}`}
                             className="w-12 h-12 rounded-full object-cover"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
                           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">

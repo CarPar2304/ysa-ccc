@@ -6,6 +6,7 @@ import { es } from "date-fns/locale";
 import { EmojiReactions } from "./EmojiReactions";
 import { PostComments } from "./PostComments";
 import { GraduationCap, Award, Shield, Users } from "lucide-react";
+import { Thumb } from "@/lib/imageUrl";
 
 interface PostCardProps {
   post: {
@@ -68,7 +69,7 @@ export const PostCard = ({ post, onRefresh, currentUserId, userQuota, userRole }
         <div className="flex items-start gap-3">
           <Avatar className="h-11 w-11 ring-2 ring-primary/10">
             {post.usuarios?.avatar_url && (
-              <AvatarImage src={post.usuarios.avatar_url} />
+              <AvatarImage src={Thumb.avatar(post.usuarios.avatar_url)} />
             )}
             <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
               {getInitials(post.usuarios?.nombres || null, post.usuarios?.apellidos || null)}
@@ -159,14 +160,20 @@ export const PostCard = ({ post, onRefresh, currentUserId, userQuota, userRole }
         )}
 
         {post.imagen_url && (
-          <div className="rounded-xl overflow-hidden border border-border">
+          <a
+            href={post.imagen_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-xl overflow-hidden border border-border"
+          >
             <img
-              src={post.imagen_url}
+              src={Thumb.cardLg(post.imagen_url)}
               alt="Post image"
               className="w-full h-auto object-cover max-h-[500px]"
               loading="lazy"
+              decoding="async"
             />
-          </div>
+          </a>
         )}
 
         <div className="flex items-center gap-3 pt-2 border-t border-border/60">

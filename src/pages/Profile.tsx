@@ -13,6 +13,8 @@ import { ProfilePosts } from "@/components/profile/ProfilePosts";
 import { ProfileSkeleton } from "@/components/profile/ProfileSkeleton";
 import { ProfileCoFounders } from "@/components/profile/ProfileCoFounders";
 import { Lock, Upload, User as UserIcon, Briefcase, Award, MessageSquare, Users } from "lucide-react";
+import { Thumb } from "@/lib/imageUrl";
+import { compressImage, isImageFile, SIZE_LIMITS, formatBytes } from "@/lib/uploadImage";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -90,9 +92,22 @@ const Profile = () => {
         return;
       }
 
-      const file = event.target.files[0];
+      const rawFile = event.target.files[0];
+      if (!isImageFile(rawFile)) {
+        toast({ title: "Archivo no válido", description: "Selecciona una imagen.", variant: "destructive" });
+        return;
+      }
+      if (rawFile.size > SIZE_LIMITS.IMAGE_RAW_MAX) {
+        toast({
+          title: "Imagen demasiado grande",
+          description: `Máximo ${formatBytes(SIZE_LIMITS.IMAGE_RAW_MAX)}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const file = await compressImage(rawFile, 600, 0.85);
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) throw new Error('No user found');
 
       const fileExt = file.name.split('.').pop();
@@ -108,7 +123,7 @@ const Profile = () => {
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { upsert: true, cacheControl: "31536000", contentType: file.type });
 
       if (uploadError) throw uploadError;
 
@@ -159,7 +174,7 @@ const Profile = () => {
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6">
               <div className="relative flex-shrink-0">
                 <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24">
-                  <AvatarImage src={usuario.avatar_url} />
+                  <AvatarImage src={Thumb.avatarLg(usuario.avatar_url)} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-lg sm:text-xl lg:text-2xl">
                     {nombreCompleto.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </AvatarFallback>
@@ -201,7 +216,7 @@ const Profile = () => {
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6">
             <div className="relative flex-shrink-0">
               <Avatar className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24">
-                <AvatarImage src={usuario.avatar_url} />
+                <AvatarImage src={Thumb.avatarLg(usuario.avatar_url)} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-lg sm:text-xl lg:text-2xl">
                   {nombreCompleto.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>

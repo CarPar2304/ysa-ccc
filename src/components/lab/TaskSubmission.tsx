@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Loader2, FileText, X, CheckCircle, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { compressImage, isImageFile, validateEntregaFiles, SIZE_LIMITS, formatBytes } from "@/lib/uploadImage";
 
 interface Tarea {
   id: string;
@@ -67,7 +68,7 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const totalFiles = archivos.length + archivosExistentes.length + files.length;
-    
+
     if (tarea.documentos_obligatorios && totalFiles > tarea.num_documentos) {
       toast({
         title: "Límite de archivos",
@@ -76,7 +77,19 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
       });
       return;
     }
-    
+
+    // Per-file size validation (15MB) before adding
+    for (const f of files) {
+      if (f.size > SIZE_LIMITS.ENTREGA_FILE_MAX) {
+        toast({
+          title: "Archivo demasiado grande",
+          description: `"${f.name}" pesa ${formatBytes(f.size)}. Máximo ${formatBytes(SIZE_LIMITS.ENTREGA_FILE_MAX)} por archivo.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setArchivos((prev) => [...prev, ...files]);
   };
 
@@ -107,16 +120,24 @@ export const TaskSubmission = ({ tarea, entregaExistente, onSuccess }: TaskSubmi
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
 
+      // Validate total entrega size before uploading any byte
+      validateEntregaFiles(archivos);
+
       // Upload new files – store the storage path, not a public URL
       const uploadedFiles: { name: string; url: string }[] = [...archivosExistentes];
 
       for (const archivo of archivos) {
-        const fileExt = archivo.name.split(".").pop();
+        // Compress images on the fly to reduce storage + future egress
+        const toUpload = isImageFile(archivo) ? await compressImage(archivo, 1600, 0.82) : archivo;
+        const fileExt = toUpload.name.split(".").pop();
         const fileName = `${user.id}/${tarea.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("entregas")
-          .upload(fileName, archivo);
+          .upload(fileName, toUpload, {
+            cacheControl: "31536000",
+            contentType: toUpload.type || undefined,
+          });
 
         if (uploadError) throw uploadError;
 

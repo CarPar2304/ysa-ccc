@@ -11,6 +11,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
 import { NewsEditor } from "@/components/news/NewsEditor";
 import { MarkdownRenderer } from "@/components/common/MarkdownRenderer";
+import { Thumb } from "@/lib/imageUrl";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -149,9 +150,11 @@ const NewsDetail = () => {
               <div className="lg:col-span-2">
                 <div className="rounded-xl overflow-hidden border border-border shadow-[var(--shadow-soft)] sticky top-24">
                   <img
-                    src={noticia.imagen_url}
+                    src={Thumb.detail(noticia.imagen_url)}
                     alt={noticia.titulo}
                     className="w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               </div>

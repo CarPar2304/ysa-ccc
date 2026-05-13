@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { Thumb } from "@/lib/imageUrl";
 import {
   Collapsible,
   CollapsibleContent,
@@ -138,7 +139,7 @@ export const PostComments = ({ postId, commentsCount, currentUserId }: PostComme
                   <div className="flex gap-3">
                     <Avatar className="h-8 w-8">
                       {comment.usuarios?.avatar_url && (
-                        <AvatarImage src={comment.usuarios.avatar_url} />
+                        <AvatarImage src={Thumb.avatar(comment.usuarios.avatar_url)} />
                       )}
                       <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                         {getInitials(comment.usuarios?.nombres || null, comment.usuarios?.apellidos || null)}

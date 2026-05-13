@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { Thumb } from "@/lib/imageUrl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -187,7 +188,7 @@ export const ProfilePosts = ({ readOnly }: ProfilePostsProps) => {
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <Avatar className="h-10 w-10">
-                  {userAvatar && <AvatarImage src={userAvatar} />}
+                  {userAvatar && <AvatarImage src={Thumb.avatar(userAvatar)} />}
                   <AvatarFallback className="bg-accent text-accent-foreground">
                     TU
                   </AvatarFallback>
@@ -265,13 +266,20 @@ export const ProfilePosts = ({ readOnly }: ProfilePostsProps) => {
             )}
 
             {post.imagen_url && (
-              <div className="rounded-lg overflow-hidden border border-border">
+              <a
+                href={post.imagen_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-lg overflow-hidden border border-border"
+              >
                 <img
-                  src={post.imagen_url}
+                  src={Thumb.cardLg(post.imagen_url)}
                   alt="Post"
                   className="w-full h-auto object-cover max-h-[400px]"
+                  loading="lazy"
+                  decoding="async"
                 />
-              </div>
+              </a>
             )}
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t border-border">

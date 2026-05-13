@@ -12,6 +12,7 @@ import { Plus, Upload, X, Link, FileUp, Video, MapPin, Globe, CalendarPlus } fro
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InlineDatePicker } from "@/components/calendario/InlineDatePicker";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/uploadImage";
 
 interface Recurso {
   titulo: string;
@@ -142,15 +143,17 @@ export const ClassEditor = ({ clase, moduloId, nivelModulo, onSuccess, trigger }
 
     setUploading(true);
     try {
-      const fileExt = imageFile.name.split('.').pop()?.toLowerCase();
+      const compressed = await compressImage(imageFile, 1600, 0.82);
+      const fileExt = compressed.name.split('.').pop()?.toLowerCase();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `clases/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('lab-images')
-        .upload(filePath, imageFile, {
-          cacheControl: '3600',
-          upsert: false
+        .upload(filePath, compressed, {
+          cacheControl: '31536000',
+          upsert: false,
+          contentType: compressed.type,
         });
 
       if (uploadError) throw uploadError;

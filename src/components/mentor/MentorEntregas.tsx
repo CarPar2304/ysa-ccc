@@ -243,7 +243,7 @@ export const MentorEntregas = () => {
       // Get all submissions for those tasks
       const { data: entregasData, error } = await supabase
         .from("entregas")
-        .select("*, usuario:usuarios(nombres, apellidos)")
+        .select("id, tarea_id, user_id, comentario, archivos_urls, estado, feedback, nota, fecha_entrega, usuario:usuarios(nombres, apellidos)")
         .in("tarea_id", tareaIds)
         .order("fecha_entrega", { ascending: false });
 

@@ -7,6 +7,8 @@ import { Image, X, Loader2, AtSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UserMentionInput } from "./UserMentionInput";
+import { compressImage, isImageFile, SIZE_LIMITS, formatBytes } from "@/lib/uploadImage";
+import { Thumb } from "@/lib/imageUrl";
 
 interface CreatePostProps {
   userId: string;
@@ -26,22 +28,23 @@ export const CreatePost = ({ userId, userAvatar, onPostCreated }: CreatePostProp
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: "La imagen no debe superar 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (!isImageFile(file)) {
+      toast({ title: "Archivo no válido", description: "Selecciona una imagen.", variant: "destructive" });
+      return;
     }
+    if (file.size > SIZE_LIMITS.IMAGE_RAW_MAX) {
+      toast({
+        title: "Imagen demasiado grande",
+        description: `Máximo ${formatBytes(SIZE_LIMITS.IMAGE_RAW_MAX)}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
@@ -60,19 +63,23 @@ export const CreatePost = ({ userId, userAvatar, onPostCreated }: CreatePostProp
       let imageUrl = null;
 
       if (selectedImage) {
-        const fileExt = selectedImage.name.split(".").pop();
+        const compressed = await compressImage(selectedImage, 1600, 0.82);
+        const fileExt = compressed.name.split(".").pop();
         const fileName = `${userId}/${Date.now()}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from("post-images")
-          .upload(fileName, selectedImage);
+          .upload(fileName, compressed, {
+            cacheControl: "31536000",
+            contentType: compressed.type,
+          });
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
           .from("post-images")
           .getPublicUrl(fileName);
-        
+
         imageUrl = publicUrl;
       }
 
@@ -132,7 +139,7 @@ export const CreatePost = ({ userId, userAvatar, onPostCreated }: CreatePostProp
       <CardContent className="p-6">
         <div className="flex gap-4">
           <Avatar className="h-12 w-12">
-            {userAvatar && <AvatarImage src={userAvatar} />}
+            {userAvatar && <AvatarImage src={Thumb.avatar(userAvatar)} />}
             <AvatarFallback className="bg-primary text-primary-foreground">TU</AvatarFallback>
           </Avatar>
           

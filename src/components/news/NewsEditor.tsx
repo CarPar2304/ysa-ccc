@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Upload, X, Loader2 as LoaderIcon, CalendarDays } from "lucide-react";
 import { MarkdownToolbar } from "./MarkdownToolbar";
+import { compressImage, SIZE_LIMITS, formatBytes } from "@/lib/uploadImage";
 
 interface NewsEditorProps {
   noticia?: {
@@ -120,12 +121,23 @@ export const NewsEditor = ({ noticia, onSuccess, trigger }: NewsEditorProps) => 
       toast({ title: "Error", description: "Solo se permiten archivos de imagen", variant: "destructive" });
       return;
     }
+    if (file.size > SIZE_LIMITS.IMAGE_RAW_MAX) {
+      toast({
+        title: "Imagen demasiado grande",
+        description: `Máximo ${formatBytes(SIZE_LIMITS.IMAGE_RAW_MAX)}.`,
+        variant: "destructive",
+      });
+      return;
+    }
     setUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
+      const compressed = await compressImage(file, 1600, 0.82);
+      const fileExt = compressed.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `noticias/${fileName}`;
-      const { error: uploadError } = await supabase.storage.from("lab-images").upload(filePath, file);
+      const { error: uploadError } = await supabase.storage
+        .from("lab-images")
+        .upload(filePath, compressed, { cacheControl: "31536000", contentType: compressed.type });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from("lab-images").getPublicUrl(filePath);
       setFormData(prev => ({ ...prev, imagen_url: publicUrl }));

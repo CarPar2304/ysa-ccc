@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Thumb } from "@/lib/imageUrl";
 
 interface NewsCardProps {
   noticia: {
@@ -43,9 +44,11 @@ export const NewsCard = ({ noticia, isAdmin, onClick }: NewsCardProps) => {
       <div className="w-28 min-w-[7rem] overflow-hidden bg-muted relative shrink-0">
         {noticia.imagen_url ? (
           <img
-            src={noticia.imagen_url}
+            src={Thumb.cardSm(noticia.imagen_url)}
             alt={noticia.titulo}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-accent/30">
