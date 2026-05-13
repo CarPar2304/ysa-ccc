@@ -266,13 +266,20 @@ export const ProfilePosts = ({ readOnly }: ProfilePostsProps) => {
             )}
 
             {post.imagen_url && (
-              <div className="rounded-lg overflow-hidden border border-border">
+              <a
+                href={post.imagen_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-lg overflow-hidden border border-border"
+              >
                 <img
-                  src={post.imagen_url}
+                  src={Thumb.cardLg(post.imagen_url)}
                   alt="Post"
                   className="w-full h-auto object-cover max-h-[400px]"
+                  loading="lazy"
+                  decoding="async"
                 />
-              </div>
+              </a>
             )}
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t border-border">
