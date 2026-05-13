@@ -97,8 +97,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Password = numero_identificacion
+    // Password = numero_identificacion (must be at least 6 chars for Supabase Auth)
     const password = validatedData.numero_identificacion;
+    if (password.length < 6) {
+      return new Response(
+        JSON.stringify({ error: "El número de identificación debe tener al menos 6 caracteres (se usa como contraseña inicial)." }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let newUserId: string | null = null;
+    let reusedExisting = false;
 
     // 1. Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -113,26 +122,44 @@ Deno.serve(async (req) => {
 
     if (authError) {
       console.error("Auth error:", authError);
-      if (authError.message?.includes('already been registered')) {
+      const alreadyExists = authError.message?.toLowerCase().includes('already');
+      if (alreadyExists) {
+        // Look up existing usuario by email and link them as cofundador instead
+        const { data: existing } = await supabaseAdmin
+          .from('usuarios')
+          .select('id')
+          .eq('email', validatedData.email)
+          .maybeSingle();
+        if (existing?.id) {
+          newUserId = existing.id;
+          reusedExisting = true;
+        } else {
+          return new Response(
+            JSON.stringify({ error: "Ya existe una cuenta con este correo, pero no pudimos vincularla. Pide al usuario que inicie sesión al menos una vez antes de agregarlo." }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else {
         return new Response(
-          JSON.stringify({ error: "Ya existe un usuario registrado con este correo electrónico" }),
+          JSON.stringify({ error: authError.message }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      return new Response(
-        JSON.stringify({ error: authError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!authData.user) {
+    } else if (!authData.user) {
       return new Response(
         JSON.stringify({ error: "No se pudo crear el usuario" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    } else {
+      newUserId = authData.user.id;
     }
 
-    const newUserId = authData.user.id;
+    if (!newUserId) {
+      return new Response(
+        JSON.stringify({ error: "No se pudo determinar el usuario a vincular" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // 2. Update the usuarios record
     const updateData: Record<string, any> = {};
