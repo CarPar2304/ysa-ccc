@@ -28,13 +28,9 @@ export const ProfileProjections = ({ readOnly = false }: ProfileProjectionsProps
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: emprendimiento } = await supabase
-        .from("emprendimientos")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!emprendimiento) {
+      const { getCurrentEmprendimientoId } = await import("@/lib/emprendimientoUtils");
+      const empId = await getCurrentEmprendimientoId(user.id);
+      if (!empId) {
         setLoading(false);
         return;
       }
@@ -42,7 +38,7 @@ export const ProfileProjections = ({ readOnly = false }: ProfileProjectionsProps
       const { data, error } = await supabase
         .from("proyecciones")
         .select("*")
-        .eq("emprendimiento_id", emprendimiento.id)
+        .eq("emprendimiento_id", empId)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
