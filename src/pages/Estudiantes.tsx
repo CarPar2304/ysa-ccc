@@ -43,6 +43,41 @@ const Estudiantes = () => {
   const { niveles: operadorNiveles, loading: nivelesLoading } = useOperadorNiveles();
   const [modalOpen, setModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [asistenciaModalOpen, setAsistenciaModalOpen] = useState(false);
+  const [downloadingModuloId, setDownloadingModuloId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleDownloadModuloZip = async (moduloId: string, moduloTitulo: string) => {
+    setDownloadingModuloId(moduloId);
+    try {
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const resp = await fetch(
+        `https://aqfpzlrpqszoxbjojavc.supabase.co/functions/v1/download-entregas-modulo`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ modulo_id: moduloId }),
+        }
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Error desconocido" }));
+        throw new Error(err.error || "Error al descargar");
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `entregables-${moduloTitulo.replace(/[^\w\s-]/g, "").trim()}.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Descarga lista" });
+    } catch (e: any) {
+      toast({ title: "Error al descargar", description: e.message, variant: "destructive" });
+    } finally {
+      setDownloadingModuloId(null);
+    }
+  };
 
   const hasAccess = isAdmin || isOperador;
 
