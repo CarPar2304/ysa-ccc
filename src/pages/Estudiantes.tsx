@@ -557,6 +557,10 @@ const Estudiantes = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setAsistenciaModalOpen(true)}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Asistencia
+            </Button>
             {(isOperador && !isAdmin) && (
               <Button variant="outline" onClick={() => setExportModalOpen(true)}>
                 <Download className="mr-2 h-4 w-4" />
