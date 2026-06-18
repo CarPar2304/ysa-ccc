@@ -52,14 +52,18 @@ const Estudiantes = () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      const resp = await fetch(
-        `https://aqfpzlrpqszoxbjojavc.supabase.co/functions/v1/download-entregas-modulo`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ modulo_id: moduloId }),
-        }
-      );
+      if (!token) throw new Error("Sesión expirada, vuelve a iniciar sesión");
+      const SUPABASE_URL = "https://aqfpzlrpqszoxbjojavc.supabase.co";
+      const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/download-entregas-modulo`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: ANON,
+        },
+        body: JSON.stringify({ modulo_id: moduloId }),
+      });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "Error desconocido" }));
         throw new Error(err.error || "Error al descargar");
@@ -78,6 +82,7 @@ const Estudiantes = () => {
       setDownloadingModuloId(null);
     }
   };
+
 
   const hasAccess = isAdmin || isOperador;
 
