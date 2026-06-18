@@ -1,77 +1,46 @@
+## Plan: 4 ajustes (descargas, exportación, IA con OpenAI, asistencia por cohorte)
 
-## 1. Descarga ZIP de entregables por módulo (Admin)
+### 1) Descarga de entregables ZIP — "No autorizado"
+La función actual hace `auth.getUser()` con la sesión del usuario y luego consulta `user_roles`. Como el rol existe (`carlosparedesmiranda@gmail.com` = admin), el fallo se produce antes (probablemente `getUser()` o lectura de body). Cambios en `supabase/functions/download-entregas-modulo/index.ts`:
 
-**En:** `src/pages/Estudiantes.tsx` (vista admin, dentro de cada `Card` de módulo en `renderNivelContent`)
+- Cambiar a `userClient.auth.getClaims(token)` (extrayendo el JWT del header) — patrón estándar de Lovable Cloud, evita problemas intermitentes con `getUser()`.
+- Validar rol con `admin.rpc("has_role", { _user_id, _role: "admin" })` y también `is_mentor` (para mentor_operador). Mantener fallback a consulta directa de `user_roles`.
+- Agregar `console.log` detallados en cada paso (auth recibido, user id, roles) para diagnosticar en logs si vuelve a fallar.
+- En el frontend `Estudiantes.tsx`, leer mejor el error: si `resp.status === 401/403`, pedir reautenticación.
 
-- Añadir botón **"Descargar entregables (ZIP)"** visible solo para admin junto al título del módulo.
-- Crear edge function `download-entregas-modulo`:
-  - Recibe `modulo_id`.
-  - Consulta `tareas` del módulo → `entregas` con `archivos_urls`, join con `emprendimientos` (vía `user_id` o `emprendimiento_miembros`) para obtener nombre del emprendimiento.
-  - Descarga cada archivo del bucket privado `entregas` con service role.
-  - Construye ZIP en streaming con estructura:
-    ```
-    {Módulo}/
-      {Tarea}/
-        {Módulo} - {Tarea} - {Emprendimiento}.{ext}
-    ```
-    (sanitizando nombres y resolviendo colisiones con sufijo numérico)
-  - Devuelve `application/zip`.
-- Frontend usa `supabase.functions.invoke` y `downloadFile` (blob) con nombre `entregables-{modulo}.zip`.
+### 2) Modal de exportación — cohortes irreales
+En `src/components/estudiantes/ExportAsistenciaModal.tsx`:
 
-**Razón edge function:** evita exponer URLs firmadas masivamente y mantiene egress bajo (un solo download del lado del cliente).
+- Eliminar el array fijo `[1,2,3,4]`. En su lugar, consultar `asignacion_cupos` (cohortes únicas existentes en los niveles seleccionados, solo Starter/Growth, estado `aprobado`) y mostrar solo esas opciones dinámicamente.
+- Por defecto seleccionar todas las cohortes disponibles.
 
-## 2. Validación de asistencia mejorada
+### 3) IA de validación de asistencia con token propio (OpenAI)
+En `supabase/functions/match-asistencia-ia/index.ts`:
 
-**En:** `src/components/lab/AttendanceManager.tsx`
+- Reemplazar `LOVABLE_API_KEY` y endpoint `ai.gateway.lovable.dev` por OpenAI: `https://api.openai.com/v1/chat/completions` con `Authorization: Bearer ${OPENAI_API_KEY}`.
+- Modelo: `gpt-4o-mini` (económico, soporta `response_format: json_object` de forma estable; `o4-mini` no soporta JSON mode con el mismo formato).
+- Mantener el mismo prompt y formato de respuesta.
+- Requiere guardar secret nuevo: **`OPENAI_API_KEY`** (lo pediré después de tu confirmación). Lo obtienes en https://platform.openai.com/api-keys.
 
-### 2.1 Validación por nombre de emprendimiento (además de email)
-- Añadir segundo `Textarea` "Nombres de emprendimientos (separados por coma o salto de línea)".
-- Botón único **"Validar"** ejecuta en paralelo:
-  1. Match por email (lógica actual).
-  2. Match por `emprendimientos.nombre` con `ilike` case-insensitive y comparación normalizada (trim, lowercase, sin tildes). Para cada emprendimiento encontrado, obtener todos los `user_id` (owner + `emprendimiento_miembros`) → cada cofounder cuenta como asistente.
-- Resultado unificado muestra:
-  - Encontrados por email
-  - Encontrados por emprendimiento (con badge "Emprendimiento" y lista de cofounders incluidos)
-  - No encontrados (emails que no cruzaron + nombres de emprendimientos que no cruzaron, en secciones separadas)
-- Deduplicación por `user_id` antes de guardar.
+### 4) Asistencia por cohorte (corregir % y exportación)
+Hoy `progreso_usuario` se asocia a `clase_id`, pero el cálculo cuenta TODAS las clases del módulo sin importar la cohorte del estudiante. La columna `clases.cohorte` es `integer[]` (una clase puede pertenecer a 1+ cohortes). Cambios:
 
-### 2.2 Botón "Analizar con IA"
-- Aparece cuando hay items en la lista de no encontrados.
-- Abre dialog con un `Textarea` para pegar nombres adicionales (separados por coma o salto de línea) como contexto extra.
-- Llama a edge function `match-asistencia-ia`:
-  - Input: lista de no encontrados (emails + emprendimientos), texto extra del usuario, y catálogo de emprendimientos del nivel/cohorte (id, nombre, usuarios con nombres).
-  - Usa Lovable AI Gateway (`google/gemini-3-flash-preview`) con `Output` schema estructurado: para cada item no encontrado, sugerir `emprendimiento_id` candidato o `null` con razón.
-  - Maneja errores 429/402.
-- Frontend muestra sugerencias con checkbox para aceptar/rechazar; aceptadas se agregan a la lista de "validados" para guardar.
+**a) `ExportAsistenciaModal.tsx` (exportación Excel)**
+- Al calcular la asistencia por estudiante en cada módulo, filtrar `modClases` para incluir solo aquellas cuyo `clases.cohorte` contenga la cohorte del estudiante (`s.cohorte`). Si una clase no tiene cohorte definida, contarla para todos.
+- El `%` se calcula sobre ese subconjunto. En las columnas de la hoja, dejar la celda en blanco (gris claro) para clases que no aplican a esa cohorte (en lugar de ✗), para que se distinga claramente "no aplica" vs "ausente".
+- Cargar `cohorte` en la query inicial de clases: `select id, modulo_id, titulo, orden, cohorte`.
 
-### 2.3 Botón "Exportar Asistencia" en Estudiantes
-**En:** `src/pages/Estudiantes.tsx` (header, visible para admin y operador)
+**b) Vista de progreso del estudiante en la app**
+Buscar los componentes que muestran `% de asistencia` del estudiante por módulo (probablemente `Estudiantes.tsx` / `ProgresoModulo*` / `useProgresoUsuario`) y aplicar el mismo filtro: solo contar clases cuya `cohorte` contiene la cohorte aprobada del emprendimiento del usuario. Esto resuelve el caso "Kick off starter" donde aparece 50%.
 
-- Abre dialog con filtros:
-  - **Nivel** (multi-select, respetando `allowedNiveles`)
-  - **Cohorte** (solo aplica a Starter y Growth)
-  - **Módulos** (multi-select según niveles)
-  - **Clases** (multi-select según módulos; opcional, default todas)
-- Al exportar:
-  - Consulta `asignacion_cupos` aprobados según filtros → usuarios (owner + cofounders vía `emprendimiento_miembros`).
-  - Consulta `progreso_usuario` para esas clases.
-  - Genera Excel con `xlsx`/`exceljs` estilizado:
-    - Hoja por módulo, filas = estudiantes (con emprendimiento, nivel, cohorte), columnas = clases con ✓/✗.
-    - Columna final "% Asistencia" y conteo.
-    - Hoja resumen con totales por módulo/cohorte.
-    - Estilos: header bold con fondo primario, bordes, anchos auto, congelar fila/columna.
+### Archivos a editar
+- `supabase/functions/download-entregas-modulo/index.ts`
+- `supabase/functions/match-asistencia-ia/index.ts`
+- `src/pages/Estudiantes.tsx`
+- `src/components/estudiantes/ExportAsistenciaModal.tsx`
+- Componente(s) de progreso por módulo del estudiante (a localizar)
 
-## Notas técnicas
+### Secret a agregar
+- `OPENAI_API_KEY` — te pediré que lo pegues una vez confirmes el plan.
 
-- Edge functions usan `verify_jwt = false` por default; validar admin/operador rol con `is_admin`/`is_operador` desde JWT antes de procesar (especialmente la del ZIP).
-- ZIP usa librería compatible con Deno (ej. `npm:jszip`).
-- `downloadFile` ya existe en `src/lib/downloadFile.ts`.
-- No se requieren cambios de schema ni RLS.
-
-## Archivos afectados
-
-- `src/pages/Estudiantes.tsx` — botones ZIP por módulo, botón exportar asistencia
-- `src/components/lab/AttendanceManager.tsx` — validación dual + botón IA + dialog sugerencias
-- `src/components/estudiantes/ExportAsistenciaModal.tsx` *(nuevo)*
-- `supabase/functions/download-entregas-modulo/index.ts` *(nuevo)*
-- `supabase/functions/match-asistencia-ia/index.ts` *(nuevo)*
+¿Apruebas para implementar?
