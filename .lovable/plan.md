@@ -1,106 +1,77 @@
-## Objetivo
 
-Reducir el **Cached Egress** de Supabase Storage sin romper la carga ni la revisión de entregas. Actualmente las entregas (`entregas` bucket) ya se firman bajo demanda (al hacer clic en `EntregaFileLink`), por lo que el mayor consumo proviene de **imágenes públicas servidas a tamaño original** (avatares, post-images, lab-images, mentor-images, noticias) y de **subidas sin compresión ni límite**.
+## 1. Descarga ZIP de entregables por módulo (Admin)
 
-## Diagnóstico clave
+**En:** `src/pages/Estudiantes.tsx` (vista admin, dentro de cada `Card` de módulo en `renderNivelContent`)
 
-- `entregas` bucket: ya es privado y los archivos solo se firman al hacer clic. ✓
-- Buckets **públicos** (`avatars`, `post-images`, `lab-images`, `mentoria-images`): se renderizan con `getPublicUrl()` a resolución original en cards, listas, feed y módulos → cada vista repetida = egress completo del archivo.
-- Subida sin validación de tamaño máximo ni compresión → se almacenan PDFs/imagenes de 10–50MB que después se sirven enteros.
-- Listados de entregas hacen `select("*")` que trae solo metadata JSON (no bytes), pero es buena práctica limitar columnas.
+- Añadir botón **"Descargar entregables (ZIP)"** visible solo para admin junto al título del módulo.
+- Crear edge function `download-entregas-modulo`:
+  - Recibe `modulo_id`.
+  - Consulta `tareas` del módulo → `entregas` con `archivos_urls`, join con `emprendimientos` (vía `user_id` o `emprendimiento_miembros`) para obtener nombre del emprendimiento.
+  - Descarga cada archivo del bucket privado `entregas` con service role.
+  - Construye ZIP en streaming con estructura:
+    ```
+    {Módulo}/
+      {Tarea}/
+        {Módulo} - {Tarea} - {Emprendimiento}.{ext}
+    ```
+    (sanitizando nombres y resolviendo colisiones con sufijo numérico)
+  - Devuelve `application/zip`.
+- Frontend usa `supabase.functions.invoke` y `downloadFile` (blob) con nombre `entregables-{modulo}.zip`.
 
-## Cambios a implementar
+**Razón edge function:** evita exponer URLs firmadas masivamente y mantiene egress bajo (un solo download del lado del cliente).
 
-### 1. Helper único de imágenes con transformaciones de Supabase
-Crear `src/lib/imageUrl.ts` con dos funciones:
+## 2. Validación de asistencia mejorada
 
-- `getThumbUrl(bucket, path, { width, quality })` → usa `getPublicUrl` con `transform: { width, quality, resize: 'cover' }` para devolver una variante optimizada (Supabase la cachea en CDN).
-- `getOriginalUrl(bucket, path)` → solo para vistas de detalle/lightbox.
+**En:** `src/components/lab/AttendanceManager.tsx`
 
-Tamaños sugeridos:
-- Avatares (32–48px UI): `width=96, quality=70`
-- Post images en feed cards: `width=720, quality=75`
-- Lab/módulo images en cards: `width=480, quality=75`
-- Mentor cards: `width=400, quality=75`
-- Noticias en listados: `width=720, quality=75`
-- Vista detalle (modal/post abierto): `width=1280, quality=80`
+### 2.1 Validación por nombre de emprendimiento (además de email)
+- Añadir segundo `Textarea` "Nombres de emprendimientos (separados por coma o salto de línea)".
+- Botón único **"Validar"** ejecuta en paralelo:
+  1. Match por email (lógica actual).
+  2. Match por `emprendimientos.nombre` con `ilike` case-insensitive y comparación normalizada (trim, lowercase, sin tildes). Para cada emprendimiento encontrado, obtener todos los `user_id` (owner + `emprendimiento_miembros`) → cada cofounder cuenta como asistente.
+- Resultado unificado muestra:
+  - Encontrados por email
+  - Encontrados por emprendimiento (con badge "Emprendimiento" y lista de cofounders incluidos)
+  - No encontrados (emails que no cruzaron + nombres de emprendimientos que no cruzaron, en secciones separadas)
+- Deduplicación por `user_id` antes de guardar.
 
-### 2. Reemplazar usos de `getPublicUrl` directos por el helper
-Archivos a tocar:
-- `src/components/dashboard/PostCard.tsx` — avatar autor (96px) + imagen del post (720px en card, original solo si se abre).
-- `src/pages/Dashboard.tsx` — avatares en feed.
-- `src/components/dashboard/CreatePost.tsx` — preview local (sin egress) ya está bien.
-- `src/components/news/NewsCard.tsx` y `src/pages/News.tsx` — thumb 720px; `NewsDetail.tsx` puede usar 1280px.
-- `src/components/lab/*` (`ModuleEditor`, `ClassEditor`, `TaskEditor`) — al subir, guardar la **ruta** (no la URL pública) y al renderizar usar el helper. Para módulos/clases listados: 480px.
-- `src/components/mentor/AsesoriasManager.tsx`, `MisAsesorias.tsx`, mentor cards — 400px en listados.
-- `src/components/profile/*` y header/sidebar avatars — 96px.
+### 2.2 Botón "Analizar con IA"
+- Aparece cuando hay items en la lista de no encontrados.
+- Abre dialog con un `Textarea` para pegar nombres adicionales (separados por coma o salto de línea) como contexto extra.
+- Llama a edge function `match-asistencia-ia`:
+  - Input: lista de no encontrados (emails + emprendimientos), texto extra del usuario, y catálogo de emprendimientos del nivel/cohorte (id, nombre, usuarios con nombres).
+  - Usa Lovable AI Gateway (`google/gemini-3-flash-preview`) con `Output` schema estructurado: para cada item no encontrado, sugerir `emprendimiento_id` candidato o `null` con razón.
+  - Maneja errores 429/402.
+- Frontend muestra sugerencias con checkbox para aceptar/rechazar; aceptadas se agregan a la lista de "validados" para guardar.
 
-### 3. Compresión y validación al subir
-Crear `src/lib/uploadImage.ts`:
-- Aceptar `File`, redimensionar a max 1600px lado mayor con `<canvas>` y exportar como JPEG `quality=0.82` (o WebP si lo soporta el navegador).
-- Validar tipo y tamaño:
-  - Imágenes: max 5MB después de comprimir → reject si entrada >25MB.
-  - PDFs/docs (entregas): max 15MB por archivo, max 50MB por entrega.
-- Mostrar toast claro al usuario cuando excede.
+### 2.3 Botón "Exportar Asistencia" en Estudiantes
+**En:** `src/pages/Estudiantes.tsx` (header, visible para admin y operador)
 
-Aplicar en:
-- `TaskSubmission.tsx` (entregas) — solo validación de tamaño + cantidad; no comprimir documentos no-imagen, pero si el archivo es imagen, comprimirla.
-- `CreatePost.tsx`, `NewsEditor.tsx`, `ModuleEditor.tsx`, `ClassEditor.tsx`, `TaskEditor.tsx`, `AsesoriasManager.tsx`, edición de avatar de perfil → siempre comprimir antes de subir.
+- Abre dialog con filtros:
+  - **Nivel** (multi-select, respetando `allowedNiveles`)
+  - **Cohorte** (solo aplica a Starter y Growth)
+  - **Módulos** (multi-select según niveles)
+  - **Clases** (multi-select según módulos; opcional, default todas)
+- Al exportar:
+  - Consulta `asignacion_cupos` aprobados según filtros → usuarios (owner + cofounders vía `emprendimiento_miembros`).
+  - Consulta `progreso_usuario` para esas clases.
+  - Genera Excel con `xlsx`/`exceljs` estilizado:
+    - Hoja por módulo, filas = estudiantes (con emprendimiento, nivel, cohorte), columnas = clases con ✓/✗.
+    - Columna final "% Asistencia" y conteo.
+    - Hoja resumen con totales por módulo/cohorte.
+    - Estilos: header bold con fondo primario, bordes, anchos auto, congelar fila/columna.
 
-### 4. Listados de entregas más livianos
-- `MentorEntregas.fetchEntregas` y `ModuleDeliverables.fetchAllEntregas`: cambiar `select("*")` por columnas explícitas (`id, tarea_id, user_id, comentario, archivos_urls, estado, feedback, nota, fecha_entrega`). No carga bytes pero reduce payload y aclara intención.
-- Confirmar que **ningún componente** intenta `fetch()` o `<img src>` apuntando a archivos de `entregas` para preview en la lista. Hoy `EntregaFileLink` solo firma URL al `onClick` ✓ — mantener.
-- Quitar regeneración de URLs firmadas en cada render: `EntregaFileLink` solo firma cuando el usuario hace clic ✓.
+## Notas técnicas
 
-### 5. Auditar refetch / polling
-- `MentorEntregas` → `useEffect([userId])` solo carga una vez ✓. Verificar que `updateEntrega` actualice estado local sin refetch ✓ (ya lo hace).
-- `ModuleDeliverables` → tiene dos `useEffect` (tareas y entregas). Asegurar que al guardar feedback NO se llame `fetchAllEntregas` (ya usa update local ✓).
-- Revisar `usePendingTasks` para que no re-consulte storage en intervalos.
+- Edge functions usan `verify_jwt = false` por default; validar admin/operador rol con `is_admin`/`is_operador` desde JWT antes de procesar (especialmente la del ZIP).
+- ZIP usa librería compatible con Deno (ej. `npm:jszip`).
+- `downloadFile` ya existe en `src/lib/downloadFile.ts`.
+- No se requieren cambios de schema ni RLS.
 
-### 6. Exportación a Excel — diferir generación de links
-En `MentorEntregas.handleExportExcel` y `ModuleDeliverables.handleExport`: en vez de firmar URL de **cada archivo** de cada entrega (lo que multiplica llamadas a la API de signing), exportar **rutas** y un único link al panel de la entrega; o pedir confirmación y mostrar progreso. Mantener firma solo si el admin lo solicita explícitamente con un toggle "incluir enlaces firmados (7 días)".
+## Archivos afectados
 
-### 7. Cache HTTP en imágenes públicas
-- Confirmar (en migración) que los buckets públicos sirven con `Cache-Control: max-age=31536000` (Supabase ya lo hace por defecto). Asegurarse de que ningún componente concatene `?t=${Date.now()}` u otro buster. Buscar y eliminar.
-
-### 8. Documentación
-Actualizar `mem://tech-standards/file-download-system` con: "Para imágenes públicas, usar `getThumbUrl` (transformaciones de Supabase). Nunca renderizar `getPublicUrl` directo en listados. Siempre validar tamaño y comprimir imágenes antes de subir."
-
-## Detalles técnicos
-
-```text
-src/
-├── lib/
-│   ├── imageUrl.ts          (NEW)  helper getThumbUrl / getOriginalUrl
-│   ├── uploadImage.ts       (NEW)  compressImage + validateUpload
-│   └── entregaStorage.ts    (sin cambios — ya lazy)
-├── components/
-│   ├── dashboard/PostCard.tsx, Dashboard.tsx, CreatePost.tsx
-│   ├── news/NewsCard.tsx, NewsEditor.tsx
-│   ├── lab/ModuleEditor.tsx, ClassEditor.tsx, TaskEditor.tsx,
-│   │       TaskSubmission.tsx, ModuleDeliverables.tsx
-│   ├── mentor/AsesoriasManager.tsx, MisAsesorias.tsx, MentorEntregas.tsx
-│   └── profile/ProfileBasicInfo.tsx (avatar upload)
-└── pages/
-    ├── News.tsx, NewsDetail.tsx, Profile.tsx
-```
-
-API de transformaciones de Supabase (gratuita):
-```ts
-supabase.storage.from(bucket).getPublicUrl(path, {
-  transform: { width: 480, quality: 75, resize: 'cover' }
-})
-```
-
-## Validación
-
-- Antes/después: comparar tamaño de payload de la pestaña Network al cargar Dashboard, News, Lab, Mentor entregas.
-- Verificar que avatares y posts se ven nítidos en pantallas retina (subir width × 2 si hace falta).
-- Verificar que TaskSubmission rechaza un archivo > 15MB con toast claro.
-- Confirmar que abrir/cerrar modal de entrega NO genera nuevas llamadas a Storage.
-
-## Fuera de alcance
-
-- Migrar archivos de `entregas` a almacenamiento externo.
-- Refactor del feed Conecta para evitar joins a `usuarios` (tema separado de seguridad).
-- Cambio de plan de Supabase.
+- `src/pages/Estudiantes.tsx` — botones ZIP por módulo, botón exportar asistencia
+- `src/components/lab/AttendanceManager.tsx` — validación dual + botón IA + dialog sugerencias
+- `src/components/estudiantes/ExportAsistenciaModal.tsx` *(nuevo)*
+- `supabase/functions/download-entregas-modulo/index.ts` *(nuevo)*
+- `supabase/functions/match-asistencia-ia/index.ts` *(nuevo)*
