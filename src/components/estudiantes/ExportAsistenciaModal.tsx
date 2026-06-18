@@ -133,6 +133,22 @@ export const ExportAsistenciaModal = ({ open, onClose, allowedNiveles }: Props) 
       ];
       resumen.getRow(1).eachCell((c) => { c.fill = headerFill; c.font = headerFont; c.border = border; c.alignment = { horizontal: "center" }; });
 
+      const usedSheetNames = new Set<string>();
+      const makeUniqueSheetName = (base: string, nivel: string | null) => {
+        // Excel sheet name: max 31 chars, no \ / : * ? [ ]
+        const clean = (s: string) => (s || "").replace(/[\\/:*?\[\]]/g, "").trim();
+        const nivelTag = nivel ? ` (${clean(nivel)[0] || ""})` : "";
+        let name = (clean(base).slice(0, 31 - nivelTag.length) + nivelTag).slice(0, 31) || "Modulo";
+        if (!usedSheetNames.has(name)) { usedSheetNames.add(name); return name; }
+        let i = 2;
+        while (true) {
+          const suffix = ` (${i})`;
+          const candidate = (clean(base).slice(0, 31 - suffix.length) + suffix).slice(0, 31);
+          if (!usedSheetNames.has(candidate)) { usedSheetNames.add(candidate); return candidate; }
+          i++;
+        }
+      };
+
       for (const modulo of modulosFiltered) {
         const modClases = clasesFiltered.filter((c) => c.modulo_id === modulo.id);
         if (modClases.length === 0) continue;
@@ -141,13 +157,14 @@ export const ExportAsistenciaModal = ({ open, onClose, allowedNiveles }: Props) 
           return true;
         });
 
-        const sheetName = (modulo.titulo || "Modulo").slice(0, 28).replace(/[\\/:*?\[\]]/g, "");
+        const sheetName = makeUniqueSheetName(modulo.titulo || "Modulo", modulo.nivel);
         const ws = wb.addWorksheet(sheetName);
         const headers = ["Nombre", "Apellidos", "Email", "Emprendimiento", "Nivel", "Cohorte", "Tipo", ...modClases.map((c) => c.titulo), "% Asistencia"];
         ws.addRow(headers);
         const headerRow = ws.getRow(1);
         headerRow.eachCell((c) => { c.fill = headerFill; c.font = headerFont; c.border = border; c.alignment = { horizontal: "center", vertical: "middle", wrapText: true }; });
         headerRow.height = 32;
+
 
         let totalPct = 0; let countStu = 0;
         for (const s of modStudents) {
