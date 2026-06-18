@@ -463,10 +463,27 @@ const Estudiantes = () => {
         {modulos.map((modulo) => (
           <Card key={modulo.id}>
             <CardHeader>
-              <CardTitle>{modulo.titulo}</CardTitle>
-              <CardDescription>
-                {modulo.total_clases} clases • Progreso promedio: {modulo.progreso_promedio}%
-              </CardDescription>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <CardTitle>{modulo.titulo}</CardTitle>
+                  <CardDescription>
+                    {modulo.total_clases} clases • Progreso promedio: {modulo.progreso_promedio}%
+                  </CardDescription>
+                </div>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadModuloZip(modulo.id, modulo.titulo)}
+                    disabled={downloadingModuloId === modulo.id}
+                  >
+                    {downloadingModuloId === modulo.id
+                      ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      : <Archive className="h-4 w-4 mr-2" />}
+                    Descargar entregables (ZIP)
+                  </Button>
+                )}
+              </div>
               <Progress value={modulo.progreso_promedio} className="mt-2" />
             </CardHeader>
             <CardContent>
