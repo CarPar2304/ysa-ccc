@@ -47,11 +47,22 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // Admin check
-    const { data: isAdminData } = await admin.rpc("is_admin", { _user_id: user.id });
-    if (!isAdminData) {
-      return new Response(JSON.stringify({ error: "Solo administradores" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Admin/operador check (query user_roles directly with service role)
+    const { data: roles, error: rolesErr } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    if (rolesErr) {
+      console.error("[download-entregas-modulo] roles error", rolesErr);
+      return new Response(JSON.stringify({ error: "Error validando permisos" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const roleNames = (roles || []).map((r: any) => r.role);
+    const allowed = roleNames.includes("admin") || roleNames.includes("mentor_operador");
+    if (!allowed) {
+      console.warn("[download-entregas-modulo] forbidden user", user.id, roleNames);
+      return new Response(JSON.stringify({ error: "Solo administradores u operadores pueden descargar" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
 
     const { modulo_id } = await req.json();
     if (!modulo_id) return new Response(JSON.stringify({ error: "modulo_id requerido" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
