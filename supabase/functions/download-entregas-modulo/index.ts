@@ -4,6 +4,7 @@ import JSZip from "https://esm.sh/jszip@3.10.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -37,32 +38,38 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.log("[download-entregas-modulo] auth header present:", !!authHeader);
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No autorizado: falta token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !user) return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
+    const token = authHeader.replace(/^Bearer\s+/i, "");
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // Admin/operador check (query user_roles directly with service role)
+    // Resolve user via getUser with admin client (works without JWT layer)
+    const { data: userData, error: userErr } = await admin.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      console.error("[download-entregas-modulo] getUser error:", userErr?.message);
+      return new Response(JSON.stringify({ error: "No autorizado: token inválido" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const user = userData.user;
+    console.log("[download-entregas-modulo] user:", user.id, user.email);
+
+    // Role check via direct user_roles read
     const { data: roles, error: rolesErr } = await admin
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id);
     if (rolesErr) {
-      console.error("[download-entregas-modulo] roles error", rolesErr);
+      console.error("[download-entregas-modulo] roles error:", rolesErr.message);
       return new Response(JSON.stringify({ error: "Error validando permisos" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const roleNames = (roles || []).map((r: any) => r.role);
-    const allowed = roleNames.includes("admin") || roleNames.includes("mentor_operador");
+    const roleNames = (roles || []).map((r: any) => String(r.role));
+    console.log("[download-entregas-modulo] roles:", roleNames);
+    const allowed = roleNames.includes("admin") || roleNames.includes("mentor_operador") || roleNames.includes("mentor");
     if (!allowed) {
-      console.warn("[download-entregas-modulo] forbidden user", user.id, roleNames);
-      return new Response(JSON.stringify({ error: "Solo administradores u operadores pueden descargar" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: `Sin permisos. Roles: ${roleNames.join(", ") || "ninguno"}` }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
 
     const { modulo_id } = await req.json();
     if (!modulo_id) return new Response(JSON.stringify({ error: "modulo_id requerido" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -75,15 +82,12 @@ Deno.serve(async (req) => {
 
     const tareaIds = tareas.map((t) => t.id);
     const { data: entregas } = await admin.from("entregas").select("id, tarea_id, user_id, archivos_urls").in("tarea_id", tareaIds);
-
     if (!entregas || entregas.length === 0) return new Response(JSON.stringify({ error: "No hay entregas" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const userIds = [...new Set(entregas.map((e) => e.user_id))];
-    // Owner emprendimientos
     const { data: ownerEmps } = await admin.from("emprendimientos").select("id, nombre, user_id").in("user_id", userIds);
     const ownerMap = new Map<string, string>();
     for (const e of ownerEmps || []) ownerMap.set(e.user_id, e.nombre || "");
-    // Members
     const { data: miembros } = await admin.from("emprendimiento_miembros").select("user_id, emprendimiento_id").in("user_id", userIds);
     const memberEmpIds = [...new Set((miembros || []).map((m) => m.emprendimiento_id))];
     const { data: memberEmps } = memberEmpIds.length
@@ -117,15 +121,14 @@ Deno.serve(async (req) => {
           const path = extractPath(archivo.url);
           const { data: blob, error: dErr } = await admin.storage.from(BUCKET).download(path);
           if (dErr || !blob) {
-            console.error("Download error", path, dErr);
+            console.error("Download error", path, dErr?.message);
             continue;
           }
           const { ext } = splitExt(archivo.name || path.split("/").pop() || "");
-          let baseName = `${moduloName} - ${tareaName} - ${empNombre}`;
+          const baseName = `${moduloName} - ${tareaName} - ${empNombre}`;
           let finalName = `${baseName}${ext}`;
-          const key = `${tareaName}/${finalName}`;
+          let uniqueKey = `${tareaName}/${finalName}`;
           let counter = 2;
-          let uniqueKey = key;
           while (usedNames.has(uniqueKey)) {
             finalName = `${baseName} (${counter})${ext}`;
             uniqueKey = `${tareaName}/${finalName}`;
