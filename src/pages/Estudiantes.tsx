@@ -96,7 +96,7 @@ const Estudiantes = () => {
       // 1. Fetch all modules and classes in parallel
       const [{ data: modulos }, { data: allClases }] = await Promise.all([
         supabase.from("modulos").select("*").order("orden"),
-        supabase.from("clases").select("id, modulo_id"),
+        supabase.from("clases").select("id, modulo_id, cohorte"),
       ]);
 
       if (!modulos) return { Starter: [], Growth: [], Scale: [] };
@@ -105,12 +105,13 @@ const Estudiantes = () => {
       const filteredModulos = modulos.filter(m => m.nivel && allowedNiveles.includes(m.nivel));
       const moduloIds = filteredModulos.map(m => m.id);
 
-      // Group classes by module
-      const clasesByModulo: Record<string, string[]> = {};
+      // Group classes by module, keeping cohorte info
+      type ClaseInfo = { id: string; cohorte: number[] | null };
+      const clasesByModulo: Record<string, ClaseInfo[]> = {};
       for (const clase of (allClases || [])) {
         if (!moduloIds.includes(clase.modulo_id)) continue;
         if (!clasesByModulo[clase.modulo_id]) clasesByModulo[clase.modulo_id] = [];
-        clasesByModulo[clase.modulo_id].push(clase.id);
+        clasesByModulo[clase.modulo_id].push({ id: clase.id, cohorte: (clase as any).cohorte });
       }
 
       // 2. Fetch all approved cupo assignments for allowed levels
@@ -119,6 +120,7 @@ const Estudiantes = () => {
         .select(`
           emprendimiento_id,
           nivel,
+          cohorte,
           emprendimientos (
             id,
             nombre,
@@ -134,8 +136,8 @@ const Estudiantes = () => {
         .in("nivel", allowedNiveles)
         .eq("estado", "aprobado");
 
-      // Group students by nivel
-      const studentsByNivel: Record<string, Array<{ user_id: string; nombres: string; apellidos: string; avatar_url: string | null; emprendimiento_nombre: string }>> = {};
+      // Group students by nivel (with cohorte)
+      const studentsByNivel: Record<string, Array<{ user_id: string; nombres: string; apellidos: string; avatar_url: string | null; emprendimiento_nombre: string; cohorte: number }>> = {};
       const allStudentUserIds: string[] = [];
 
       for (const asig of (asignaciones || [])) {
@@ -149,16 +151,16 @@ const Estudiantes = () => {
           apellidos: usuario.apellidos || "",
           avatar_url: usuario.avatar_url,
           emprendimiento_nombre: emp.nombre || "",
+          cohorte: (asig as any).cohorte,
         });
         if (!allStudentUserIds.includes(usuario.id)) allStudentUserIds.push(usuario.id);
       }
 
       // 3. Fetch ALL progress records for all relevant classes in ONE query
-      const allClaseIds = Object.values(clasesByModulo).flat();
+      const allClaseIds = Object.values(clasesByModulo).flatMap(arr => arr.map(c => c.id));
       let allProgreso: Array<{ user_id: string; clase_id: string; completado: boolean }> = [];
       
       if (allClaseIds.length > 0 && allStudentUserIds.length > 0) {
-        // Batch in chunks of 500 to avoid query limits
         const chunkSize = 500;
         const progresoPromises = [];
         for (let i = 0; i < allStudentUserIds.length; i += chunkSize) {
@@ -177,11 +179,16 @@ const Estudiantes = () => {
         }
       }
 
-      // Index progress by user_id + clase_id
       const progresoMap = new Set<string>();
       for (const p of allProgreso) {
         if (p.completado) progresoMap.add(`${p.user_id}:${p.clase_id}`);
       }
+
+      // Helper: a class applies to a student if no cohorte set, or student's cohorte is included
+      const claseApplies = (clase: ClaseInfo, studentCohorte: number) => {
+        if (!clase.cohorte || clase.cohorte.length === 0) return true;
+        return clase.cohorte.includes(studentCohorte);
+      };
 
       // 4. Build result
       const resultado: Record<NivelEmprendimiento, ModuleWithProgress[]> = {
@@ -192,13 +199,15 @@ const Estudiantes = () => {
 
       for (const modulo of filteredModulos) {
         if (!modulo.nivel) continue;
-        const clasesIds = clasesByModulo[modulo.id] || [];
-        const totalClases = clasesIds.length;
+        const clasesArr = clasesByModulo[modulo.id] || [];
         const students = studentsByNivel[modulo.nivel] || [];
 
         const estudiantes: StudentProgress[] = students.map(student => {
-          const clasesCompletadas = clasesIds.filter(cId => progresoMap.has(`${student.user_id}:${cId}`)).length;
-          const progresoTotal = totalClases > 0 ? (clasesCompletadas / totalClases) * 100 : 0;
+          // Only classes applicable to the student's cohorte
+          const applicable = clasesArr.filter(c => claseApplies(c, student.cohorte));
+          const total = applicable.length;
+          const clasesCompletadas = applicable.filter(c => progresoMap.has(`${student.user_id}:${c.id}`)).length;
+          const progresoTotal = total > 0 ? (clasesCompletadas / total) * 100 : 0;
           return {
             ...student,
             progreso_porcentaje: Math.round(progresoTotal),
@@ -212,7 +221,7 @@ const Estudiantes = () => {
         resultado[modulo.nivel].push({
           id: modulo.id,
           titulo: modulo.titulo,
-          total_clases: totalClases,
+          total_clases: clasesArr.length,
           progreso_promedio: Math.round(progresoPromedio),
           estudiantes,
         });
