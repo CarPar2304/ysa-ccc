@@ -594,6 +594,12 @@ const Estudiantes = () => {
           <NotificacionesModal open={modalOpen} onOpenChange={setModalOpen} />
         )}
 
+        <ExportAsistenciaModal
+          open={asistenciaModalOpen}
+          onClose={() => setAsistenciaModalOpen(false)}
+          allowedNiveles={allowedNiveles}
+        />
+
         {isOperador && !isAdmin && (
           <ExportOptionsModal
             candidatos={exportData || []}
