@@ -50,7 +50,7 @@ const Estudiantes = () => {
   const handleDownloadModuloZip = async (moduloId: string, moduloTitulo: string) => {
     setDownloadingModuloId(moduloId);
     try {
-      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const resp = await fetch(
         `https://aqfpzlrpqszoxbjojavc.supabase.co/functions/v1/download-entregas-modulo`,
