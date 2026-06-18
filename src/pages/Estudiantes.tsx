@@ -7,14 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send, Download } from "lucide-react";
+import { Loader2, Send, Download, Archive } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { NotificacionesModal } from "@/components/estudiantes/NotificacionesModal";
+import { ExportAsistenciaModal } from "@/components/estudiantes/ExportAsistenciaModal";
 import { useState } from "react";
 import { ExportOptionsModal } from "@/components/candidatos/ExportOptionsModal";
 import { Thumb } from "@/lib/imageUrl";
 import type { CandidatoData } from "@/pages/Candidatos";
+import { useToast } from "@/hooks/use-toast";
+
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
 
@@ -40,6 +43,41 @@ const Estudiantes = () => {
   const { niveles: operadorNiveles, loading: nivelesLoading } = useOperadorNiveles();
   const [modalOpen, setModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [asistenciaModalOpen, setAsistenciaModalOpen] = useState(false);
+  const [downloadingModuloId, setDownloadingModuloId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleDownloadModuloZip = async (moduloId: string, moduloTitulo: string) => {
+    setDownloadingModuloId(moduloId);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const resp = await fetch(
+        `https://aqfpzlrpqszoxbjojavc.supabase.co/functions/v1/download-entregas-modulo`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ modulo_id: moduloId }),
+        }
+      );
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Error desconocido" }));
+        throw new Error(err.error || "Error al descargar");
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `entregables-${moduloTitulo.replace(/[^\w\s-]/g, "").trim()}.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Descarga lista" });
+    } catch (e: any) {
+      toast({ title: "Error al descargar", description: e.message, variant: "destructive" });
+    } finally {
+      setDownloadingModuloId(null);
+    }
+  };
 
   const hasAccess = isAdmin || isOperador;
 
@@ -425,10 +463,27 @@ const Estudiantes = () => {
         {modulos.map((modulo) => (
           <Card key={modulo.id}>
             <CardHeader>
-              <CardTitle>{modulo.titulo}</CardTitle>
-              <CardDescription>
-                {modulo.total_clases} clases • Progreso promedio: {modulo.progreso_promedio}%
-              </CardDescription>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <CardTitle>{modulo.titulo}</CardTitle>
+                  <CardDescription>
+                    {modulo.total_clases} clases • Progreso promedio: {modulo.progreso_promedio}%
+                  </CardDescription>
+                </div>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadModuloZip(modulo.id, modulo.titulo)}
+                    disabled={downloadingModuloId === modulo.id}
+                  >
+                    {downloadingModuloId === modulo.id
+                      ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      : <Archive className="h-4 w-4 mr-2" />}
+                    Descargar entregables (ZIP)
+                  </Button>
+                )}
+              </div>
               <Progress value={modulo.progreso_promedio} className="mt-2" />
             </CardHeader>
             <CardContent>
@@ -502,6 +557,10 @@ const Estudiantes = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setAsistenciaModalOpen(true)}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Asistencia
+            </Button>
             {(isOperador && !isAdmin) && (
               <Button variant="outline" onClick={() => setExportModalOpen(true)}>
                 <Download className="mr-2 h-4 w-4" />
@@ -534,6 +593,12 @@ const Estudiantes = () => {
         {isAdmin && (
           <NotificacionesModal open={modalOpen} onOpenChange={setModalOpen} />
         )}
+
+        <ExportAsistenciaModal
+          open={asistenciaModalOpen}
+          onClose={() => setAsistenciaModalOpen(false)}
+          allowedNiveles={allowedNiveles}
+        />
 
         {isOperador && !isAdmin && (
           <ExportOptionsModal

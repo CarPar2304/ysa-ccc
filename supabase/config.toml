@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.register-mentor]
 verify_jwt = false
+
+[functions.download-entregas-modulo]
+verify_jwt = false
+
+[functions.match-asistencia-ia]
+verify_jwt = false
