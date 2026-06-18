@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -64,19 +64,20 @@ Deno.serve(async (req) => {
 
     const userPrompt = `Items no encontrados:\n${not_found.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}\n\nContexto extra del usuario:\n${extra_context || "(ninguno)"}\n\nCatálogo de emprendimientos del nivel ${nivel}:\n${catalog.map((c) => `- id=${c.id} | nombre="${c.nombre}" | fundador="${c.owner}" | email="${c.email}"`).join("\n")}\n\nDevuelve un array "suggestions" con un objeto por cada item en el mismo orden. Cada objeto: { "item": string, "emprendimiento_id": string|null, "emprendimiento_nombre": string|null, "razon": string }.`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
+        temperature: 0.1,
       }),
     });
 
