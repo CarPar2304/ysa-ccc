@@ -7,14 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send, Download } from "lucide-react";
+import { Loader2, Send, Download, Archive } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { NotificacionesModal } from "@/components/estudiantes/NotificacionesModal";
+import { ExportAsistenciaModal } from "@/components/estudiantes/ExportAsistenciaModal";
 import { useState } from "react";
 import { ExportOptionsModal } from "@/components/candidatos/ExportOptionsModal";
 import { Thumb } from "@/lib/imageUrl";
 import type { CandidatoData } from "@/pages/Candidatos";
+import { useToast } from "@/hooks/use-toast";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
 
