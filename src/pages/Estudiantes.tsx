@@ -17,7 +17,7 @@ import { ExportOptionsModal } from "@/components/candidatos/ExportOptionsModal";
 import { Thumb } from "@/lib/imageUrl";
 import type { CandidatoData } from "@/pages/Candidatos";
 import { useToast } from "@/hooks/use-toast";
-import { supabase as supabaseClient } from "@/integrations/supabase/client";
+
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
 
