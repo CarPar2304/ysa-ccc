@@ -235,16 +235,18 @@ Deno.serve(async (req) => {
 
     if (jobs.length === 0) return json({ error: "No hay archivos en las entregas de este módulo" }, 404);
 
-    const stream = new ReadableStream<Uint8Array>({
-      async start(controller) {
+    const zipStream = new TransformStream<Uint8Array>();
+    const writer = zipStream.writable.getWriter();
+
+    (async () => {
         const entries: CentralEntry[] = [];
         const firstErrors: string[] = [];
         let offset = 0;
         let added = 0;
         let failed = 0;
 
-        const push = (bytes: Uint8Array) => {
-          controller.enqueue(bytes);
+        const push = async (bytes: Uint8Array) => {
+          await writer.write(bytes);
           offset += bytes.byteLength;
         };
 
@@ -252,15 +254,15 @@ Deno.serve(async (req) => {
           const nameBytes = encoder.encode(entryName);
           const { time, day } = dosDateTime();
           const entryOffset = offset;
-          push(localHeader(nameBytes.length, time, day));
-          push(nameBytes);
+          await push(localHeader(nameBytes.length, time, day));
+          await push(nameBytes);
 
           let crc = 0;
           let size = 0;
           if (source instanceof Uint8Array) {
             crc = updateCrc32(crc, source);
             size = source.byteLength;
-            push(source);
+            await push(source);
           } else if (source.body) {
             const reader = source.body.getReader();
             try {
@@ -270,13 +272,13 @@ Deno.serve(async (req) => {
                 if (!value) continue;
                 crc = updateCrc32(crc, value);
                 size += value.byteLength;
-                push(value);
+                await push(value);
               }
             } finally {
               reader.releaseLock();
             }
           }
-          push(dataDescriptor(crc, size));
+          await push(dataDescriptor(crc, size));
           entries.push({ nameBytes, crc, size, offset: entryOffset, time, day });
         };
 
@@ -321,21 +323,20 @@ Deno.serve(async (req) => {
           let centralSize = 0;
           for (const entry of entries) {
             const header = centralHeader(entry);
-            push(header);
-            push(entry.nameBytes);
+            await push(header);
+            await push(entry.nameBytes);
             centralSize += header.byteLength + entry.nameBytes.byteLength;
           }
-          push(endOfCentralDirectory(entries.length, centralSize, centralOffset));
+          await push(endOfCentralDirectory(entries.length, centralSize, centralOffset));
           console.log(`[download-entregas-modulo] stream added=${added} failed=${failed}`);
-          controller.close();
+          await writer.close();
         } catch (streamErr) {
           console.error("[download-entregas-modulo] stream error", streamErr);
-          controller.error(streamErr);
+          await writer.abort(streamErr);
         }
-      },
-    });
+    })();
 
-    return new Response(stream, {
+    return new Response(zipStream.readable, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/zip",
