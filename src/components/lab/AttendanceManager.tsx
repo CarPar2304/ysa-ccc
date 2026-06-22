@@ -111,8 +111,9 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
   const handleValidate = async () => {
     const emails = parseEmails(rawEmails);
     const empNames = parseList(rawEmps);
-    if (emails.length === 0 && empNames.length === 0) {
-      toast({ title: "Ingresa correos o nombres de emprendimientos", variant: "destructive" });
+    const ids = parseList(rawIds).map(normalizeId).filter((x) => x.length > 0);
+    if (emails.length === 0 && empNames.length === 0 && ids.length === 0) {
+      toast({ title: "Ingresa correos, nombres de emprendimientos o identificaciones", variant: "destructive" });
       return;
     }
 
