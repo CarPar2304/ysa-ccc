@@ -112,53 +112,85 @@ Deno.serve(async (req) => {
     const moduloFolder = zip.folder(moduloName)!;
     const usedNames = new Set<string>();
     let added = 0;
+    let failed = 0;
+    const firstErrors: string[] = [];
 
+    // Build the list of files to download
+    type FileJob = { tareaName: string; empNombre: string; archivoName: string; path: string };
+    const jobs: FileJob[] = [];
     for (const tarea of tareas) {
       const tareaEntregas = entregas.filter((e) => e.tarea_id === tarea.id);
       if (tareaEntregas.length === 0) continue;
       const tareaName = sanitize(tarea.titulo);
-      const tareaFolder = moduloFolder.folder(tareaName)!;
-
       for (const ent of tareaEntregas) {
         const archivos = Array.isArray(ent.archivos_urls) ? ent.archivos_urls as { name: string; url: string }[] : [];
         const empNombre = sanitize(ownerMap.get(ent.user_id) || memberMap.get(ent.user_id) || "sin_emprendimiento");
-
         for (const archivo of archivos) {
           if (!archivo?.url) continue;
-          const path = extractPath(archivo.url);
-          const { data: blob, error: dErr } = await admin.storage.from(BUCKET).download(path);
-          if (dErr || !blob) {
-            console.error("Download error", path, dErr?.message);
-            continue;
-          }
-          const { ext } = splitExt(archivo.name || path.split("/").pop() || "");
-          const baseName = `${moduloName} - ${tareaName} - ${empNombre}`;
-          let finalName = `${baseName}${ext}`;
-          let uniqueKey = `${tareaName}/${finalName}`;
-          let counter = 2;
-          while (usedNames.has(uniqueKey)) {
-            finalName = `${baseName} (${counter})${ext}`;
-            uniqueKey = `${tareaName}/${finalName}`;
-            counter++;
-          }
-          usedNames.add(uniqueKey);
-          const buf = new Uint8Array(await blob.arrayBuffer());
-          tareaFolder.file(finalName, buf);
-          added++;
+          jobs.push({ tareaName, empNombre, archivoName: archivo.name || "", path: extractPath(archivo.url) });
         }
       }
     }
 
-    if (added === 0) return json({ error: "No se encontraron archivos para descargar" }, 404);
+    console.log(`[download-entregas-modulo] tareas=${tareas.length} entregas=${entregas.length} archivos=${jobs.length}`);
 
-    const zipBlob = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE", compressionOptions: { level: 6 } });
+    if (jobs.length === 0) return json({ error: "No hay archivos en las entregas de este módulo" }, 404);
+
+    // Download in parallel batches to keep CPU/memory in check
+    const BATCH = 6;
+    for (let i = 0; i < jobs.length; i += BATCH) {
+      const slice = jobs.slice(i, i + BATCH);
+      const results = await Promise.all(slice.map(async (j) => {
+        try {
+          const { data: blob, error: dErr } = await admin.storage.from(BUCKET).download(j.path);
+          if (dErr || !blob) return { j, ok: false, err: dErr?.message || "blob vacío" };
+          const buf = new Uint8Array(await blob.arrayBuffer());
+          return { j, ok: true, buf };
+        } catch (e) {
+          return { j, ok: false, err: (e as Error).message };
+        }
+      }));
+      for (const r of results) {
+        if (!r.ok) {
+          failed++;
+          if (firstErrors.length < 3) firstErrors.push(`${r.j.path}: ${r.err}`);
+          continue;
+        }
+        const tareaFolder = moduloFolder.folder(r.j.tareaName)!;
+        const { ext } = splitExt(r.j.archivoName || r.j.path.split("/").pop() || "");
+        const baseName = `${moduloName} - ${r.j.tareaName} - ${r.j.empNombre}`;
+        let finalName = `${baseName}${ext}`;
+        let uniqueKey = `${r.j.tareaName}/${finalName}`;
+        let counter = 2;
+        while (usedNames.has(uniqueKey)) {
+          finalName = `${baseName} (${counter})${ext}`;
+          uniqueKey = `${r.j.tareaName}/${finalName}`;
+          counter++;
+        }
+        usedNames.add(uniqueKey);
+        tareaFolder.file(finalName, r.buf!);
+        added++;
+      }
+    }
+
+    console.log(`[download-entregas-modulo] added=${added} failed=${failed}`);
+
+    if (added === 0) {
+      return json({ error: `No se pudo descargar ningún archivo. Ejemplos: ${firstErrors.join(" | ") || "sin detalle"}` }, 500);
+    }
+
+    // Use STORE (no compression) — entregas are usually already-compressed formats (pdf, jpg, docx, zip)
+    const zipBlob = await zip.generateAsync({ type: "uint8array", compression: "STORE" });
     return new Response(zipBlob, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="entregables-${moduloName}.zip"`,
+        "X-Files-Added": String(added),
+        "X-Files-Failed": String(failed),
       },
     });
+
   } catch (err) {
     console.error("[download-entregas-modulo] error", err);
     return json({ error: (err as Error).message }, 500);
