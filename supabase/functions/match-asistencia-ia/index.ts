@@ -3,66 +3,123 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!OPENAI_API_KEY) {
+      console.error("[match-asistencia-ia] OPENAI_API_KEY no configurado");
+      return json({ error: "OPENAI_API_KEY no está configurada en los secretos del proyecto" }, 500);
+    }
 
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!authHeader) return json({ error: "No autorizado" }, 401);
+
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data: userRes, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userRes?.user) return json({ error: "No autorizado: sesión inválida" }, 401);
+    const user = userRes.user;
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const { data: isAdmin } = await admin.rpc("is_admin", { _user_id: user.id });
-    const { data: isMentor } = await admin.rpc("is_mentor", { _user_id: user.id });
-    if (!isAdmin && !isMentor) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const [{ data: roles }, { data: operadores }] = await Promise.all([
+      admin.from("user_roles").select("role").eq("user_id", user.id),
+      admin.from("mentor_operadores").select("activo").eq("mentor_id", user.id).eq("activo", true),
+    ]);
+    const roleNames = (roles || []).map((r: any) => String(r.role));
+    const allowed = roleNames.includes("admin") || roleNames.includes("mentor") || (operadores || []).length > 0;
+    if (!allowed) return json({ error: "Sin permisos" }, 403);
 
-    const { not_found, extra_context, nivel, cohortes } = await req.json();
-    if (!Array.isArray(not_found) || not_found.length === 0) {
-      return new Response(JSON.stringify({ suggestions: [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const body = await req.json().catch(() => ({}));
+    const { not_found_emails = [], not_found_emps = [], not_found_ids = [], extra_context = "", nivel, cohortes } = body;
+    // Backwards compat: support old "not_found" flat list
+    const legacy: string[] = Array.isArray(body.not_found) ? body.not_found : [];
 
-    // Build catalog of emprendimientos in nivel/cohortes
+    const allItems: Array<{ value: string; tipo: "email" | "emprendimiento" | "identificacion" }> = [
+      ...not_found_emails.map((v: string) => ({ value: v, tipo: "email" as const })),
+      ...not_found_emps.map((v: string) => ({ value: v, tipo: "emprendimiento" as const })),
+      ...not_found_ids.map((v: string) => ({ value: v, tipo: "identificacion" as const })),
+      ...legacy.map((v: string) => ({ value: v, tipo: (v.includes("@") ? "email" : "emprendimiento") as any })),
+    ];
+    if (allItems.length === 0) return json({ suggestions: [] });
+    if (!nivel) return json({ error: "nivel requerido" }, 400);
+
+    // Catalog
     const { data: cupos } = await admin
       .from("asignacion_cupos")
       .select("emprendimiento_id, cohorte, nivel")
       .eq("estado", "aprobado")
       .eq("nivel", nivel);
-
-    const filtered = (cupos || []).filter((c) => !cohortes || cohortes.includes(c.cohorte));
+    const filtered = (cupos || []).filter((c) => !cohortes || cohortes.length === 0 || cohortes.includes(c.cohorte));
     const empIds = [...new Set(filtered.map((c) => c.emprendimiento_id))];
-    if (empIds.length === 0) return new Response(JSON.stringify({ suggestions: [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (empIds.length === 0) return json({ suggestions: [] });
 
+    const cupoByEmp = new Map(filtered.map((c) => [c.emprendimiento_id, c]));
     const { data: emps } = await admin.from("emprendimientos").select("id, nombre, user_id").in("id", empIds);
-    const userIds = (emps || []).map((e) => e.user_id);
-    const { data: usuarios } = await admin.from("usuarios").select("id, nombres, apellidos, email").in("id", userIds);
+    const { data: miembros } = await admin.from("emprendimiento_miembros").select("user_id, emprendimiento_id").in("emprendimiento_id", empIds);
+    const allUserIds = [...new Set([...(emps || []).map((e) => e.user_id), ...(miembros || []).map((m) => m.user_id)])];
+    const { data: usuarios } = allUserIds.length
+      ? await admin.from("usuarios").select("id, nombres, apellidos, email, numero_identificacion").in("id", allUserIds)
+      : { data: [] as any[] };
     const userMap = new Map((usuarios || []).map((u) => [u.id, u]));
 
     const catalog = (emps || []).map((e) => {
-      const u = userMap.get(e.user_id);
+      const cupo = cupoByEmp.get(e.id);
+      const owner = userMap.get(e.user_id);
+      const cofIds = (miembros || []).filter((m) => m.emprendimiento_id === e.id && m.user_id !== e.user_id).map((m) => m.user_id);
+      const cofounders = cofIds.map((id) => userMap.get(id)).filter(Boolean).map((u: any) => ({
+        nombre: `${u.nombres || ""} ${u.apellidos || ""}`.trim(),
+        email: u.email || "",
+        identificacion: u.numero_identificacion || "",
+      }));
       return {
-        id: e.id,
+        emprendimiento_id: e.id,
         nombre: e.nombre,
-        owner: u ? `${u.nombres || ""} ${u.apellidos || ""}`.trim() : "",
-        email: u?.email || "",
+        nivel: cupo?.nivel,
+        cohorte: cupo?.cohorte,
+        owner: owner ? {
+          nombre: `${owner.nombres || ""} ${owner.apellidos || ""}`.trim(),
+          email: owner.email || "",
+          identificacion: owner.numero_identificacion || "",
+        } : null,
+        cofounders,
       };
     });
 
-    const systemPrompt = `Eres un asistente que asocia items no encontrados con emprendimientos de un catálogo. Para cada item, sugiere el emprendimiento más probable del catálogo si hay coincidencia razonable (typos, mayúsculas, abreviaciones, nombre parcial), o null si no hay match claro. Sé conservador.`;
+    const systemPrompt = `Eres un asistente experto en cruzar registros de asistencia con un catálogo de emprendimientos.
+Recibirás items NO encontrados (correos, nombres de emprendimientos o números de identificación) y un catálogo de emprendimientos del nivel/cohorte seleccionado.
+Para cada item, encuentra el emprendimiento del catálogo que mejor coincida considerando:
+- Typos, mayúsculas/minúsculas, tildes, abreviaciones, palabras omitidas.
+- Para emails: coincidencia parcial con email del owner o cofounders, o variantes del nombre.
+- Para nombres de emprendimientos: similitud por nombre.
+- Para identificaciones: igualdad numérica con owner o cofounders ignorando puntos/guiones/espacios.
+Sé conservador: si no hay coincidencia clara, devuelve null. Devuelve SIEMPRE JSON válido.`;
 
-    const userPrompt = `Items no encontrados:\n${not_found.map((n: string, i: number) => `${i + 1}. ${n}`).join("\n")}\n\nContexto extra del usuario:\n${extra_context || "(ninguno)"}\n\nCatálogo de emprendimientos del nivel ${nivel}:\n${catalog.map((c) => `- id=${c.id} | nombre="${c.nombre}" | fundador="${c.owner}" | email="${c.email}"`).join("\n")}\n\nDevuelve un array "suggestions" con un objeto por cada item en el mismo orden. Cada objeto: { "item": string, "emprendimiento_id": string|null, "emprendimiento_nombre": string|null, "razon": string }.`;
+    const userPrompt = `ITEMS NO ENCONTRADOS (${allItems.length}):
+${allItems.map((it, i) => `${i + 1}. [${it.tipo}] ${it.value}`).join("\n")}
+
+CONTEXTO EXTRA DEL USUARIO:
+${extra_context || "(ninguno)"}
+
+CATÁLOGO DE EMPRENDIMIENTOS (nivel=${nivel}${cohortes?.length ? `, cohortes=${cohortes.join(",")}` : ""}):
+${JSON.stringify(catalog, null, 2)}
+
+Devuelve un objeto JSON con la forma:
+{ "suggestions": [ { "item": "<valor original>", "tipo": "email|emprendimiento|identificacion", "emprendimiento_id": "<id o null>", "emprendimiento_nombre": "<nombre o null>", "razon": "<por qué coincide>" } ] }
+Un objeto por cada item recibido, en el mismo orden.`;
 
     const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -84,36 +141,31 @@ Deno.serve(async (req) => {
     if (!aiResp.ok) {
       const status = aiResp.status;
       const txt = await aiResp.text();
-      console.error("AI error", status, txt);
-      if (status === 429) return new Response(JSON.stringify({ error: "Límite de uso de IA alcanzado. Intenta de nuevo en un momento." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (status === 402) return new Response(JSON.stringify({ error: "Créditos de IA agotados. Agrega créditos al workspace." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      return new Response(JSON.stringify({ error: "Error en IA" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("[match-asistencia-ia] OpenAI error", status, txt);
+      return json({ error: `OpenAI ${status}: ${txt.slice(0, 300)}` }, 502);
     }
 
     const aiData = await aiResp.json();
     const content = aiData.choices?.[0]?.message?.content || "{}";
     let parsed: any = {};
-    try { parsed = JSON.parse(content); } catch { parsed = {}; }
+    try { parsed = JSON.parse(content); } catch (e) {
+      console.error("[match-asistencia-ia] invalid JSON from model", content);
+      return json({ error: "Respuesta inválida de IA" }, 502);
+    }
     const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
 
-    // Enrich with user_ids (owner + cofounders) for the suggested emprendimiento
-    const suggestedEmpIds = suggestions.map((s: any) => s.emprendimiento_id).filter(Boolean);
-    let cofounders: { user_id: string; emprendimiento_id: string }[] = [];
-    if (suggestedEmpIds.length > 0) {
-      const { data: mems } = await admin.from("emprendimiento_miembros").select("user_id, emprendimiento_id").in("emprendimiento_id", suggestedEmpIds);
-      cofounders = mems || [];
-    }
+    // Enrich with user_ids
     const enriched = suggestions.map((s: any) => {
-      if (!s.emprendimiento_id) return s;
+      if (!s.emprendimiento_id) return { ...s, user_ids: [] };
       const emp = (emps || []).find((e) => e.id === s.emprendimiento_id);
       if (!emp) return { ...s, user_ids: [] };
-      const ids = [emp.user_id, ...cofounders.filter((c) => c.emprendimiento_id === s.emprendimiento_id).map((c) => c.user_id)];
-      return { ...s, user_ids: [...new Set(ids)] };
+      const cofIds = (miembros || []).filter((m) => m.emprendimiento_id === emp.id).map((m) => m.user_id);
+      return { ...s, user_ids: [...new Set([emp.user_id, ...cofIds])] };
     });
 
-    return new Response(JSON.stringify({ suggestions: enriched }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return json({ suggestions: enriched });
   } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("[match-asistencia-ia] error", err);
+    return json({ error: (err as Error).message }, 500);
   }
 });
