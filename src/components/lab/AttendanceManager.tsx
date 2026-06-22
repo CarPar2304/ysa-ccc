@@ -255,9 +255,15 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
     }
     setIaLoading(true);
     try {
-      const notFound = [...notFoundEmails, ...notFoundEmps];
       const { data, error } = await supabase.functions.invoke("match-asistencia-ia", {
-        body: { not_found: notFound, extra_context: iaExtra, nivel: nivelModulo, cohortes },
+        body: {
+          not_found_emails: notFoundEmails,
+          not_found_emps: notFoundEmps,
+          not_found_ids: notFoundIds,
+          extra_context: iaExtra,
+          nivel: nivelModulo,
+          cohortes,
+        },
       });
       if (error) throw error;
       const sugs = (data?.suggestions || []).map((s: any) => ({ ...s, selected: !!s.emprendimiento_id }));
@@ -301,6 +307,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
     const resolvedItems = new Set(accepted.map((s) => s.item));
     setNotFoundEmails((prev) => prev.filter((e) => !resolvedItems.has(e)));
     setNotFoundEmps((prev) => prev.filter((e) => !resolvedItems.has(e)));
+    setNotFoundIds((prev) => prev.filter((e) => !resolvedItems.has(e)));
     setIaOpen(false);
     toast({ title: `${accepted.length} sugerencia(s) aplicada(s)` });
   };
@@ -321,7 +328,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
       const { error } = await supabase.from("progreso_usuario").upsert(records, { onConflict: "user_id,clase_id" });
       if (error) throw error;
       toast({ title: `Asistencia guardada para ${toSave.length} estudiante(s)` });
-      setShowResults(false); setRawEmails(""); setRawEmps(""); setValidatedUsers([]); setNotFoundEmails([]); setNotFoundEmps([]); setCohortStudents([]); setIaSuggestions([]);
+      setShowResults(false); setRawEmails(""); setRawEmps(""); setRawIds(""); setValidatedUsers([]); setNotFoundEmails([]); setNotFoundEmps([]); setNotFoundIds([]); setCohortStudents([]); setIaSuggestions([]);
       fetchExistingAttendance();
     } catch (e) {
       console.error(e); toast({ title: "Error al guardar asistencia", variant: "destructive" });
@@ -332,7 +339,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
   const manualCount = cohortStudents.filter((u) => u.selected).length;
   const alreadyCount = validatedUsers.filter((u) => u.alreadyRegistered).length;
   const totalToSave = newUsersCount + manualCount;
-  const totalNotFound = notFoundEmails.length + notFoundEmps.length;
+  const totalNotFound = notFoundEmails.length + notFoundEmps.length + notFoundIds.length;
 
   return (
     <Card>
