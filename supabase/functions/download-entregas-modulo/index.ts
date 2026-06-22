@@ -1,5 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import JSZip from "https://esm.sh/jszip@3.10.1";
+import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +8,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const BUCKET = "entregas";
 
 function sanitize(name: string): string {
@@ -36,6 +34,112 @@ function extractPath(urlOrPath: string): string {
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
+const encoder = new TextEncoder();
+const ZIP_FLAG_DATA_DESCRIPTOR_UTF8 = 0x0808;
+const ZIP_STORE_METHOD = 0;
+const ZIP_MAX_32 = 0xffffffff;
+
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+function updateCrc32(crc: number, chunk: Uint8Array): number {
+  let c = (crc ^ ZIP_MAX_32) >>> 0;
+  for (const byte of chunk) c = (CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8)) >>> 0;
+  return (c ^ ZIP_MAX_32) >>> 0;
+}
+
+function dosDateTime(date = new Date()): { time: number; day: number } {
+  const year = Math.max(1980, date.getFullYear());
+  return {
+    time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2),
+    day: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate(),
+  };
+}
+
+function binary(size: number, write: (view: DataView) => void): Uint8Array {
+  const out = new Uint8Array(size);
+  write(new DataView(out.buffer));
+  return out;
+}
+
+function localHeader(nameLength: number, time: number, day: number): Uint8Array {
+  return binary(30, (v) => {
+    v.setUint32(0, 0x04034b50, true);
+    v.setUint16(4, 20, true);
+    v.setUint16(6, ZIP_FLAG_DATA_DESCRIPTOR_UTF8, true);
+    v.setUint16(8, ZIP_STORE_METHOD, true);
+    v.setUint16(10, time, true);
+    v.setUint16(12, day, true);
+    v.setUint32(14, 0, true);
+    v.setUint32(18, 0, true);
+    v.setUint32(22, 0, true);
+    v.setUint16(26, nameLength, true);
+    v.setUint16(28, 0, true);
+  });
+}
+
+function dataDescriptor(crc: number, size: number): Uint8Array {
+  if (size > ZIP_MAX_32) throw new Error("Archivo demasiado grande para ZIP estándar");
+  return binary(16, (v) => {
+    v.setUint32(0, 0x08074b50, true);
+    v.setUint32(4, crc >>> 0, true);
+    v.setUint32(8, size, true);
+    v.setUint32(12, size, true);
+  });
+}
+
+type CentralEntry = { nameBytes: Uint8Array; crc: number; size: number; offset: number; time: number; day: number };
+
+function centralHeader(entry: CentralEntry): Uint8Array {
+  if (entry.size > ZIP_MAX_32 || entry.offset > ZIP_MAX_32) throw new Error("ZIP demasiado grande para formato estándar");
+  return binary(46, (v) => {
+    v.setUint32(0, 0x02014b50, true);
+    v.setUint16(4, 20, true);
+    v.setUint16(6, 20, true);
+    v.setUint16(8, ZIP_FLAG_DATA_DESCRIPTOR_UTF8, true);
+    v.setUint16(10, ZIP_STORE_METHOD, true);
+    v.setUint16(12, entry.time, true);
+    v.setUint16(14, entry.day, true);
+    v.setUint32(16, entry.crc >>> 0, true);
+    v.setUint32(20, entry.size, true);
+    v.setUint32(24, entry.size, true);
+    v.setUint16(28, entry.nameBytes.length, true);
+    v.setUint16(30, 0, true);
+    v.setUint16(32, 0, true);
+    v.setUint16(34, 0, true);
+    v.setUint16(36, 0, true);
+    v.setUint32(38, 0, true);
+    v.setUint32(42, entry.offset, true);
+  });
+}
+
+function endOfCentralDirectory(entries: number, centralSize: number, centralOffset: number): Uint8Array {
+  if (entries > 65535 || centralSize > ZIP_MAX_32 || centralOffset > ZIP_MAX_32) {
+    throw new Error("ZIP demasiado grande para formato estándar");
+  }
+  return binary(22, (v) => {
+    v.setUint32(0, 0x06054b50, true);
+    v.setUint16(4, 0, true);
+    v.setUint16(6, 0, true);
+    v.setUint16(8, entries, true);
+    v.setUint16(10, entries, true);
+    v.setUint32(12, centralSize, true);
+    v.setUint32(16, centralOffset, true);
+    v.setUint16(20, 0, true);
+  });
+}
+
+function storageObjectUrl(path: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 Deno.serve(async (req) => {
@@ -107,13 +211,8 @@ Deno.serve(async (req) => {
       if (n) memberMap.set(m.user_id, n);
     }
 
-    const zip = new JSZip();
     const moduloName = sanitize(modulo.titulo);
-    const moduloFolder = zip.folder(moduloName)!;
     const usedNames = new Set<string>();
-    let added = 0;
-    let failed = 0;
-    const firstErrors: string[] = [];
 
     // Build the list of files to download
     type FileJob = { tareaName: string; empNombre: string; archivoName: string; path: string };
@@ -136,58 +235,112 @@ Deno.serve(async (req) => {
 
     if (jobs.length === 0) return json({ error: "No hay archivos en las entregas de este módulo" }, 404);
 
-    // Download in parallel batches to keep CPU/memory in check
-    const BATCH = 6;
-    for (let i = 0; i < jobs.length; i += BATCH) {
-      const slice = jobs.slice(i, i + BATCH);
-      const results = await Promise.all(slice.map(async (j) => {
+    const zipStream = new TransformStream<Uint8Array>();
+    const writer = zipStream.writable.getWriter();
+
+    (async () => {
+        const entries: CentralEntry[] = [];
+        const firstErrors: string[] = [];
+        let offset = 0;
+        let added = 0;
+        let failed = 0;
+
+        const push = async (bytes: Uint8Array) => {
+          await writer.write(bytes);
+          offset += bytes.byteLength;
+        };
+
+        const addEntry = async (entryName: string, source: Response | Uint8Array) => {
+          const nameBytes = encoder.encode(entryName);
+          const { time, day } = dosDateTime();
+          const entryOffset = offset;
+          await push(localHeader(nameBytes.length, time, day));
+          await push(nameBytes);
+
+          let crc = 0;
+          let size = 0;
+          if (source instanceof Uint8Array) {
+            crc = updateCrc32(crc, source);
+            size = source.byteLength;
+            await push(source);
+          } else if (source.body) {
+            const reader = source.body.getReader();
+            try {
+              while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                if (!value) continue;
+                crc = updateCrc32(crc, value);
+                size += value.byteLength;
+                await push(value);
+              }
+            } finally {
+              reader.releaseLock();
+            }
+          }
+          await push(dataDescriptor(crc, size));
+          entries.push({ nameBytes, crc, size, offset: entryOffset, time, day });
+        };
+
         try {
-          const { data: blob, error: dErr } = await admin.storage.from(BUCKET).download(j.path);
-          if (dErr || !blob) return { j, ok: false, err: dErr?.message || "blob vacío" };
-          const buf = new Uint8Array(await blob.arrayBuffer());
-          return { j, ok: true, buf };
-        } catch (e) {
-          return { j, ok: false, err: (e as Error).message };
-        }
-      }));
-      for (const r of results) {
-        if (!r.ok) {
-          failed++;
-          if (firstErrors.length < 3) firstErrors.push(`${r.j.path}: ${r.err}`);
-          continue;
-        }
-        const tareaFolder = moduloFolder.folder(r.j.tareaName)!;
-        const { ext } = splitExt(r.j.archivoName || r.j.path.split("/").pop() || "");
-        const baseName = `${moduloName} - ${r.j.tareaName} - ${r.j.empNombre}`;
-        let finalName = `${baseName}${ext}`;
-        let uniqueKey = `${r.j.tareaName}/${finalName}`;
-        let counter = 2;
-        while (usedNames.has(uniqueKey)) {
-          finalName = `${baseName} (${counter})${ext}`;
-          uniqueKey = `${r.j.tareaName}/${finalName}`;
-          counter++;
-        }
-        usedNames.add(uniqueKey);
-        tareaFolder.file(finalName, r.buf!);
-        added++;
-      }
-    }
+          for (const j of jobs) {
+            const { ext } = splitExt(j.archivoName || j.path.split("/").pop() || "");
+            const baseName = `${moduloName} - ${j.tareaName} - ${j.empNombre}`;
+            let finalName = `${baseName}${ext}`;
+            let uniqueKey = `${j.tareaName}/${finalName}`;
+            let counter = 2;
+            while (usedNames.has(uniqueKey)) {
+              finalName = `${baseName} (${counter})${ext}`;
+              uniqueKey = `${j.tareaName}/${finalName}`;
+              counter++;
+            }
+            usedNames.add(uniqueKey);
 
-    console.log(`[download-entregas-modulo] added=${added} failed=${failed}`);
+            const fileResp = await fetch(storageObjectUrl(j.path), {
+              headers: { Authorization: `Bearer ${SERVICE_ROLE}`, apikey: SERVICE_ROLE },
+            });
+            if (!fileResp.ok || !fileResp.body) {
+              failed++;
+              const detail = `${j.path}: ${fileResp.status} ${fileResp.statusText}`;
+              if (firstErrors.length < 10) firstErrors.push(detail);
+              await fileResp.body?.cancel();
+              continue;
+            }
 
-    if (added === 0) {
-      return json({ error: `No se pudo descargar ningún archivo. Ejemplos: ${firstErrors.join(" | ") || "sin detalle"}` }, 500);
-    }
+            await addEntry(`${moduloName}/${j.tareaName}/${finalName}`, fileResp);
+            added++;
+          }
 
-    // Use STORE (no compression) — entregas are usually already-compressed formats (pdf, jpg, docx, zip)
-    const zipBlob = await zip.generateAsync({ type: "uint8array", compression: "STORE" });
-    return new Response(zipBlob, {
+          if (added === 0) {
+            const msg = encoder.encode(`No se pudo descargar ningún archivo.\n${firstErrors.join("\n") || "sin detalle"}\n`);
+            await addEntry(`${moduloName}/ERROR.txt`, msg);
+          } else if (failed > 0) {
+            const msg = encoder.encode(`Algunos archivos no pudieron incluirse:\n${firstErrors.join("\n")}\n`);
+            await addEntry(`${moduloName}/archivos-no-incluidos.txt`, msg);
+          }
+
+          const centralOffset = offset;
+          let centralSize = 0;
+          for (const entry of entries) {
+            const header = centralHeader(entry);
+            await push(header);
+            await push(entry.nameBytes);
+            centralSize += header.byteLength + entry.nameBytes.byteLength;
+          }
+          await push(endOfCentralDirectory(entries.length, centralSize, centralOffset));
+          console.log(`[download-entregas-modulo] stream added=${added} failed=${failed}`);
+          await writer.close();
+        } catch (streamErr) {
+          console.error("[download-entregas-modulo] stream error", streamErr);
+          await writer.abort(streamErr);
+        }
+    })();
+
+    return new Response(zipStream.readable, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="entregables-${moduloName}.zip"`,
-        "X-Files-Added": String(added),
-        "X-Files-Failed": String(failed),
       },
     });
 
