@@ -139,7 +139,7 @@ function endOfCentralDirectory(entries: number, centralSize: number, centralOffs
 }
 
 function storageObjectUrl(path: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`;
+  return `${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 Deno.serve(async (req) => {
