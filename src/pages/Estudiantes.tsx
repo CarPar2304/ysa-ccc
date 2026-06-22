@@ -65,8 +65,15 @@ const Estudiantes = () => {
         body: JSON.stringify({ modulo_id: moduloId }),
       });
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: "Error desconocido" }));
-        throw new Error(err.error || "Error al descargar");
+        const text = await resp.text();
+        let msg = text;
+        try { msg = JSON.parse(text).error || text; } catch {}
+        throw new Error(msg || `HTTP ${resp.status}`);
+      }
+      const ct = resp.headers.get("Content-Type") || "";
+      if (!ct.includes("zip")) {
+        const text = await resp.text();
+        throw new Error(`Respuesta inesperada: ${text.slice(0, 200)}`);
       }
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
