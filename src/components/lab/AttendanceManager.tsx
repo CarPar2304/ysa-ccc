@@ -369,7 +369,10 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
           <label className="text-xs font-medium">Nombres de emprendimientos (no sensible a mayúsculas)</label>
           <Textarea value={rawEmps} onChange={(e) => setRawEmps(e.target.value)} placeholder="Emprendimiento A&#10;Emprendimiento B" rows={3} className="text-xs" />
 
-          <Button size="sm" onClick={handleValidate} disabled={validating || (!rawEmails.trim() && !rawEmps.trim())} className="w-full">
+          <label className="text-xs font-medium">Números de identificación (puntos/guiones se ignoran)</label>
+          <Textarea value={rawIds} onChange={(e) => setRawIds(e.target.value)} placeholder="1.234.567.890&#10;1234567891" rows={3} className="text-xs" />
+
+          <Button size="sm" onClick={handleValidate} disabled={validating || (!rawEmails.trim() && !rawEmps.trim() && !rawIds.trim())} className="w-full">
             {validating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
             Validar
           </Button>
@@ -395,7 +398,10 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
                         {u.emprendimiento && <span className="text-muted-foreground"> · {u.emprendimiento}</span>}
                       </span>
                       <Badge variant="outline" className="text-[9px] px-1">
-                        {u.source === "email" ? "Email" : u.source === "emprendimiento" ? <><Building2 className="h-2.5 w-2.5 mr-0.5 inline" />Empr.</> : <><Sparkles className="h-2.5 w-2.5 mr-0.5 inline" />IA</>}
+                        {u.source === "email" ? "Email"
+                          : u.source === "emprendimiento" ? <><Building2 className="h-2.5 w-2.5 mr-0.5 inline" />Empr.</>
+                          : u.source === "identificacion" ? "ID"
+                          : <><Sparkles className="h-2.5 w-2.5 mr-0.5 inline" />IA</>}
                       </Badge>
                       {u.alreadyRegistered && <Badge variant="outline" className="text-[10px] px-1">Ya</Badge>}
                     </div>
@@ -415,6 +421,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
                 <div className="border border-destructive/30 rounded-lg p-1.5 space-y-0.5">
                   {notFoundEmails.map((e) => <p key={`e-${e}`} className="text-xs text-muted-foreground">📧 {e}</p>)}
                   {notFoundEmps.map((e) => <p key={`m-${e}`} className="text-xs text-muted-foreground">🏢 {e}</p>)}
+                  {notFoundIds.map((e) => <p key={`i-${e}`} className="text-xs text-muted-foreground">🪪 {e}</p>)}
                 </div>
               </div>
             )}
