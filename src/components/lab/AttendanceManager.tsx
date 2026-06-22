@@ -172,6 +172,26 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
         }
       }
 
+      // 2.5 Identification validation
+      let usuariosIds: any[] = [];
+      let notFoundIdsLocal: string[] = [];
+      if (ids.length > 0) {
+        // Fetch a broad set, then match normalized
+        const { data: idMatches } = await supabase
+          .from("usuarios")
+          .select("id, email, nombres, apellidos, numero_identificacion")
+          .not("numero_identificacion", "is", null);
+        const byNorm = new Map<string, any>();
+        for (const u of idMatches || []) {
+          const n = normalizeId(u.numero_identificacion || "");
+          if (n) byNorm.set(n, u);
+        }
+        for (const id of ids) {
+          const u = byNorm.get(id);
+          if (u) usuariosIds.push(u); else notFoundIdsLocal.push(id);
+        }
+      }
+
       // 3. Merge (dedupe by user id, email source wins)
       const userMap = new Map<string, ValidatedUser>();
       for (const u of usuariosEmail) {
@@ -185,11 +205,16 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
           if (!existing.emprendimiento) existing.emprendimiento = u.emprendimiento;
         }
       }
+      for (const u of usuariosIds) {
+        if (!userMap.has(u.id)) {
+          userMap.set(u.id, { id: u.id, email: u.email || "", nombres: u.nombres, apellidos: u.apellidos, emprendimiento: null, source: "identificacion", alreadyRegistered: false, selected: true });
+        }
+      }
 
-      // Fetch emprendimientos for email-found users to display
-      const emailUserIds = usuariosEmail.map((u) => u.id);
-      if (emailUserIds.length) {
-        const { data: emps } = await supabase.from("emprendimientos").select("user_id, nombre").in("user_id", emailUserIds);
+      // Fetch emprendimientos for users found by email/id
+      const needEmpUserIds = [...userMap.values()].filter((v) => !v.emprendimiento).map((v) => v.id);
+      if (needEmpUserIds.length) {
+        const { data: emps } = await supabase.from("emprendimientos").select("user_id, nombre").in("user_id", needEmpUserIds);
         for (const e of emps || []) {
           const v = userMap.get(e.user_id);
           if (v && !v.emprendimiento) v.emprendimiento = e.nombre;
@@ -208,6 +233,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
       setValidatedUsers([...userMap.values()]);
       setNotFoundEmails(notFoundE);
       setNotFoundEmps(notFoundEmp);
+      setNotFoundIds(notFoundIdsLocal);
       setShowResults(true);
       setIaSuggestions([]);
 
