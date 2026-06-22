@@ -1,46 +1,34 @@
-## Plan: 4 ajustes (descargas, exportación, IA con OpenAI, asistencia por cohorte)
+Plan de corrección definitiva:
 
-### 1) Descarga de entregables ZIP — "No autorizado"
-La función actual hace `auth.getUser()` con la sesión del usuario y luego consulta `user_roles`. Como el rol existe (`carlosparedesmiranda@gmail.com` = admin), el fallo se produce antes (probablemente `getUser()` o lectura de body). Cambios en `supabase/functions/download-entregas-modulo/index.ts`:
+1. **Descarga de entregables sin falso “No autorizado”**
+   - Cambiar la función `download-entregas-modulo` a un patrón robusto de dos clientes:
+     - validar el JWT con el cliente de usuario usando el `Authorization` recibido;
+     - verificar permisos con `user_roles` vía service role;
+     - permitir explícitamente `admin`, `mentor_operador` y `mentor`.
+   - Eliminar dependencias frágiles de `admin.auth.getUser(token)` como único camino de autenticación.
+   - Mejorar respuestas de error para distinguir: sin sesión, token inválido, usuario sin rol, módulo sin tareas o archivos no encontrados.
+   - Asegurar que el frontend envíe `Authorization`, `apikey` y use la URL/configuración correcta del proyecto.
+   - Desplegar y probar la edge function contra el entorno real.
 
-- Cambiar a `userClient.auth.getClaims(token)` (extrayendo el JWT del header) — patrón estándar de Lovable Cloud, evita problemas intermitentes con `getUser()`.
-- Validar rol con `admin.rpc("has_role", { _user_id, _role: "admin" })` y también `is_mentor` (para mentor_operador). Mantener fallback a consulta directa de `user_roles`.
-- Agregar `console.log` detallados en cada paso (auth recibido, user id, roles) para diagnosticar en logs si vuelve a fallar.
-- En el frontend `Estudiantes.tsx`, leer mejor el error: si `resp.status === 401/403`, pedir reautenticación.
+2. **Validación de asistencia por número de identificación**
+   - Agregar un tercer campo en `AttendanceManager`: “Números de identificación”.
+   - Buscar usuarios por `usuarios.numero_identificacion`, normalizando espacios, puntos, guiones y separadores.
+   - Mezclar resultados con los ya encontrados por correo y emprendimiento sin duplicados.
+   - Mostrar el origen como `Identificación` en los resultados.
+   - Enviar también los identificadores no encontrados al análisis IA.
 
-### 2) Modal de exportación — cohortes irreales
-En `src/components/estudiantes/ExportAsistenciaModal.tsx`:
+3. **Arreglar análisis con IA y darle contexto real**
+   - Reforzar `match-asistencia-ia` para usar únicamente `OPENAI_API_KEY` desde secretos y fallar con mensaje claro si no existe.
+   - Enviar al modelo un catálogo más completo por nivel/cohorte:
+     - nombre del emprendimiento;
+     - cohorte y nivel;
+     - dueño: nombre, email y número de identificación;
+     - cofundadores: nombre, email y número de identificación.
+   - Separar los ítems no encontrados por tipo (`email`, `emprendimiento`, `identificacion`) para que el modelo sepa qué está cruzando.
+   - Usar un formato JSON estricto y validar la respuesta antes de devolverla al frontend.
+   - Si OpenAI devuelve error, mostrar en la UI un mensaje útil en vez de solo “Edge Function returned a non-2xx status code”.
 
-- Eliminar el array fijo `[1,2,3,4]`. En su lugar, consultar `asignacion_cupos` (cohortes únicas existentes en los niveles seleccionados, solo Starter/Growth, estado `aprobado`) y mostrar solo esas opciones dinámicamente.
-- Por defecto seleccionar todas las cohortes disponibles.
-
-### 3) IA de validación de asistencia con token propio (OpenAI)
-En `supabase/functions/match-asistencia-ia/index.ts`:
-
-- Reemplazar `LOVABLE_API_KEY` y endpoint `ai.gateway.lovable.dev` por OpenAI: `https://api.openai.com/v1/chat/completions` con `Authorization: Bearer ${OPENAI_API_KEY}`.
-- Modelo: `gpt-4o-mini` (económico, soporta `response_format: json_object` de forma estable; `o4-mini` no soporta JSON mode con el mismo formato).
-- Mantener el mismo prompt y formato de respuesta.
-- Requiere guardar secret nuevo: **`OPENAI_API_KEY`** (lo pediré después de tu confirmación). Lo obtienes en https://platform.openai.com/api-keys.
-
-### 4) Asistencia por cohorte (corregir % y exportación)
-Hoy `progreso_usuario` se asocia a `clase_id`, pero el cálculo cuenta TODAS las clases del módulo sin importar la cohorte del estudiante. La columna `clases.cohorte` es `integer[]` (una clase puede pertenecer a 1+ cohortes). Cambios:
-
-**a) `ExportAsistenciaModal.tsx` (exportación Excel)**
-- Al calcular la asistencia por estudiante en cada módulo, filtrar `modClases` para incluir solo aquellas cuyo `clases.cohorte` contenga la cohorte del estudiante (`s.cohorte`). Si una clase no tiene cohorte definida, contarla para todos.
-- El `%` se calcula sobre ese subconjunto. En las columnas de la hoja, dejar la celda en blanco (gris claro) para clases que no aplican a esa cohorte (en lugar de ✗), para que se distinga claramente "no aplica" vs "ausente".
-- Cargar `cohorte` en la query inicial de clases: `select id, modulo_id, titulo, orden, cohorte`.
-
-**b) Vista de progreso del estudiante en la app**
-Buscar los componentes que muestran `% de asistencia` del estudiante por módulo (probablemente `Estudiantes.tsx` / `ProgresoModulo*` / `useProgresoUsuario`) y aplicar el mismo filtro: solo contar clases cuya `cohorte` contiene la cohorte aprobada del emprendimiento del usuario. Esto resuelve el caso "Kick off starter" donde aparece 50%.
-
-### Archivos a editar
-- `supabase/functions/download-entregas-modulo/index.ts`
-- `supabase/functions/match-asistencia-ia/index.ts`
-- `src/pages/Estudiantes.tsx`
-- `src/components/estudiantes/ExportAsistenciaModal.tsx`
-- Componente(s) de progreso por módulo del estudiante (a localizar)
-
-### Secret a agregar
-- `OPENAI_API_KEY` — te pediré que lo pegues una vez confirmes el plan.
-
-¿Apruebas para implementar?
+4. **Verificación**
+   - Revisar logs de ambas edge functions después del despliegue.
+   - Probar `match-asistencia-ia` con payload real/simulado.
+   - Probar descarga de entregables con sesión autenticada y confirmar que el admin `carlosparedesmiranda@gmail.com` está reconocido como `admin`.

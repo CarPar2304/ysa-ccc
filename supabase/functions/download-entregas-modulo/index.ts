@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const BUCKET = "entregas";
 
 function sanitize(name: string): string {
@@ -33,56 +34,63 @@ function extractPath(urlOrPath: string): string {
   return urlOrPath;
 }
 
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    console.log("[download-entregas-modulo] auth header present:", !!authHeader);
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No autorizado: falta token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    console.log("[download-entregas-modulo] hasAuth:", !!authHeader);
+    if (!authHeader || !/^bearer\s+/i.test(authHeader)) {
+      return json({ error: "No autorizado: falta token de sesión" }, 401);
     }
 
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-
-    // Resolve user via getUser with admin client (works without JWT layer)
-    const { data: userData, error: userErr } = await admin.auth.getUser(token);
+    // Validate JWT via user-context client (most reliable)
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) {
       console.error("[download-entregas-modulo] getUser error:", userErr?.message);
-      return new Response(JSON.stringify({ error: "No autorizado: token inválido" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "No autorizado: token inválido o expirado" }, 401);
     }
     const user = userData.user;
     console.log("[download-entregas-modulo] user:", user.id, user.email);
 
-    // Role check via direct user_roles read
-    const { data: roles, error: rolesErr } = await admin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+    // Permissions via user_roles + mentor_operadores (service role bypasses RLS)
+    const [{ data: roles, error: rolesErr }, { data: operadores }] = await Promise.all([
+      admin.from("user_roles").select("role").eq("user_id", user.id),
+      admin.from("mentor_operadores").select("activo").eq("mentor_id", user.id).eq("activo", true),
+    ]);
     if (rolesErr) {
       console.error("[download-entregas-modulo] roles error:", rolesErr.message);
-      return new Response(JSON.stringify({ error: "Error validando permisos" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: "Error validando permisos" }, 500);
     }
     const roleNames = (roles || []).map((r: any) => String(r.role));
-    console.log("[download-entregas-modulo] roles:", roleNames);
-    const allowed = roleNames.includes("admin") || roleNames.includes("mentor_operador") || roleNames.includes("mentor");
+    const isOperador = (operadores || []).length > 0;
+    console.log("[download-entregas-modulo] roles:", roleNames, "operador:", isOperador);
+    const allowed = roleNames.includes("admin") || roleNames.includes("mentor") || isOperador;
     if (!allowed) {
-      return new Response(JSON.stringify({ error: `Sin permisos. Roles: ${roleNames.join(", ") || "ninguno"}` }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return json({ error: `Sin permisos. Usuario ${user.email}. Roles: ${roleNames.join(", ") || "ninguno"}` }, 403);
     }
 
     const { modulo_id } = await req.json();
-    if (!modulo_id) return new Response(JSON.stringify({ error: "modulo_id requerido" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!modulo_id) return json({ error: "modulo_id requerido" }, 400);
 
     const { data: modulo } = await admin.from("modulos").select("titulo").eq("id", modulo_id).single();
-    if (!modulo) return new Response(JSON.stringify({ error: "Módulo no encontrado" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!modulo) return json({ error: "Módulo no encontrado" }, 404);
 
     const { data: tareas } = await admin.from("tareas").select("id, titulo").eq("modulo_id", modulo_id);
-    if (!tareas || tareas.length === 0) return new Response(JSON.stringify({ error: "No hay tareas en este módulo" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!tareas || tareas.length === 0) return json({ error: "No hay tareas en este módulo" }, 404);
 
     const tareaIds = tareas.map((t) => t.id);
     const { data: entregas } = await admin.from("entregas").select("id, tarea_id, user_id, archivos_urls").in("tarea_id", tareaIds);
-    if (!entregas || entregas.length === 0) return new Response(JSON.stringify({ error: "No hay entregas" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!entregas || entregas.length === 0) return json({ error: "No hay entregas" }, 404);
 
     const userIds = [...new Set(entregas.map((e) => e.user_id))];
     const { data: ownerEmps } = await admin.from("emprendimientos").select("id, nombre, user_id").in("user_id", userIds);
@@ -142,7 +150,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (added === 0) return new Response(JSON.stringify({ error: "No se encontraron archivos para descargar" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (added === 0) return json({ error: "No se encontraron archivos para descargar" }, 404);
 
     const zipBlob = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE", compressionOptions: { level: 6 } });
     return new Response(zipBlob, {
@@ -154,6 +162,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("[download-entregas-modulo] error", err);
-    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return json({ error: (err as Error).message }, 500);
   }
 });

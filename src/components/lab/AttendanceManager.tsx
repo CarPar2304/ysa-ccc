@@ -15,9 +15,13 @@ interface ValidatedUser {
   nombres: string | null;
   apellidos: string | null;
   emprendimiento: string | null;
-  source: "email" | "emprendimiento" | "ia";
+  source: "email" | "emprendimiento" | "identificacion" | "ia";
   alreadyRegistered: boolean;
   selected: boolean;
+}
+
+function normalizeId(s: string): string {
+  return (s || "").replace(/[\s.\-_]/g, "").trim();
 }
 
 interface CohortStudent {
@@ -43,11 +47,13 @@ function normalize(s: string): string {
 const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: AttendanceManagerProps) => {
   const [rawEmails, setRawEmails] = useState("");
   const [rawEmps, setRawEmps] = useState("");
+  const [rawIds, setRawIds] = useState("");
   const [validating, setValidating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validatedUsers, setValidatedUsers] = useState<ValidatedUser[]>([]);
   const [notFoundEmails, setNotFoundEmails] = useState<string[]>([]);
   const [notFoundEmps, setNotFoundEmps] = useState<string[]>([]);
+  const [notFoundIds, setNotFoundIds] = useState<string[]>([]);
   const [cohortStudents, setCohortStudents] = useState<CohortStudent[]>([]);
   const [existingAttendees, setExistingAttendees] = useState<{ id: string; nombres: string | null; apellidos: string | null; emprendimiento: string | null }[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -105,8 +111,9 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
   const handleValidate = async () => {
     const emails = parseEmails(rawEmails);
     const empNames = parseList(rawEmps);
-    if (emails.length === 0 && empNames.length === 0) {
-      toast({ title: "Ingresa correos o nombres de emprendimientos", variant: "destructive" });
+    const ids = parseList(rawIds).map(normalizeId).filter((x) => x.length > 0);
+    if (emails.length === 0 && empNames.length === 0 && ids.length === 0) {
+      toast({ title: "Ingresa correos, nombres de emprendimientos o identificaciones", variant: "destructive" });
       return;
     }
 
@@ -165,6 +172,26 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
         }
       }
 
+      // 2.5 Identification validation
+      let usuariosIds: any[] = [];
+      let notFoundIdsLocal: string[] = [];
+      if (ids.length > 0) {
+        // Fetch a broad set, then match normalized
+        const { data: idMatches } = await supabase
+          .from("usuarios")
+          .select("id, email, nombres, apellidos, numero_identificacion")
+          .not("numero_identificacion", "is", null);
+        const byNorm = new Map<string, any>();
+        for (const u of idMatches || []) {
+          const n = normalizeId(u.numero_identificacion || "");
+          if (n) byNorm.set(n, u);
+        }
+        for (const id of ids) {
+          const u = byNorm.get(id);
+          if (u) usuariosIds.push(u); else notFoundIdsLocal.push(id);
+        }
+      }
+
       // 3. Merge (dedupe by user id, email source wins)
       const userMap = new Map<string, ValidatedUser>();
       for (const u of usuariosEmail) {
@@ -178,11 +205,16 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
           if (!existing.emprendimiento) existing.emprendimiento = u.emprendimiento;
         }
       }
+      for (const u of usuariosIds) {
+        if (!userMap.has(u.id)) {
+          userMap.set(u.id, { id: u.id, email: u.email || "", nombres: u.nombres, apellidos: u.apellidos, emprendimiento: null, source: "identificacion", alreadyRegistered: false, selected: true });
+        }
+      }
 
-      // Fetch emprendimientos for email-found users to display
-      const emailUserIds = usuariosEmail.map((u) => u.id);
-      if (emailUserIds.length) {
-        const { data: emps } = await supabase.from("emprendimientos").select("user_id, nombre").in("user_id", emailUserIds);
+      // Fetch emprendimientos for users found by email/id
+      const needEmpUserIds = [...userMap.values()].filter((v) => !v.emprendimiento).map((v) => v.id);
+      if (needEmpUserIds.length) {
+        const { data: emps } = await supabase.from("emprendimientos").select("user_id, nombre").in("user_id", needEmpUserIds);
         for (const e of emps || []) {
           const v = userMap.get(e.user_id);
           if (v && !v.emprendimiento) v.emprendimiento = e.nombre;
@@ -201,6 +233,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
       setValidatedUsers([...userMap.values()]);
       setNotFoundEmails(notFoundE);
       setNotFoundEmps(notFoundEmp);
+      setNotFoundIds(notFoundIdsLocal);
       setShowResults(true);
       setIaSuggestions([]);
 
@@ -222,9 +255,15 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
     }
     setIaLoading(true);
     try {
-      const notFound = [...notFoundEmails, ...notFoundEmps];
       const { data, error } = await supabase.functions.invoke("match-asistencia-ia", {
-        body: { not_found: notFound, extra_context: iaExtra, nivel: nivelModulo, cohortes },
+        body: {
+          not_found_emails: notFoundEmails,
+          not_found_emps: notFoundEmps,
+          not_found_ids: notFoundIds,
+          extra_context: iaExtra,
+          nivel: nivelModulo,
+          cohortes,
+        },
       });
       if (error) throw error;
       const sugs = (data?.suggestions || []).map((s: any) => ({ ...s, selected: !!s.emprendimiento_id }));
@@ -268,6 +307,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
     const resolvedItems = new Set(accepted.map((s) => s.item));
     setNotFoundEmails((prev) => prev.filter((e) => !resolvedItems.has(e)));
     setNotFoundEmps((prev) => prev.filter((e) => !resolvedItems.has(e)));
+    setNotFoundIds((prev) => prev.filter((e) => !resolvedItems.has(e)));
     setIaOpen(false);
     toast({ title: `${accepted.length} sugerencia(s) aplicada(s)` });
   };
@@ -288,7 +328,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
       const { error } = await supabase.from("progreso_usuario").upsert(records, { onConflict: "user_id,clase_id" });
       if (error) throw error;
       toast({ title: `Asistencia guardada para ${toSave.length} estudiante(s)` });
-      setShowResults(false); setRawEmails(""); setRawEmps(""); setValidatedUsers([]); setNotFoundEmails([]); setNotFoundEmps([]); setCohortStudents([]); setIaSuggestions([]);
+      setShowResults(false); setRawEmails(""); setRawEmps(""); setRawIds(""); setValidatedUsers([]); setNotFoundEmails([]); setNotFoundEmps([]); setNotFoundIds([]); setCohortStudents([]); setIaSuggestions([]);
       fetchExistingAttendance();
     } catch (e) {
       console.error(e); toast({ title: "Error al guardar asistencia", variant: "destructive" });
@@ -299,7 +339,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
   const manualCount = cohortStudents.filter((u) => u.selected).length;
   const alreadyCount = validatedUsers.filter((u) => u.alreadyRegistered).length;
   const totalToSave = newUsersCount + manualCount;
-  const totalNotFound = notFoundEmails.length + notFoundEmps.length;
+  const totalNotFound = notFoundEmails.length + notFoundEmps.length + notFoundIds.length;
 
   return (
     <Card>
@@ -329,7 +369,10 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
           <label className="text-xs font-medium">Nombres de emprendimientos (no sensible a mayúsculas)</label>
           <Textarea value={rawEmps} onChange={(e) => setRawEmps(e.target.value)} placeholder="Emprendimiento A&#10;Emprendimiento B" rows={3} className="text-xs" />
 
-          <Button size="sm" onClick={handleValidate} disabled={validating || (!rawEmails.trim() && !rawEmps.trim())} className="w-full">
+          <label className="text-xs font-medium">Números de identificación (puntos/guiones se ignoran)</label>
+          <Textarea value={rawIds} onChange={(e) => setRawIds(e.target.value)} placeholder="1.234.567.890&#10;1234567891" rows={3} className="text-xs" />
+
+          <Button size="sm" onClick={handleValidate} disabled={validating || (!rawEmails.trim() && !rawEmps.trim() && !rawIds.trim())} className="w-full">
             {validating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
             Validar
           </Button>
@@ -355,7 +398,10 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
                         {u.emprendimiento && <span className="text-muted-foreground"> · {u.emprendimiento}</span>}
                       </span>
                       <Badge variant="outline" className="text-[9px] px-1">
-                        {u.source === "email" ? "Email" : u.source === "emprendimiento" ? <><Building2 className="h-2.5 w-2.5 mr-0.5 inline" />Empr.</> : <><Sparkles className="h-2.5 w-2.5 mr-0.5 inline" />IA</>}
+                        {u.source === "email" ? "Email"
+                          : u.source === "emprendimiento" ? <><Building2 className="h-2.5 w-2.5 mr-0.5 inline" />Empr.</>
+                          : u.source === "identificacion" ? "ID"
+                          : <><Sparkles className="h-2.5 w-2.5 mr-0.5 inline" />IA</>}
                       </Badge>
                       {u.alreadyRegistered && <Badge variant="outline" className="text-[10px] px-1">Ya</Badge>}
                     </div>
@@ -375,6 +421,7 @@ const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: A
                 <div className="border border-destructive/30 rounded-lg p-1.5 space-y-0.5">
                   {notFoundEmails.map((e) => <p key={`e-${e}`} className="text-xs text-muted-foreground">📧 {e}</p>)}
                   {notFoundEmps.map((e) => <p key={`m-${e}`} className="text-xs text-muted-foreground">🏢 {e}</p>)}
+                  {notFoundIds.map((e) => <p key={`i-${e}`} className="text-xs text-muted-foreground">🪪 {e}</p>)}
                 </div>
               </div>
             )}
