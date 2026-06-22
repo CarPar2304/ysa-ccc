@@ -15,9 +15,13 @@ interface ValidatedUser {
   nombres: string | null;
   apellidos: string | null;
   emprendimiento: string | null;
-  source: "email" | "emprendimiento" | "ia";
+  source: "email" | "emprendimiento" | "identificacion" | "ia";
   alreadyRegistered: boolean;
   selected: boolean;
+}
+
+function normalizeId(s: string): string {
+  return (s || "").replace(/[\s.\-_]/g, "").trim();
 }
 
 interface CohortStudent {
@@ -43,11 +47,13 @@ function normalize(s: string): string {
 const AttendanceManager = ({ claseId, moduloId, cohortes = [1], nivelModulo }: AttendanceManagerProps) => {
   const [rawEmails, setRawEmails] = useState("");
   const [rawEmps, setRawEmps] = useState("");
+  const [rawIds, setRawIds] = useState("");
   const [validating, setValidating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validatedUsers, setValidatedUsers] = useState<ValidatedUser[]>([]);
   const [notFoundEmails, setNotFoundEmails] = useState<string[]>([]);
   const [notFoundEmps, setNotFoundEmps] = useState<string[]>([]);
+  const [notFoundIds, setNotFoundIds] = useState<string[]>([]);
   const [cohortStudents, setCohortStudents] = useState<CohortStudent[]>([]);
   const [existingAttendees, setExistingAttendees] = useState<{ id: string; nombres: string | null; apellidos: string | null; emprendimiento: string | null }[]>([]);
   const [showResults, setShowResults] = useState(false);
