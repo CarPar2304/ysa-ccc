@@ -1,34 +1,37 @@
-Plan de corrección definitiva:
+## Root cause
 
-1. **Descarga de entregables sin falso “No autorizado”**
-   - Cambiar la función `download-entregas-modulo` a un patrón robusto de dos clientes:
-     - validar el JWT con el cliente de usuario usando el `Authorization` recibido;
-     - verificar permisos con `user_roles` vía service role;
-     - permitir explícitamente `admin`, `mentor_operador` y `mentor`.
-   - Eliminar dependencias frágiles de `admin.auth.getUser(token)` como único camino de autenticación.
-   - Mejorar respuestas de error para distinguir: sin sesión, token inválido, usuario sin rol, módulo sin tareas o archivos no encontrados.
-   - Asegurar que el frontend envíe `Authorization`, `apikey` y use la URL/configuración correcta del proyecto.
-   - Desplegar y probar la edge function contra el entorno real.
+Logs of `download-entregas-modulo` show:
 
-2. **Validación de asistencia por número de identificación**
-   - Agregar un tercer campo en `AttendanceManager`: “Números de identificación”.
-   - Buscar usuarios por `usuarios.numero_identificacion`, normalizando espacios, puntos, guiones y separadores.
-   - Mezclar resultados con los ya encontrados por correo y emprendimiento sin duplicados.
-   - Mostrar el origen como `Identificación` en los resultados.
-   - Enviar también los identificadores no encontrados al análisis IA.
+```
+hasAuth: true
+getUser error: Auth session missing!
+```
 
-3. **Arreglar análisis con IA y darle contexto real**
-   - Reforzar `match-asistencia-ia` para usar únicamente `OPENAI_API_KEY` desde secretos y fallar con mensaje claro si no existe.
-   - Enviar al modelo un catálogo más completo por nivel/cohorte:
-     - nombre del emprendimiento;
-     - cohorte y nivel;
-     - dueño: nombre, email y número de identificación;
-     - cofundadores: nombre, email y número de identificación.
-   - Separar los ítems no encontrados por tipo (`email`, `emprendimiento`, `identificacion`) para que el modelo sepa qué está cruzando.
-   - Usar un formato JSON estricto y validar la respuesta antes de devolverla al frontend.
-   - Si OpenAI devuelve error, mostrar en la UI un mensaje útil en vez de solo “Edge Function returned a non-2xx status code”.
+The function creates a Supabase client with the user's `Authorization` header in `global.headers` and then calls `userClient.auth.getUser()` with no argument. In current `@supabase/supabase-js@2`, that path requires a stored session and throws "Auth session missing!" even when a valid Bearer token is present in the headers. That is why even the admin (`carlosparedesmiranda@gmail.com`) gets `401 No autorizado: token inválido o expirado`.
 
-4. **Verificación**
-   - Revisar logs de ambas edge functions después del despliegue.
-   - Probar `match-asistencia-ia` con payload real/simulado.
-   - Probar descarga de entregables con sesión autenticada y confirmar que el admin `carlosparedesmiranda@gmail.com` está reconocido como `admin`.
+`match-asistencia-ia` has the identical pattern, so once any user reaches the auth check it returns 401 and the frontend surfaces it as `Edge Function returned a non-2xx status code`.
+
+## Fix
+
+In both `supabase/functions/download-entregas-modulo/index.ts` and `supabase/functions/match-asistencia-ia/index.ts`:
+
+1. Parse the JWT from the `Authorization` header (`token = authHeader.replace(/^bearer\s+/i, "")`).
+2. Validate it explicitly by passing the token: `await admin.auth.getUser(token)` (service-role client + explicit JWT — this works without a session).
+3. If invalid/expired, return 401 with the user's email when available for easier debugging.
+4. Keep the existing permission check (`user_roles` + `mentor_operadores`) using the service-role client.
+
+No frontend changes required — `Estudiantes.tsx` already sends `Authorization: Bearer <token>` and `apikey`, and `AttendanceManager.tsx` uses `supabase.functions.invoke` which sends the session token.
+
+## Verification
+
+After redeploying both functions:
+
+1. Call `download-entregas-modulo` via `supabase--curl_edge_functions` with an explicit `Authorization: Bearer <admin token>` and the current `modulo_id`. Expect a ZIP response or a meaningful 4xx (e.g. "No hay entregas") — not 401.
+2. Call `match-asistencia-ia` the same way with a small payload (`nivel`, one `not_found_emails` item) and confirm a 200 JSON with `suggestions` (OpenAI key is already present as `OPENAI_API_KEY`).
+3. Inspect `supabase--edge_function_logs` for both functions to confirm no `Auth session missing!` errors.
+4. Ask the user to retry "Descargar entregables" and "Analizar con IA" in the UI.
+
+## Files touched
+
+- `supabase/functions/download-entregas-modulo/index.ts` — switch auth validation to `admin.auth.getUser(token)`.
+- `supabase/functions/match-asistencia-ia/index.ts` — same change.

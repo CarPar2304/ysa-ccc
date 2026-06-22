@@ -26,15 +26,13 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     if (!authHeader) return json({ error: "No autorizado" }, 401);
+    const token = authHeader.replace(/^bearer\s+/i, "").trim();
 
-    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userRes, error: userErr } = await userClient.auth.getUser();
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const { data: userRes, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userRes?.user) return json({ error: "No autorizado: sesión inválida" }, 401);
     const user = userRes.user;
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     const [{ data: roles }, { data: operadores }] = await Promise.all([
       admin.from("user_roles").select("role").eq("user_id", user.id),
       admin.from("mentor_operadores").select("activo").eq("mentor_id", user.id).eq("activo", true),

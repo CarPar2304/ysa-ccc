@@ -48,11 +48,11 @@ Deno.serve(async (req) => {
       return json({ error: "No autorizado: falta token de sesión" }, 401);
     }
 
-    // Validate JWT via user-context client (most reliable)
-    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    const token = authHeader.replace(/^bearer\s+/i, "").trim();
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+    // Validate JWT explicitly (works without a stored session)
+    const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData?.user) {
       console.error("[download-entregas-modulo] getUser error:", userErr?.message);
       return json({ error: "No autorizado: token inválido o expirado" }, 401);
@@ -60,7 +60,6 @@ Deno.serve(async (req) => {
     const user = userData.user;
     console.log("[download-entregas-modulo] user:", user.id, user.email);
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     // Permissions via user_roles + mentor_operadores (service role bypasses RLS)
     const [{ data: roles, error: rolesErr }, { data: operadores }] = await Promise.all([
