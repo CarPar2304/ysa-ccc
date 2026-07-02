@@ -95,7 +95,8 @@ const Estudiantes = () => {
       });
       await Promise.all(workers);
 
-      if (Object.keys(entries).length === 0) {
+      const included = Object.keys(entries).length;
+      if (included === 0) {
         throw new Error(`No se pudo descargar ningún archivo. ${failed.slice(0, 3).join("; ")}`);
       }
       if (failed.length > 0) {
@@ -105,15 +106,26 @@ const Estudiantes = () => {
         ];
       }
 
+      // El formato ZIP estándar (sin Zip64) no soporta más de 4GB
+      const totalBytes = Object.values(entries).reduce((sum, [data]) => sum + data.byteLength, 0);
+      if (totalBytes > 3.8 * 1024 * 1024 * 1024) {
+        throw new Error("Los entregables superan 4GB, demasiado para un solo ZIP. Contacta soporte para descargarlos por tarea.");
+      }
+
       const zipped = zipSync(entries);
       const blob = new Blob([zipped], { type: "application/zip" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
+      const now = new Date();
+      const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}.${String(now.getMinutes()).padStart(2, "0")}`;
       a.href = url;
-      a.download = `entregables-${moduloTitulo.replace(/[^\w\s-]/g, "").trim()}.zip`;
+      a.download = `entregables-${moduloTitulo.replace(/[^\w\s-]/g, "").trim()} ${stamp}.zip`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast({ title: "Descarga lista" });
+      toast({
+        title: "Descarga lista",
+        description: `ZIP creado con ${included} archivo${included === 1 ? "" : "s"}${failed.length ? ` (${failed.length} no incluidos, ver archivos-no-incluidos.txt)` : ""}`,
+      });
     } catch (e: any) {
       toast({ title: "Error al descargar", description: e.message, variant: "destructive" });
     } finally {
