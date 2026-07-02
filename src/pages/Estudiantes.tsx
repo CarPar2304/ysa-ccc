@@ -17,6 +17,7 @@ import { ExportOptionsModal } from "@/components/candidatos/ExportOptionsModal";
 import { Thumb } from "@/lib/imageUrl";
 import type { CandidatoData } from "@/pages/Candidatos";
 import { useToast } from "@/hooks/use-toast";
+import { zipSync, strToU8 } from "fflate";
 
 
 type NivelEmprendimiento = Database["public"]["Enums"]["nivel_emprendimiento"];
@@ -70,12 +71,42 @@ const Estudiantes = () => {
         try { msg = JSON.parse(text).error || text; } catch {}
         throw new Error(msg || `HTTP ${resp.status}`);
       }
-      const ct = resp.headers.get("Content-Type") || "";
-      if (!ct.includes("zip")) {
-        const text = await resp.text();
-        throw new Error(`Respuesta inesperada: ${text.slice(0, 200)}`);
+      const payload: { modulo: string; files: { name: string; url: string }[]; errores?: string[] } = await resp.json();
+      const files = payload.files || [];
+      if (files.length === 0) throw new Error("No hay archivos en las entregas de este módulo");
+
+      // El ZIP se arma en el navegador: la Edge Function solo devuelve URLs
+      // firmadas, porque generar el ZIP en el servidor excedía su límite de CPU
+      // y producía archivos truncados/corruptos.
+      const entries: Record<string, [Uint8Array, { level: 0 }]> = {};
+      const failed: string[] = [...(payload.errores || [])];
+      let next = 0;
+      const workers = Array.from({ length: Math.min(4, files.length) }, async () => {
+        while (next < files.length) {
+          const file = files[next++];
+          try {
+            const r = await fetch(file.url);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            entries[file.name] = [new Uint8Array(await r.arrayBuffer()), { level: 0 }];
+          } catch (err: any) {
+            failed.push(`${file.name}: ${err.message}`);
+          }
+        }
+      });
+      await Promise.all(workers);
+
+      if (Object.keys(entries).length === 0) {
+        throw new Error(`No se pudo descargar ningún archivo. ${failed.slice(0, 3).join("; ")}`);
       }
-      const blob = await resp.blob();
+      if (failed.length > 0) {
+        entries[`${payload.modulo}/archivos-no-incluidos.txt`] = [
+          strToU8(`Algunos archivos no pudieron incluirse:\n${failed.join("\n")}\n`),
+          { level: 0 },
+        ];
+      }
+
+      const zipped = zipSync(entries);
+      const blob = new Blob([zipped], { type: "application/zip" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
